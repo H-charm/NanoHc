@@ -21,7 +21,7 @@ def create_meatadata_json(args):
     jobs_dir_name = "jobs_" + args.year
     
     ## read samples yaml file
-    samples_yaml_file = "/afs/cern.ch/user/i/iparaske/test/CMSSW_13_3_0/src/PhysicsTools/NanoHc/run/samples/mc_2018.yaml"
+    samples_yaml_file = os.environ['CMSSW_BASE'] + "/src/PhysicsTools/NanoHc/run/samples/mc_2018.yaml"
     with open(samples_yaml_file, 'r') as file:
         samples = yaml.safe_load(file)
 
