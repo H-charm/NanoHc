@@ -12,9 +12,9 @@ file_path = 'metadata.json'
 with open(file_path, 'r') as file:
     data = json.load(file)
     
-files = data["job_ids"][jobid]
+files = data["jobs"][int(jobid)]["input_files"]
 output_dir = data["output_dir"]
-sample = data["samples"][int(jobid)]
+sample = data["jobs"][int(jobid)]["sample_name"]
 
 ## convert keep_and_drop.txt to python list
 with open('keep_and_drop.txt', 'r') as file:

@@ -8,9 +8,18 @@ import json
 import os
 import sys
 
+## to divide datasets by number of files per job
+def get_chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
+
 ## read samples yaml file and produce json file to be used by condor
-def create_meatadata_json(jobs_dir_name, output_dir):
-        
+def create_meatadata_json(args):
+    
+    jobs_dir_name = "jobs_" + args.year
+    
     ## read samples yaml file
     samples_yaml_file = "/afs/cern.ch/user/i/iparaske/test/CMSSW_13_3_0/src/PhysicsTools/NanoHc/run/samples/mc_2018.yaml"
     with open(samples_yaml_file, 'r') as file:
@@ -30,13 +39,14 @@ def create_meatadata_json(jobs_dir_name, output_dir):
     json_file = jobs_dir_name + '/metadata.json'
     json_content = {}
     
-    json_content["output_dir"] = output_dir
-    json_content["samples"] = []
+    json_content["output_dir"] = args.output
 
-    json_content["job_ids"] = {}
-    for job_id, sample_name in enumerate(samples):
-        json_content["job_ids"][job_id] = das_files[sample_name]
-        json_content["samples"].append(sample_name)
+    json_content["jobs"] = []
+    job_id = 0
+    for sample_name in samples:
+        for chunk in enumerate(get_chunks(das_files[sample_name],args.n)):
+            json_content["jobs"].append({"job_id": job_id, "input_files": chunk[1], "sample_name": sample_name})
+            job_id += 1
 
     with open(json_file, 'w') as file:
         json.dump(json_content, file, indent=4)
@@ -47,7 +57,8 @@ def create_condor_submit(jobs_dir_name):
     ## find number of jobs from json file
     with open(jobs_dir_name + "/metadata.json", 'r') as file:
         data = json.load(file)  
-    jobs_list = list(data["job_ids"].keys())
+    njobs = len(data["jobs"])
+    jobs_list = [i for i in range(njobs)]
     
     ## write jobs txt file
     with open(jobs_dir_name + "/job_ids.txt", 'w') as file:
@@ -63,6 +74,9 @@ def create_condor_submit(jobs_dir_name):
 executable = condor_exec.sh
 
 arguments = $(jobid) 
+
+request_memory  = 2000
+request_disk    = 10000000
 
 error   = log/err.$(Process)
 output  = log/out.$(Process)
@@ -95,6 +109,7 @@ def main():
     parser.add_argument('--year', type=str, help='Year to run', default="2018")
     parser.add_argument('--output', type=str, help='Output dir', default = "/eos/user/i/iparaske/HcTrees/")
     parser.add_argument('--post',help='Merge output files',action='store_true')
+    parser.add_argument('-n',type=int, help='Number of files per job', default=10)
     args = parser.parse_args()
     
     jobs_dir_name = "jobs_" + args.year
@@ -102,8 +117,10 @@ def main():
     if args.post:
         merge_output_files(args.output, jobs_dir_name)
         sys.exit(0)
-    
+
+    ## print info    
     print("Will write output trees to " + args.output)
+    print("Number of files per job: " + str(args.n))
     
     ## create output dir
     os.system("mkdir -p " + args.output)
@@ -124,7 +141,7 @@ def main():
     os.system("cp condor_exec.sh " + jobs_dir_name)
     
     ## create metadata json and condor submit files in the jobs dir
-    create_meatadata_json(jobs_dir_name, args.output)
+    create_meatadata_json(args)
     create_condor_submit(jobs_dir_name)
 
 if __name__ == "__main__":
