@@ -1,0 +1,4 @@
+drop *
+keep Muon_*
+keep Electron_*
+keep Jet_*
