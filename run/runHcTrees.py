@@ -78,6 +78,7 @@ def create_condor_submit(jobs_dir_name):
     condor_submit_file = open(jobs_dir_name + "/submit.sh","w")
     condor_submit_file.write('''
 executable = condor_exec.sh
+use_x509userproxy = true
 
 arguments = $(jobid) ''' + cmssw_base + ''' ''' + jobs_dir_path + ''' 
 
