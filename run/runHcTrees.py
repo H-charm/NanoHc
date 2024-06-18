@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from os.path import samefile, sameopenfile
 import ROOT
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 import argparse
@@ -7,6 +8,7 @@ import yaml
 import json
 import os
 import sys
+import subprocess
 
 ## to divide datasets by number of files per job
 def get_chunks(l, n):
@@ -40,10 +42,11 @@ def create_meatadata_json(args):
     json_content = {}
     
     json_content["output_dir"] = args.output
-
+    json_content["sample_names"] = []
     json_content["jobs"] = []
     job_id = 0
     for sample_name in samples:
+        json_content["sample_names"].append(sample_name)
         for chunk in enumerate(get_chunks(das_files[sample_name],args.n)):
             json_content["jobs"].append({"job_id": job_id, "input_files": chunk[1], "sample_name": sample_name})
             job_id += 1
@@ -53,7 +56,10 @@ def create_meatadata_json(args):
 
 ## produce condor submit file
 def create_condor_submit(jobs_dir_name):
-        
+    
+    cmssw_base = os.environ['CMSSW_BASE']
+    jobs_dir_path = os.getcwd() + "/" + jobs_dir_name
+
     ## find number of jobs from json file
     with open(jobs_dir_name + "/metadata.json", 'r') as file:
         data = json.load(file)  
@@ -73,7 +79,7 @@ def create_condor_submit(jobs_dir_name):
     condor_submit_file.write('''
 executable = condor_exec.sh
 
-arguments = $(jobid) 
+arguments = $(jobid) ''' + cmssw_base + ''' ''' + jobs_dir_path + ''' 
 
 request_memory  = 2000
 request_disk    = 10000000
@@ -89,19 +95,28 @@ queue jobid from job_ids.txt
 
     condor_submit_file.close()
 
+
 def merge_output_files(output_dir, jobs_dir_name):
 
     file_path = jobs_dir_name + '/metadata.json'
     with open(file_path, 'r') as file:
         data = json.load(file)
     output_dir = data["output_dir"]
-    samples = data["samples"]
-    
-    for sample in samples:
-        hadd_command = "hadd " + output_dir + sample + ".root " + output_dir + "*" + sample + ".root"
-        # print(hadd_command)
-        os.system(hadd_command)
-    
+    sample_names = data["sample_names"]
+
+    for sample_name in sample_names:
+        input_files = []
+        output_file = output_dir + sample_name + "_tree.root"
+        for root, _, files in os.walk(output_dir):
+            for file in files:
+                if '_' in file:
+                    _, second_part = file.split('_', 1)
+                    if second_part.startswith(sample_name):
+                        input_files.append(os.path.join(root, file))
+                        
+        cmd = 'haddnano.py {outfile} {infiles}'.format(outfile=output_file, infiles=' '.join(input_files))
+        os.system(cmd)
+
 def main():
 
     ## parse arguments

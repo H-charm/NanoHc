@@ -3,7 +3,6 @@ from PhysicsTools.NanoHc.producers.HcTreeProducer import HcTreeProducerModule
 
 import sys
 import json 
-import subprocess
 
 jobid = name = sys.argv[1]
 
@@ -28,5 +27,5 @@ p = PostProcessor(
     modules=[HcTreeProducerModule()],
     outputbranchsel=keep_and_drop_branches,
     postfix="_"+sample,
-    maxEntries = 100)
+    prefetch=True)
 p.run()
