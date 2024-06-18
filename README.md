@@ -32,3 +32,10 @@ Submit to condor
 cd jobs_<year>  
 condor_submit submit.sh  
 ```  
+
+Merging output files  
+--------------------
+```  
+cd PhysicsTools/NanoHc/run  
+python3 runHcTrees.py --year <year> --output <output dir> -n <files per job> --post  
+```  
