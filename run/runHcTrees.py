@@ -78,7 +78,6 @@ def create_condor_submit(jobs_dir_name):
     condor_submit_file = open(jobs_dir_name + "/submit.sh","w")
     condor_submit_file.write('''
 executable = condor_exec.sh
-use_x509userproxy = true
 
 arguments = $(jobid) ''' + cmssw_base + ''' ''' + jobs_dir_path + ''' 
 
@@ -151,7 +150,8 @@ def main():
     os.system("cp processor.py " + jobs_dir_name)
     
     ## copy branches selections to jobs dir
-    os.system("cp keep_and_drop.txt " + jobs_dir_name)
+    os.system("cp keep_and_drop_input.txt " + jobs_dir_name)
+    os.system("cp keep_and_drop_output.txt " + jobs_dir_name)
     
     ## copy condor executable to jobs dir
     os.system("cp condor_exec.sh " + jobs_dir_name)
