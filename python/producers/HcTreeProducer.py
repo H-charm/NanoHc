@@ -1,4 +1,3 @@
-from yaml import events
 from PhysicsTools.NanoAODTools.postprocessing.framework.datamodel import Collection
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
 from ..helpers.triggerHelper import passTrigger
@@ -11,7 +10,6 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 class HcTreeProducer(Module):
     
     def __init__(self, year):
-        # pass
         self.year = year
 
     def beginJob(self):
@@ -55,6 +53,9 @@ class HcTreeProducer(Module):
         self.out.branch("Hcandidate_eta", "F", 20, lenVar="n_Hcandidates")
         self.out.branch("Hcandidate_phi", "F", 20, lenVar="n_Hcandidates")
         
+        if self.isMC:
+            self.out.branch("l1PreFiringWeight", "F", limitedPrecision=10)
+        
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
 
@@ -86,14 +87,11 @@ class HcTreeProducer(Module):
         if self._selectJets(event) is False:
             return False      
         
-        ## z candidates
         if self._selectZcandidates(event) is False:
             return False
         
-        ## find onshell and offshell Z candidates
         self._find_onshell_and_offshell_Zcandidates(event)   
         
-        ## H candidates
         self._selectHcandidates(event)
         
         self._fillEventInfo(event)
@@ -109,7 +107,26 @@ class HcTreeProducer(Module):
         if self.year == "2016":
             pass #FIX
         if self.year == "2017":
-            pass #FIX        
+            out_data["passTriggers"] = passTrigger(event, [
+                'HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL',
+                'HLT_DoubleEle33_CaloIdL_GsfTrkIdVL',
+                'HLT_Ele16_Ele12_Ele8_CaloIdL_TrackIdL',
+                'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8', 
+                'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8', 
+                'HLT_TripleMu_12_10_5', 
+                'HLT_TripleMu_10_5_5_D2', 
+                'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL', 
+                'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
+                'HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ',
+                'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ',
+                'HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ', 
+                'HLT_Mu8_DiEle12_CaloIdL_TrackIdL', 
+                'HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ', 
+                'HLT_Ele35_WPTight_Gsf_v', 
+                'HLT_Ele38_WPTight_Gsf_v', 
+                'HLT_Ele40_WPTight_Gsf_v', 
+                'HLT_IsoMu27',
+            ])
         elif self.year == "2018":
             out_data["passTriggers"] = passTrigger(event, [
                 'HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL',
@@ -211,7 +228,9 @@ class HcTreeProducer(Module):
         
         for mu in muons:
             
-            if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and mu.tightId:
+            if mu.pt > 30 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and mu.tightId:
+                mu._wp_ID = 'TightID'
+                mu._wp_Iso = 'LooseRelIso'
                 event.Muons.append(mu)
                 
                 
@@ -221,7 +240,9 @@ class HcTreeProducer(Module):
 
         electrons = Collection(event, "Electron")
         for el in electrons:
+            el.etaSC = el.eta + el.deltaEtaSC
             if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
+                el._wp_ID = 'wp90iso'
                 event.Electrons.append(el)
 
     def _selectJets(self, event):
@@ -306,6 +327,9 @@ class HcTreeProducer(Module):
         out_data["Hcandidate_pt"] = Hcandidate_pt
         out_data["Hcandidate_eta"] = Hcandidate_eta 
         out_data["Hcandidate_phi"] = Hcandidate_phi 
+                
+        if self.isMC:
+            out_data["l1PreFiringWeight"] = event.L1PreFiringWeight_Nom                
                 
         ## fill all branches
         for key in out_data:
