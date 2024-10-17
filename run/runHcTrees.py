@@ -18,30 +18,35 @@ def get_chunks(l, n):
 
 
 ## read samples yaml file and produce json file to be used by condor
-def create_meatadata_json(args):
+def create_metadata_json(args):
     
-    jobs_dir_name = "jobs_" + args.year
+    jobs_dir_name = "jobs_" + args.type + "_" + args.year
+    dataset_type = args.type
+    year = args.year
     
     ## read samples yaml file
-    samples_yaml_file = os.environ['CMSSW_BASE'] + "/src/PhysicsTools/NanoHc/run/samples/mc_2018.yaml"
+    samples_yaml_file = os.environ['CMSSW_BASE'] + "/src/PhysicsTools/NanoHc/run/samples/" + dataset_type + "_" + year + ".yaml"
     with open(samples_yaml_file, 'r') as file:
         samples = yaml.safe_load(file)
 
     das_files = {}
     for sample in samples:
-        ## find files using DAS
-        print("DAS query for dataset " + samples[sample])
-        das_query = 'dasgoclient --query="file dataset=' + samples[sample] + '"'
-        query_out = os.popen(das_query)
-        files_found = ['root://xrootd-cms.infn.it/'+_file.strip() for _file in query_out]
-        das_files[sample] = files_found
-        print(f"{len(files_found)} files found")
-        
+        for sub_sample in samples[sample]:
+            ## find files using DAS
+            print("DAS query for dataset " + sub_sample)
+            das_query = 'dasgoclient --query="file dataset=' + sub_sample + '"'
+            query_out = os.popen(das_query)
+            files_found = ['root://xrootd-cms.infn.it/'+_file.strip() for _file in query_out]
+            das_files.setdefault(sample, []).extend(files_found)
+            print(f"{len(files_found)} files found")
+                
     ## write json file
     json_file = jobs_dir_name + '/metadata.json'
     json_content = {}
     
     json_content["output_dir"] = args.output
+    json_content["year"] = args.year    
+    json_content["type"] = args.type    
     json_content["sample_names"] = []
     json_content["jobs"] = []
     job_id = 0
@@ -123,11 +128,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--year', type=str, help='Year to run', default="2018")
     parser.add_argument('--output', type=str, help='Output dir', default = "/eos/user/i/iparaske/HcTrees/")
+    parser.add_argument('--type', type=str, help='mc or data', default = "mc", choices=['mc', 'data'])
     parser.add_argument('--post',help='Merge output files',action='store_true')
     parser.add_argument('-n',type=int, help='Number of files per job', default=10)
     args = parser.parse_args()
     
-    jobs_dir_name = "jobs_" + args.year
+    jobs_dir_name = "jobs_" + args.type + "_" + args.year
 
     if args.post:
         merge_output_files(args.output, jobs_dir_name)
@@ -157,7 +163,7 @@ def main():
     os.system("cp condor_exec.sh " + jobs_dir_name)
     
     ## create metadata json and condor submit files in the jobs dir
-    create_meatadata_json(args)
+    create_metadata_json(args)
     create_condor_submit(jobs_dir_name)
 
 if __name__ == "__main__":

@@ -9,8 +9,10 @@ from ..helpers.utils import sumP4
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 class HcTreeProducer(Module):
-    def __init__(self):
-        pass
+    
+    def __init__(self, year):
+        # pass
+        self.year = year
 
     def beginJob(self):
         pass
@@ -19,6 +21,8 @@ class HcTreeProducer(Module):
         pass
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
+        self.isMC = bool(inputTree.GetBranch('genWeight'))
+        
         self.out = wrappedOutputTree
         
         ## define lepton branches
@@ -99,19 +103,33 @@ class HcTreeProducer(Module):
     def _selectTriggers(self, event):
 
         out_data = {}
-        
-        out_data["passTriggers"] = passTrigger(event, [
-            'HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL',
-            'HLT_DoubleEle25_CaloIdL_MW',
-            'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8',
-            'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL', 
-            'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
-            'HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
-            'HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ', 
-            'HLT_Ele32_WPTight_Gsf', 
-            'HLT_IsoMu24', 
-        ])
-        
+
+        if self.year == "2016APV":
+            pass #FIX
+        if self.year == "2016":
+            pass #FIX
+        if self.year == "2017":
+            pass #FIX        
+        elif self.year == "2018":
+            out_data["passTriggers"] = passTrigger(event, [
+                'HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL',
+                'HLT_DoubleEle25_CaloIdL_MW',
+                'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8',
+                'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL', 
+                'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
+                'HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
+                'HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ', 
+                'HLT_Ele32_WPTight_Gsf', 
+                'HLT_IsoMu24', 
+            ])
+        else:
+            print(f"Year {self.year} not found")
+            
+        # apply trigger selections on data
+        if not self.isMC: 
+            if not out_data['passTriggers']:
+                return False
+
         for key in out_data:
             self.out.fillBranch(key, out_data[key])
 
@@ -294,6 +312,3 @@ class HcTreeProducer(Module):
             self.out.fillBranch(key, out_data[key])
             
         return True
-
-# define modules using the syntax 'name = lambda : constructor' to avoid having them loaded when not needed
-HcTreeProducerModule = lambda: HcTreeProducer()
