@@ -15,15 +15,16 @@ key_dict = {"2015": 'Collisions16_UltraLegacy_goldenJSON',
 
 
 class PileupWeightProducer(Module, object):
-    def __init__(self, year, **kwargs):
+    def __init__(self, year, dataset_type, **kwargs):
         self.year = year
+        self.dataset_type = dataset_type
         self.nvtxVar = 'Pileup_nTrueInt'
         self.era = era_dict[self.year]
         correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/{self.era}/puWeights.json.gz'
         self.corr = correctionlib.CorrectionSet.from_file(correction_file)[key_dict[self.year]]
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
-        self.isMC = bool(inputTree.GetBranch('genWeight'))
+        self.isMC = True if self.dataset_type == "mc" else False
         if self.isMC:
             self.out = wrappedOutputTree
 
@@ -33,7 +34,7 @@ class PileupWeightProducer(Module, object):
         """process event, return True (go to next module) or False (fail, go to next event)"""
         if not self.isMC:
             return True
-
+        
         puWeight = self.corr.evaluate(getattr(event, self.nvtxVar), "nominal")
 
         self.out.fillBranch('puWeight', puWeight)

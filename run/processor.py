@@ -18,6 +18,8 @@ with open(file_path, 'r') as file:
 files = data["jobs"][int(jobid)]["input_files"]
 output_dir = data["output_dir"]
 year = data["year"]
+dataset_type = data["type"]
+golden_json = data["golden_json"]
 sample = data["jobs"][int(jobid)]["sample_name"]
 
 ## convert keep_and_drop_input.txt to python list
@@ -33,14 +35,15 @@ keep_and_drop_output_branches = [line.strip() for line in keep_and_drop_output_b
 p = PostProcessor(
     outputDir = output_dir, 
     inputFiles = files, 
-    modules=[HcTreeProducer(year),
-             PileupWeightProducer(year),
-            #  ElectronSFProducer(year), # pt binning starts at 10, our selections at 7 (keep it out for now)
-             MuonSFProducer(year),
+    modules=[HcTreeProducer(year, dataset_type),
+             PileupWeightProducer(year, dataset_type),
+            #  ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 (keep it out for now)
+             MuonSFProducer(year, dataset_type),
              LeptonVariablesModule(),
              TopLeptonMvaModule("2018", 'ULv1')],
     branchsel=keep_and_drop_input_branches,
     outputbranchsel=keep_and_drop_output_branches,
     postfix="_"+sample,
-    prefetch=True)
+    prefetch=True,
+    jsonInput=golden_json)
 p.run()

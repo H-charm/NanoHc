@@ -3,6 +3,5 @@ keep Muon_*
 keep Electron_*
 keep Jet_*
 keep HLT_*
-keep genWeight
-keep Pileup_nTrueInt
+keep Pileup_*
 keep L1PreFiringWeight_Nom

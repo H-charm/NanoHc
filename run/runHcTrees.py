@@ -10,6 +10,13 @@ import os
 import sys
 import subprocess
 
+golden_json = {
+    '2015': 'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',
+    '2016': 'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',
+    '2017': 'Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt',
+    '2018': 'Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt',
+}
+
 ## to divide datasets by number of files per job
 def get_chunks(l, n):
     """Yield successive n-sized chunks from l."""
@@ -20,8 +27,8 @@ def get_chunks(l, n):
 ## read samples yaml file and produce json file to be used by condor
 def create_metadata_json(args):
     
-    jobs_dir_name = "jobs_" + args.type + "_" + args.year
     dataset_type = args.type
+    jobs_dir_name = "jobs_" + dataset_type + "_" + args.year
     year = args.year
     
     ## read samples yaml file
@@ -46,7 +53,11 @@ def create_metadata_json(args):
     
     json_content["output_dir"] = args.output
     json_content["year"] = args.year    
-    json_content["type"] = args.type    
+    json_content["type"] = dataset_type
+    if dataset_type == "data":  
+        json_content["golden_json"] = os.environ['CMSSW_BASE'] + "/src/PhysicsTools/NanoHc/data/JSON/" + golden_json[args.year]
+    else:
+        json_content["golden_json"] = None
     json_content["sample_names"] = []
     json_content["jobs"] = []
     job_id = 0

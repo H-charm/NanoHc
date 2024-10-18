@@ -9,8 +9,9 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 class HcTreeProducer(Module):
     
-    def __init__(self, year):
+    def __init__(self, year, dataset_type):
         self.year = year
+        self.dataset_type = dataset_type
 
     def beginJob(self):
         pass
@@ -19,7 +20,7 @@ class HcTreeProducer(Module):
         pass
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
-        self.isMC = bool(inputTree.GetBranch('genWeight'))
+        self.isMC = True if self.dataset_type == "mc" else False
         
         self.out = wrappedOutputTree
         
