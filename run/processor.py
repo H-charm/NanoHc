@@ -7,6 +7,7 @@ from PhysicsTools.NanoHc.producers.topleptonmva import TopLeptonMvaModule
 
 import sys
 import json 
+import os
 
 jobid = name = sys.argv[1]
 
@@ -14,13 +15,15 @@ jobid = name = sys.argv[1]
 file_path = 'metadata.json'
 with open(file_path, 'r') as file:
     data = json.load(file)
-    
+
+## load from json file    
 files = data["jobs"][int(jobid)]["input_files"]
-output_dir = data["output_dir"]
+base_output_dir = data["output_dir"]
 year = data["year"]
 dataset_type = data["type"]
 golden_json = data["golden_json"]
 sample = data["jobs"][int(jobid)]["sample_name"]
+physics_process = data["jobs"][int(jobid)]["physics_process"]
 
 ## convert keep_and_drop_input.txt to python list
 with open('keep_and_drop_input.txt', 'r') as file:
@@ -31,6 +34,8 @@ keep_and_drop_input_branches = [line.strip() for line in keep_and_drop_input_bra
 with open('keep_and_drop_output.txt', 'r') as file:
     keep_and_drop_output_branches = file.readlines()
 keep_and_drop_output_branches = [line.strip() for line in keep_and_drop_output_branches]
+
+output_dir = os.path.join(base_output_dir, dataset_type, year, sample, physics_process) 
 
 p = PostProcessor(
     outputDir = output_dir, 
@@ -43,7 +48,7 @@ p = PostProcessor(
              TopLeptonMvaModule("2018", 'ULv1')],
     branchsel=keep_and_drop_input_branches,
     outputbranchsel=keep_and_drop_output_branches,
-    postfix="_"+sample,
+    postfix="_" + physics_process,
     prefetch=True,
     jsonInput=golden_json)
 p.run()
