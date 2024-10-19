@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from os.path import samefile, sameopenfile
 import ROOT
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 import argparse
@@ -8,7 +7,6 @@ import yaml
 import json
 import os
 import sys
-import subprocess
 from pathlib import Path
 
 golden_json = {
@@ -246,14 +244,18 @@ def run_lumi_wgt(args, jobs_dir_name):
     
     sample_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year)).iterdir() if d.is_dir()]
 
-    for sample_dir in sample_dirs:
-        physics_process_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year, sample_dir)).iterdir() if d.is_dir()]
+    for sample in sample_dirs:
+        physics_process_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year, sample)).iterdir() if d.is_dir()]
 
-        for physics_process_dir in physics_process_dirs:          
-            xsec = xsec_dict[physics_process_dir]
-            print(f"Adding lumi wgt for physics process {physics_process_dir}: xsec = {xsec}")  
+        for physics_process in physics_process_dirs:
+            if physics_process not in xsec_dict: 
+                print(f"Process {physics_process} not found in xsec file, xsec not added") 
+                continue
+                     
+            xsec = xsec_dict[physics_process]
+            print(f"Adding lumi wgt for physics process {physics_process}: xsec = {xsec}")  
             
-            for file in Path(os.path.join(base_output_dir, dataset_type, year, sample_dir, physics_process_dir)).iterdir():
+            for file in Path(os.path.join(base_output_dir, dataset_type, year, sample, physics_process)).iterdir():
                 add_weight_branch(file, xsec)
 
 
