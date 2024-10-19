@@ -130,17 +130,20 @@ def merge_output_files(jobs_dir_name):
     base_output_dir = data["output_dir"]
     dataset_type = data["type"]
     year = data["year"]
-    sample_names = data["sample_names"]
     merged_dir = os.path.join(base_output_dir, dataset_type, year, "merged")
     os.system("mkdir -p " + merged_dir)
     
-    for sample_name in sample_names:
+    sample_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year)).iterdir() if d.is_dir()]
+    
+    for sample_dir in sample_dirs:
+        if sample_dir == "merged": continue
         input_files = []
-        output_file = os.path.join(merged_dir, sample_name + "_tree.root")
+        output_file = os.path.join(merged_dir, sample_dir + "_tree.root")
         
-        physics_process_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year, sample_name)).iterdir() if d.is_dir()]
+        physics_process_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year, sample_dir)).iterdir() if d.is_dir()]
+
         for physics_process_dir in physics_process_dirs:
-            infiles_dir = os.path.join(base_output_dir, dataset_type, year, sample_name, physics_process_dir)
+            infiles_dir = os.path.join(base_output_dir, dataset_type, year, sample_dir, physics_process_dir)
             
             for root, _, files in os.walk(infiles_dir):
                 for file in files:
