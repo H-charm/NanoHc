@@ -27,7 +27,7 @@ def get_chunks(l, n):
 def create_metadata_json(args):
     
     dataset_type = args.type
-    jobs_dir_name = "jobs_" + dataset_type + "_" + args.year
+    jobs_dir = "jobs_" + dataset_type + "_" + args.year
     year = args.year
     
     ## read samples yaml file
@@ -51,10 +51,11 @@ def create_metadata_json(args):
             print(f"{len(files_found)} files found")
                                     
     ## write json file
-    json_file = jobs_dir_name + '/metadata.json'
+    json_file = jobs_dir + '/metadata.json'
     json_content = {}
     
     json_content["output_dir"] = args.output
+    json_content["jobs_dir"] = args.jobs_dir
     json_content["year"] = args.year    
     json_content["type"] = dataset_type
     if dataset_type == "data":  
@@ -64,12 +65,11 @@ def create_metadata_json(args):
     json_content["sample_names"] = []
     json_content["physics_processes"] = []
     json_content["jobs"] = []
-    job_id = 0
-    # json_content["sample_names"].append([sample_name for sample_name in samples])
-    
+        
     for sample_name in samples: json_content["sample_names"].append(sample_name)
     for physics_process in physics_processes: json_content["physics_processes"].append(physics_process)
     
+    job_id = 0
     for sample in samples:
         for physics_process in das_dict[sample]:
             for chunk in enumerate(get_chunks(das_dict[sample][physics_process],args.n)):
@@ -80,19 +80,19 @@ def create_metadata_json(args):
         json.dump(json_content, file, indent=4)
 
 ## produce condor submit file
-def create_condor_submit(jobs_dir_name):
+def create_condor_submit(args):
     
     cmssw_base = os.environ['CMSSW_BASE']
-    jobs_dir_path = os.getcwd() + "/" + jobs_dir_name
+    jobs_dir_path = os.getcwd() + "/" + args.jobs_dir
 
     ## find number of jobs from json file
-    with open(jobs_dir_name + "/metadata.json", 'r') as file:
+    with open(args.jobs_dir + "/metadata.json", 'r') as file:
         data = json.load(file)  
     njobs = len(data["jobs"])
     jobs_list = [i for i in range(njobs)]
     
     ## write jobs txt file
-    with open(jobs_dir_name + "/job_ids.txt", 'w') as file:
+    with open(args.jobs_dir + "/job_ids.txt", 'w') as file:
         for index, item in enumerate(jobs_list):
             if index < len(jobs_list) - 1:
                 file.write(str(item) + '\n')
@@ -100,7 +100,7 @@ def create_condor_submit(jobs_dir_name):
                 file.write(str(item))
         
     ## write condor submit 
-    condor_submit_file = open(jobs_dir_name + "/submit.sh","w")
+    condor_submit_file = open(args.jobs_dir + "/submit.sh","w")
     condor_submit_file.write('''
 executable = condor_exec.sh
 
@@ -121,9 +121,9 @@ queue jobid from job_ids.txt
     condor_submit_file.close()
 
 
-def merge_output_files(jobs_dir_name):
+def merge_output_files(args):
 
-    file_path = jobs_dir_name + '/metadata.json'
+    file_path = args.jobs_dir + '/metadata.json'
     with open(file_path, 'r') as file:
         data = json.load(file)
         
@@ -192,7 +192,7 @@ def parse_sample_xsec(cfgfile):
                     
     return xsec_dict
 
-def add_weight_branch(file, xsec, lumi=1000., treename='Events', wgtbranch='xsecWeight'):
+def add_weights(file, xsec, lumi=1000., treename='Events'):
     from array import array
     import ROOT
     ROOT.PyConfig.IgnoreCommandLineOptions = True
@@ -201,26 +201,19 @@ def add_weight_branch(file, xsec, lumi=1000., treename='Events', wgtbranch='xsec
         htmp = ROOT.TH1D('htmp', 'htmp', 1, 0, 10)
         tree.Project('htmp', '1.0', wgtvar)
         return float(htmp.Integral())
-
-    def _fill_const_branch(tree, branch_name, buff, lenVar=None):
-        if lenVar is not None:
-            b = tree.Branch(branch_name, buff, '%s[%s]/F' % (branch_name, lenVar))
-            b_lenVar = tree.GetBranch(lenVar)
-            buff_lenVar = array('I', [0])
-            b_lenVar.SetAddress(buff_lenVar)
+    
+    def _fill_const_branch(tree, branch_name, buff, lenVar=0):
+        if lenVar > 0:
+            b = tree.Branch(branch_name, buff, branch_name + "[" + str(nScaleWeights) + "]" + '/F')
+            b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
+            for _ in range(tree.GetEntries()):
+                b.Fill()
         else:
             b = tree.Branch(branch_name, buff, branch_name + '/F')
-
-        b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
-        for i in range(tree.GetEntries()):
-            if lenVar is not None:
-                b_lenVar.GetEntry(i)
-            b.Fill()
-
-        b.ResetAddress()
-        if lenVar is not None:
-            b_lenVar.ResetAddress()
-    
+            b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
+            for _ in range(tree.GetEntries()):
+                b.Fill()
+                
     f = ROOT.TFile(str(file), 'UPDATE')
     run_tree = f.Get('Runs')
     tree = f.Get(treename)
@@ -229,16 +222,44 @@ def add_weight_branch(file, xsec, lumi=1000., treename='Events', wgtbranch='xsec
     sumwgts = _get_sum(run_tree, 'genEventSumw')
     xsecwgt = xsec * lumi / sumwgts
     xsec_buff = array('f', [xsecwgt])
-    _fill_const_branch(tree, wgtbranch, xsec_buff)
+    _fill_const_branch(tree, "xsecWeight", xsec_buff)
 
+    # fill LHE weight re-normalization factors
+    if tree.GetBranch('LHEScaleWeight'):
+        run_tree.GetEntry(0)
+        nScaleWeights = run_tree.nLHEScaleSumw
+        scale_weight_norm_buff = array('f',
+                                       [sumwgts / _get_sum(run_tree, 'LHEScaleSumw[%d]*genEventSumw' % i)
+                                        for i in range(nScaleWeights)])
+        print('LHEScaleWeightNorm: ' + str(scale_weight_norm_buff))
+        _fill_const_branch(tree, "LHEScaleWeightNorm", scale_weight_norm_buff, lenVar=nScaleWeights)
+        
+    if tree.GetBranch('LHEPdfWeight'):
+        run_tree.GetEntry(0)
+        nPdfWeights = run_tree.nLHEPdfSumw
+        pdf_weight_norm_buff = array('f',
+                                     [sumwgts / _get_sum(run_tree, 'LHEPdfSumw[%d]*genEventSumw' % i)
+                                      for i in range(nPdfWeights)])
+        print('LHEPdfWeightNorm: ' + str(pdf_weight_norm_buff))
+        _fill_const_branch(tree, "LHEPdfWeightNorm", pdf_weight_norm_buff, lenVar=nScaleWeights)
+
+    # fill PS weight re-normalization factors
+    if tree.GetBranch('PSWeight') and run_tree.GetBranch('PSSumw'):
+        run_tree.GetEntry(0)
+        nPSWeights = run_tree.nPSSumw
+        ps_weight_norm_buff = array('f',
+                                    [sumwgts / _get_sum(run_tree, 'PSSumw[%d]*genEventSumw' % i)
+                                     for i in range(nPSWeights)])
+        print('PSWeightNorm: ' + str(ps_weight_norm_buff))
+        _fill_const_branch(tree, 'PSWeightNorm', ps_weight_norm_buff, lenVar='nPSWeight')
+               
     tree.Write(treename, ROOT.TObject.kOverwrite)
     f.Close()
 
-
-def run_lumi_wgt(args, jobs_dir_name):
+def run_add_weights(args):
     xsec_dict = parse_sample_xsec(args.xsec_file)
 
-    with open(jobs_dir_name + "/metadata.json", 'r') as file:
+    with open(args.jobs_dir + "/metadata.json", 'r') as file:
         data = json.load(file) 
     
     year = data["year"]
@@ -256,10 +277,10 @@ def run_lumi_wgt(args, jobs_dir_name):
                 continue
                      
             xsec = xsec_dict[physics_process]
-            print(f"Adding lumi wgt for physics process {physics_process}: xsec = {xsec}")  
+            print(f"Adding weights for physics process {physics_process}: xsec = {xsec}")  
             
             for file in Path(os.path.join(base_output_dir, dataset_type, year, sample, physics_process)).iterdir():
-                add_weight_branch(file, xsec)
+                add_weights(file, xsec)
 
 
 def main():
@@ -274,36 +295,28 @@ def main():
     parser.add_argument('--xsec-file', type=str, help='xsec file', default = "samples/xsec.conf")
     args = parser.parse_args()
     
-    jobs_dir_name = "jobs_" + args.type + "_" + args.year
+    jobs_dir = "jobs_" + args.type + "_" + args.year
+    args.jobs_dir = jobs_dir
 
     if args.post:
-        run_lumi_wgt(args, jobs_dir_name)
-        merge_output_files(jobs_dir_name)
+        run_add_weights(args)
+        merge_output_files(args)
         sys.exit(0)
 
-    ## print info    
     print("Will write output trees to " + args.output)
     print("Number of files per job: " + str(args.n))
     
-    ## create jobs dir based on year
-    os.system("mkdir -p " + jobs_dir_name)
-
-    ## create logs dir
-    os.system("mkdir -p " + jobs_dir_name + "/log/")
+    ## create necessary dirs
+    os.system("mkdir -p " + jobs_dir + "/log/")
     
-    ## copy processor to jobs dir
-    os.system("cp processor.py " + jobs_dir_name)
-    
-    ## copy branch selection to jobs dir
-    os.system("cp keep_and_drop_input.txt " + jobs_dir_name)
-    os.system("cp keep_and_drop_output.txt " + jobs_dir_name)
-    
-    ## copy condor executable to jobs dir
-    os.system("cp condor_exec.sh " + jobs_dir_name)
+    ## copy necessary files to jobs dir
+    os.system("cp processor.py " + jobs_dir)
+    os.system("cp keep_and_drop*.txt " + jobs_dir)
+    os.system("cp condor_exec.sh " + jobs_dir)
     
     ## create metadata json and condor submit files in the jobs dir
     create_metadata_json(args)
-    create_condor_submit(jobs_dir_name)
+    create_condor_submit(args)
 
 if __name__ == "__main__":
     main()
