@@ -329,8 +329,8 @@ class HcTreeProducer(Module):
         out_data["Hcandidate_eta"] = Hcandidate_eta 
         out_data["Hcandidate_phi"] = Hcandidate_phi 
                 
-        if self.isMC:
-            out_data["l1PreFiringWeight"] = event.L1PreFiringWeight_Nom                
+        # if self.isMC:
+        #     out_data["l1PreFiringWeight"] = event.L1PreFiringWeight_Nom                
                 
         ## fill all branches
         for key in out_data:

@@ -27,11 +27,13 @@ def get_chunks(l, n):
 def create_metadata_json(args):
     
     dataset_type = args.type
-    jobs_dir = "jobs_" + dataset_type + "_" + args.year
+    jobs_dir = args.jobs_dir
     year = args.year
     
     ## read samples yaml file
-    samples_yaml_file = os.environ['CMSSW_BASE'] + "/src/PhysicsTools/NanoHc/run/samples/" + dataset_type + "_" + year + ".yaml"
+    path_to_yaml_file = os.environ['CMSSW_BASE'] + "/src/PhysicsTools/NanoHc/run/samples/" + dataset_type + "_" + year
+    if args.local: path_to_yaml_file += "_local"
+    samples_yaml_file = path_to_yaml_file + ".yaml"
     with open(samples_yaml_file, 'r') as file:
         samples = yaml.safe_load(file)
 
@@ -40,16 +42,25 @@ def create_metadata_json(args):
     for sample in samples:        
         das_dict[sample] = {}
         for dataset in samples[sample]:
-            ## find files using DAS
-            print("DAS query for dataset " + dataset)
-            das_query = 'dasgoclient --query="file dataset=' + dataset + '"'
-            query_out = os.popen(das_query)
-            files_found = ['root://xrootd-cms.infn.it/'+_file.strip() for _file in query_out]
-            physics_process = dataset.split("/")[1]
-            physics_processes.append(physics_process)
-            das_dict[sample][physics_process] = files_found
-            print(f"{len(files_found)} files found")
-                                    
+            
+            if args.local:
+                ## find local files
+                files_found = [str(file) for file in Path(dataset).rglob('*') if file.is_file()]
+                physics_process = dataset.split("/")[-1]
+                physics_processes.append(physics_process)
+                das_dict[sample][physics_process] = files_found
+                print(f"{len(files_found)} files found")              
+            else:
+                ## find files using DAS
+                print("DAS query for dataset " + dataset)
+                das_query = 'dasgoclient --query="file dataset=' + dataset + '"'
+                query_out = os.popen(das_query)
+                files_found = ['root://xrootd-cms.infn.it/'+_file.strip() for _file in query_out]
+                physics_process = dataset.split("/")[1]
+                physics_processes.append(physics_process)
+                das_dict[sample][physics_process] = files_found
+                print(f"{len(files_found)} files found")
+                                              
     ## write json file
     json_file = jobs_dir + '/metadata.json'
     json_content = {}
@@ -293,9 +304,11 @@ def main():
     parser.add_argument('--post',help='Merge output files',action='store_true')
     parser.add_argument('-n',type=int, help='Number of files per job', default=10)
     parser.add_argument('--xsec-file', type=str, help='xsec file', default = "samples/xsec.conf")
+    parser.add_argument('--local', help='Run on local nanoAOD files', action='store_true')
     args = parser.parse_args()
-    
+
     jobs_dir = "jobs_" + args.type + "_" + args.year
+    if args.local: jobs_dir += "_local"
     args.jobs_dir = jobs_dir
 
     if args.post:
