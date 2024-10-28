@@ -299,7 +299,7 @@ def main():
     args.jobs_dir = jobs_dir
 
     if args.post:
-        run_add_weights(args)
+        # run_add_weights(args)
         merge_output_files(args)
         sys.exit(0)
 
