@@ -47,7 +47,7 @@ class ElectronSFProducer(Module, object):
         wgtReco = 1
         wgtID = 1
 
-        for lep in event.Electrons:
+        for lep in event.selectedElectrons:
             if abs(lep.pdgId) != 11:
                 continue
             wgtReco *= self.get_sf('Reco', lep)
@@ -101,7 +101,7 @@ class MuonSFProducer(Module, object):
         wgtID = 1
         wgtIso = 1
 
-        for lep in event.Muons:
+        for lep in event.selectedMuons:
             if abs(lep.pdgId) != 13:
                 continue
             wgtID *= self.get_sf('ID', lep)
