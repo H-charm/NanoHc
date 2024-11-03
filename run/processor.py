@@ -40,16 +40,18 @@ output_dir = os.path.join(base_output_dir, dataset_type, year, sample, physics_p
 p = PostProcessor(
     outputDir = output_dir, 
     inputFiles = files, 
-    modules=[HcTreeProducer(year, dataset_type),
-            #  PileupWeightProducer(year, dataset_type),
-            #  ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 (keep it out for now)
-            #  MuonSFProducer(year, dataset_type),
-            #  LeptonVariablesModule(),
-            #  TopLeptonMvaModule("2018", 'ULv1')
+    modules=[
+            # LeptonVariablesModule(),
+            # TopLeptonMvaModule("2018", 'ULv1'),     
+            HcTreeProducer(year, dataset_type),
+            # PileupWeightProducer(year, dataset_type),
+            # ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 (keep it out for now)
+            # MuonSFProducer(year, dataset_type),
             ],
     branchsel=keep_and_drop_input_branches,
     outputbranchsel=keep_and_drop_output_branches,
     postfix="_" + physics_process,
     prefetch=True,
-    jsonInput=golden_json)
+    jsonInput=golden_json
+    )
 p.run()

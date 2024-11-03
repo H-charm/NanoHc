@@ -2,6 +2,7 @@ drop *
 keep Muon_*
 keep Electron_*
 keep Jet_*
+keep Photon_*
 keep HLT_*
 keep Pileup_*
 keep L1PreFiringWeight_Nom

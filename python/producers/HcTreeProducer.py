@@ -37,11 +37,15 @@ class HcTreeProducer(Module):
         self.out = wrappedOutputTree
         
         ## define lepton branches
-        self.out.branch("n_muons", "I")
-        self.out.branch("n_electrons", "I")
-        for lep_idx in range(4):
-            for lep_var in ["pt","eta","phi","pdgId","charge"]:
-                self.out.branch("lep" + str(lep_idx+1) + "_" + lep_var, "F")
+        self.out.branch("mu_pt", "F", 20, lenVar="nMu")
+        self.out.branch("mu_eta", "F", 20, lenVar="nMu")
+        self.out.branch("mu_phi", "F", 20, lenVar="nMu")
+        self.out.branch("el_pt", "F", 20, lenVar="nEl")
+        self.out.branch("el_eta", "F", 20, lenVar="nEl")
+        self.out.branch("el_phi", "F", 20, lenVar="nEl")
+        self.out.branch("lep_pt", "F", 20, lenVar="nLeptons")
+        self.out.branch("lep_eta", "F", 20, lenVar="nLeptons")
+        self.out.branch("lep_phi", "F", 20, lenVar="nLeptons")
         
         ## define jet branches
         self.out.branch("n_jets", "I")
@@ -63,8 +67,8 @@ class HcTreeProducer(Module):
         self.out.branch("Zcandidate_pt", "F", 20, lenVar="n_Zcandidates")
         self.out.branch("Zcandidate_eta", "F", 20, lenVar="n_Zcandidates")
         self.out.branch("Zcandidate_phi", "F", 20, lenVar="n_Zcandidates")
-        self.out.branch("Zcandidate_onshell_mass", "F")
-        self.out.branch("Zcandidate_offshell_mass", "F")
+        self.out.branch("Zcandidate_onshell_mass", "F", 20, lenVar="n_Zcandidates_onshell")
+        self.out.branch("Zcandidate_offshell_mass", "F", 20, lenVar="n_Zcandidates_offshell")
   
         ## Hcandidates
         self.out.branch("Hcandidate_mass", "F", 20, lenVar="n_Hcandidates")
@@ -87,21 +91,16 @@ class HcTreeProducer(Module):
         self._select_muons(event)
         self._select_electrons(event)  
         event.selectedLeptons = event.selectedMuons + event.selectedElectrons
-        if len(event.selectedLeptons) != 4: return False # what if we have > 4?
-        if len(event.selectedMuons) not in [0,2,4] or len(event.selectedElectrons) not in [0,2,4]: # we can only have 0,2,4 muons / electrons
-            return False
-        leptons_charge_sum = 0
-        for lepton in event.selectedLeptons:
-            leptons_charge_sum += lepton.charge
-        if leptons_charge_sum != 0:
-            return False
-        
-        if self._select_jets(event) is False:
-            return False      
-        
-        if self._select_Z_candidates(event) is False:
-            return False
+        if len(event.selectedLeptons) < 4: return False
 
+        self._select_jets(event)
+        if len(event.selectedJets) == 0:
+            return False
+        
+        self._select_Z_candidates(event)
+        if len(event.Zcandidates) < 2:
+            return False
+        
         self._select_ZZ_candidates(event)
         if len(event.ZZcandidates) > 1: return False # for now keep only events with 1 ZZ candidate (we need MELA if we have more)
         
@@ -194,11 +193,6 @@ class HcTreeProducer(Module):
         
             event.Zcandidates.append(Zcand)
 
-        if len(event.Zcandidates) < 2:
-            return False
-        else:
-            return True
-        
     def _flag_onshell_and_offshell_Z(self, Zcand_pair):
                     
         Z1 = Zcand_pair[0]
@@ -223,7 +217,7 @@ class HcTreeProducer(Module):
         for Zcand_pair in Zcand_pairs:
             
             self._flag_onshell_and_offshell_Z(Zcand_pair) 
-            Z1, Z2 = (Zcand_pair[0], Zcand_pair[1]) if Zcand_pair[0].is_onshell else (Zcand_pair[1], Zcand_pair[0]) # Z1 onshell, Z2 offshell
+            Z1, Z2 = (Zcand_pair[0], Zcand_pair[1]) if Zcand_pair[0].is_onshell else (Zcand_pair[1], Zcand_pair[0]) # by definition Z1 onshell, Z2 offshell
             
             if Z1.mass < 40: continue  
             if Z1.lep1.pt < 20: continue
@@ -259,11 +253,15 @@ class HcTreeProducer(Module):
                 
                 mZ = 91.1876
                 
-                # ## reject if |mZa - mZ| < |mZ1 - mZ|
+                ## reject if |mZa - mZ| < |mZ1 - mZ| and mZb < 12
                 Za_mass = sumP4(Za_lep1, Za_lep2).M()
                 Zb_mass = sumP4(Zb_lep1, Zb_lep2).M()
-                if abs(Za_mass - mZ) < abs(Zb_mass - mZ): continue
+                if ( abs(Za_mass - mZ) < abs(Z1.mass - mZ) ) and Zb_mass < 12: continue
 
+                ## reject if inv mass of 4-lepton system < 70              
+                m_4l = sumP4(Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2).M()
+                if m_4l < 70: continue
+                
             ZZcand = ZZcandidate()
             ZZcand.Z1 = Z1
             ZZcand.Z2 = Z2
@@ -297,7 +295,7 @@ class HcTreeProducer(Module):
         
         for mu in muons:
             
-            if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and mu.tightId:
+            if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and mu.isPFcand:
                 mu._wp_ID = 'TightID'
                 mu._wp_Iso = 'LooseRelIso'
                 event.selectedMuons.append(mu)
@@ -318,6 +316,8 @@ class HcTreeProducer(Module):
         event.selectedJets = []
 
         jets = Collection(event, "Jet")
+        photons = Collection(event, "Photon")
+
         for jet in jets:
             if jet.pt <= 15 and abs(jet.eta) >= 2.5:
                 continue
@@ -330,25 +330,55 @@ class HcTreeProducer(Module):
             if not jet_isolated:
                 continue
                     
+            photon_isolated = True
+            for photon in photons:
+                dR_jet_photon = math.sqrt( (photon.eta - jet.eta)**2 + (photon.phi - jet.phi)**2 ) 
+                if dR_jet_photon <= 0.4:
+                    photon_isolated = False
+            if not photon_isolated:
+                continue                   
+            
             event.selectedJets.append(jet)
-        
-        if len(event.selectedJets) == 0:
-            return False
         
     def _fill_event_info(self, event):
         out_data = {}
         
         ## leptons
-        out_data["n_muons"] = len(event.selectedMuons)
-        out_data["n_electrons"] = len(event.selectedElectrons)
+        leptons_pt_sorted = sorted(event.selectedLeptons, key=lambda particle: particle.pt, reverse=True)
 
-        pt_sorted_leptons = sorted(event.selectedLeptons, key=lambda obj: obj.pt, reverse=True)
-        for lep_idx in range(len(pt_sorted_leptons)):
-            for lep_var in ["pt","phi","eta","pdgId","charge"]:
-                out_data["lep" + str(lep_idx+1) + "_" + lep_var] = getattr(pt_sorted_leptons[lep_idx],lep_var)
-        
+        lep_pt = []
+        lep_eta = []
+        lep_phi = []
+        el_pt = []
+        el_eta = []
+        el_phi = []
+        mu_pt = []
+        mu_eta = []
+        mu_phi = []
+        for lep in leptons_pt_sorted:
+            lep_pt.append(lep.pt)
+            lep_eta.append(lep.eta)
+            lep_phi.append(lep.phi)
+            if abs(lep.pdgId) == 11: # el
+                el_pt.append(lep.pt)
+                el_eta.append(lep.eta)
+                el_phi.append(lep.phi)
+            if abs(lep.pdgId) == 13: # mu
+                mu_pt.append(lep.pt)
+                mu_eta.append(lep.eta)
+                mu_phi.append(lep.phi)            
+            
+        out_data["lep_pt"] = lep_pt
+        out_data["lep_eta"] = lep_eta
+        out_data["lep_phi"] = lep_phi
+        out_data["el_pt"] = el_pt
+        out_data["el_eta"] = el_eta
+        out_data["el_phi"] = el_phi       
+        out_data["mu_pt"] = mu_pt
+        out_data["mu_eta"] = mu_eta
+        out_data["mu_phi"] = mu_phi
+                    
         ## jets  
-        out_data["n_jets"] = len(event.selectedJets)
         ak4_bdisc = []
         ak4_cvbdisc = []
         ak4_cvldisc = []
@@ -385,16 +415,22 @@ class HcTreeProducer(Module):
         Zcandidate_pt = []
         Zcandidate_eta = []
         Zcandidate_phi = []
+        Zcandidate_onshell_mass = []
+        Zcandidate_offshell_mass = []
         for Zcandidate in event.Zcandidates:
             Zcandidate_mass.append(Zcandidate.mass)
             Zcandidate_pt.append(Zcandidate.pt)
             Zcandidate_eta.append(Zcandidate.eta)
             Zcandidate_phi.append(Zcandidate.phi)
-            
+            if Zcandidate.is_onshell: Zcandidate_onshell_mass.append(Zcandidate.mass)
+            else: Zcandidate_offshell_mass.append(Zcandidate.mass)
+                
         out_data["Zcandidate_mass"] = Zcandidate_mass
         out_data["Zcandidate_pt"] = Zcandidate_pt
         out_data["Zcandidate_eta"] = Zcandidate_eta 
         out_data["Zcandidate_phi"] = Zcandidate_phi 
+        out_data["Zcandidate_onshell_mass"] = Zcandidate_onshell_mass
+        out_data["Zcandidate_offshell_mass"] = Zcandidate_offshell_mass
 
         ## H candidates
         Hcandidate_mass = []

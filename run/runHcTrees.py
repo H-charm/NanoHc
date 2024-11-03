@@ -297,11 +297,29 @@ def main():
     
     jobs_dir = "jobs_" + args.type + "_" + args.year
     args.jobs_dir = jobs_dir
-
+   
     if args.post:
         # run_add_weights(args)
         merge_output_files(args)
-        sys.exit(0)
+        sys.exit(0)   
+   
+    ## check before overwriting jobs dir
+    if os.path.exists(jobs_dir):
+        while True:  # Loop until valid input is received
+            user_input = input(f"The directory '{jobs_dir}' already exists. Do you want to overwrite it? (y/n): ").lower()
+            if user_input in ('y', 'n'):
+                break  # Exit the loop if input is valid
+            print("Invalid input. Please enter 'y' or 'n'.")  # Prompt for valid input
+        if user_input == 'n': sys.exit(0)
+
+    ## check before overwriting output dir
+    if os.path.exists(args.output):
+        while True:  # Loop until valid input is received
+            user_input = input(f"The directory '{args.output}' already exists. Do you want to overwrite it? (y/n): ").lower()
+            if user_input in ('y', 'n'):
+                break  # Exit the loop if input is valid
+            print("Invalid input. Please enter 'y' or 'n'.")  # Prompt for valid input
+        if user_input == 'n': sys.exit(0)
 
     print("Will write output trees to " + args.output)
     print("Number of files per job: " + str(args.n))
