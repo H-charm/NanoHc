@@ -2,12 +2,12 @@ drop *
 keep Muon_*
 keep Electron_*
 keep Jet_*
-keep Photon_*
+keep FsrPhoton_*
 keep HLT_*
 keep Pileup_*
 keep L1PreFiringWeight_Nom
 keep run
-keep luminosityBlock
 keep event
-keep PV_npvs
+keep luminosityBlock
+keep PV_*
 keep genWeight

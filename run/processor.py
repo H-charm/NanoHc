@@ -1,5 +1,5 @@
 from PhysicsTools.NanoAODTools.postprocessing.framework.postprocessor import PostProcessor
-from PhysicsTools.NanoHc.producers.HcTreeProducer import HcTreeProducer
+from PhysicsTools.NanoHc.producers.BaselineProducer import BaselineProducer
 from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
 from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer
 from PhysicsTools.NanoHc.producers.leptonvariables import LeptonVariablesModule
@@ -43,7 +43,7 @@ p = PostProcessor(
     modules=[
             # LeptonVariablesModule(),
             # TopLeptonMvaModule("2018", 'ULv1'),     
-            HcTreeProducer(year, dataset_type),
+            BaselineProducer(year, dataset_type),
             # PileupWeightProducer(year, dataset_type),
             # ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 (keep it out for now)
             # MuonSFProducer(year, dataset_type),

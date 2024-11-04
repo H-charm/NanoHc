@@ -19,7 +19,7 @@ class ZZcandidate:
     pass
 
 
-class HcTreeProducer(Module):
+class BaselineProducer(Module):
     
     def __init__(self, year, dataset_type):
         self.year = year
@@ -85,6 +85,8 @@ class HcTreeProducer(Module):
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
 
+        if event.PV_npvsGood < 1: return False
+
         if self._select_triggers(event) is False:
             return False
 
@@ -109,7 +111,7 @@ class HcTreeProducer(Module):
         self._fill_event_info(event)
 
         return True
-    
+        
     def _select_triggers(self, event):
 
         out_data = {}
@@ -220,47 +222,56 @@ class HcTreeProducer(Module):
             Z1, Z2 = (Zcand_pair[0], Zcand_pair[1]) if Zcand_pair[0].is_onshell else (Zcand_pair[1], Zcand_pair[0]) # by definition Z1 onshell, Z2 offshell
             
             if Z1.mass < 40: continue  
-            if Z1.lep1.pt < 20: continue
-            if Z1.lep2.pt < 10: continue
             
-            leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2]
-            lepton_pairs = list(itertools.combinations(leptons, 2))
+            leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2] 
             
-            dr_ll_values = [] # between each of the four leptons 
-            m_ll_values = [] # between each of the four leptons (opposite-sign pairs regardless of flavors)                     
+            ## two DISTINCT leptons must pass pt > 10 and pt > 20
+            at_least_one_passed_pt20 = False
+            at_least_one_passed_pt10 = False
+            for lep in leptons:
+                if lep.pt > 20: at_least_one_passed_pt20 = True
+                elif lep.pt > 10: at_least_one_passed_pt10 = True
+            if not (at_least_one_passed_pt10 and at_least_one_passed_pt20): continue
+            
+            lepton_pairs = list(itertools.combinations(leptons, 2)) # 6 combinations
+            
+            dr_ll_values = [] # between each of the four leptons (Ghost removal: all pairs)
+            m_ll_values = [] # between each of the four leptons (QCD suppression: opposite-sign pairs and same flavour)                     
             for lepton_pair in lepton_pairs:
                 lep1 = lepton_pair[0]
                 lep2 = lepton_pair[1]
-                
+                            
                 dr = math.sqrt( (lep1.eta - lep2.eta)**2 + (lep1.phi - lep2.phi)**2 ) 
                 dr_ll_values.append(dr)
                 
-                if lep1.pdgId * lep2.pdgId < 0:
+                if (lep1.pdgId + lep2.pdgId) == 0:
                     m_ll = sumP4(lep1, lep2).M()
                     m_ll_values.append(m_ll)
                     
             if any(dr < 0.02 for dr in dr_ll_values): continue
             if any(m_ll < 4 for m_ll in m_ll_values): continue
             
-            ## check alternative pairing (4e or 4mu)
+            ## smart cut: check alternative pairing (4e or 4mu)
             if abs(Z1.lep1.pdgId) == abs(Z1.lep2.pdgId) == abs(Z2.lep1.pdgId) == abs(Z2.lep2.pdgId):
 
-                Za_lep1 = Z2.lep1
-                Za_lep2 = Z1.lep2
+                ## define Za as the one closest to Z mass, and Zb as the other pair
+                Ztemp1 = Zcandidate()
+                Ztemp1.lep1, Ztemp1.lep2 = Z1.lep1, Z2.lep2
+                Ztemp1.mass = sumP4(Ztemp1.lep1, Ztemp1.lep2).M()
                 
-                Zb_lep1 = Z1.lep1
-                Zb_lep2 = Z2.lep2
-                
-                mZ = 91.1876
-                
-                ## reject if |mZa - mZ| < |mZ1 - mZ| and mZb < 12
-                Za_mass = sumP4(Za_lep1, Za_lep2).M()
-                Zb_mass = sumP4(Zb_lep1, Zb_lep2).M()
-                if ( abs(Za_mass - mZ) < abs(Z1.mass - mZ) ) and Zb_mass < 12: continue
+                Ztemp2 = Zcandidate()
+                Ztemp2.lep1, Ztemp2.lep2 = Z2.lep1, Z1.lep2
+                Ztemp2.mass = sumP4(Ztemp2.lep1, Ztemp2.lep2).M()
 
-                ## reject if inv mass of 4-lepton system < 70              
-                m_4l = sumP4(Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2).M()
-                if m_4l < 70: continue
+                mZ = 91.1876
+                Za, Zb = (Ztemp1, Ztemp2) if ( abs(Ztemp1.mass - mZ) < abs(Ztemp2.mass - mZ) ) else (Ztemp2, Ztemp1)
+                                
+                ## reject if |mZa - mZ| < |mZ1 - mZ| and mZb < 12
+                if ( abs(Za.mass - mZ) < abs(Z1.mass - mZ) ) and Zb.mass < 12: continue
+
+            ## reject if inv mass of 4-lepton system < 70              
+            m_4l = sumP4(Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2).M()
+            if m_4l < 70: continue
                 
             ZZcand = ZZcandidate()
             ZZcand.Z1 = Z1
@@ -286,7 +297,8 @@ class HcTreeProducer(Module):
             Hcand.Z2 = Z2
                         
             event.Hcandidates.append(Hcand)
-            
+        
+    ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py    
     def _select_muons(self, event):
 
         event.selectedMuons = []
@@ -295,11 +307,14 @@ class HcTreeProducer(Module):
         
         for mu in muons:
             
-            if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and mu.isPFcand:
+            passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
+            
+            if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and passMuID and (mu.isGlobal or (mu.isTracker and mu.nStations>0)):
                 mu._wp_ID = 'TightID'
                 mu._wp_Iso = 'LooseRelIso'
                 event.selectedMuons.append(mu)
-                          
+            
+    ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py       
     def _select_electrons(self, event):
 
         event.selectedElectrons = []
@@ -309,6 +324,24 @@ class HcTreeProducer(Module):
             el.etaSC = el.eta + el.deltaEtaSC
             if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
                 el._wp_ID = 'wp90iso'
+                
+                ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
+                if abs(el.etaSC) < 0.8:
+                    if el.pt < 10:
+                        if el.mvaFall17V2Iso < 0.9128577458: continue
+                    else:
+                        if el.mvaFall17V2Iso < 0.1559788054: continue
+                elif 0.8 < abs(el.etaSC) < 1.479:
+                    if el.pt < 10:
+                        if el.mvaFall17V2Iso < 0.9056792368: continue
+                    else:
+                        if el.mvaFall17V2Iso < 0.0273863727: continue                    
+                else: # |el.etaSC| > 1.479
+                    if el.pt < 10:
+                        if el.mvaFall17V2Iso < 0.9439440575: continue
+                    else:
+                        if el.mvaFall17V2Iso < -0.5532483665: continue                        
+                                    
                 event.selectedElectrons.append(el)
 
     def _select_jets(self, event):
@@ -316,7 +349,7 @@ class HcTreeProducer(Module):
         event.selectedJets = []
 
         jets = Collection(event, "Jet")
-        photons = Collection(event, "Photon")
+        FsrPhotons = Collection(event, "FsrPhoton")
 
         for jet in jets:
             if jet.pt <= 15 and abs(jet.eta) >= 2.5:
@@ -331,7 +364,7 @@ class HcTreeProducer(Module):
                 continue
                     
             photon_isolated = True
-            for photon in photons:
+            for photon in FsrPhotons:
                 dR_jet_photon = math.sqrt( (photon.eta - jet.eta)**2 + (photon.phi - jet.phi)**2 ) 
                 if dR_jet_photon <= 0.4:
                     photon_isolated = False
