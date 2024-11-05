@@ -7,50 +7,92 @@ import yaml
 import json
 import os
 import sys
+from pathlib import Path
+
+golden_json = {
+    '2015': 'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',
+    '2016': 'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',
+    '2017': 'Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt',
+    '2018': 'Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt',
+}
+
+## to divide datasets by number of files per job
+def get_chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
 
 ## read samples yaml file and produce json file to be used by condor
-def create_meatadata_json(jobs_dir_name, output_dir):
-        
+def create_metadata_json(args):
+    
+    dataset_type = args.type
+    jobs_dir = "jobs_" + dataset_type + "_" + args.year
+    year = args.year
+    
     ## read samples yaml file
-    samples_yaml_file = "/afs/cern.ch/user/i/iparaske/test/CMSSW_13_3_0/src/PhysicsTools/NanoHc/run/samples/mc_2018.yaml"
+    samples_yaml_file = os.environ['CMSSW_BASE'] + "/src/PhysicsTools/NanoHc/run/samples/" + dataset_type + "_" + year + ".yaml"
     with open(samples_yaml_file, 'r') as file:
         samples = yaml.safe_load(file)
 
-    das_files = {}
-    for sample in samples:
-        ## find files using DAS
-        print("DAS query for dataset " + samples[sample])
-        das_query = 'dasgoclient --query="file dataset=' + samples[sample] + '"'
-        query_out = os.popen(das_query)
-        files_found = ['root://xrootd-cms.infn.it/'+_file.strip() for _file in query_out]
-        das_files[sample] = files_found
-        print(f"{len(files_found)} files found")
-        
+    physics_processes = []
+    das_dict = {}
+    for sample in samples:        
+        das_dict[sample] = {}
+        for dataset in samples[sample]:
+            ## find files using DAS
+            print("DAS query for dataset " + dataset)
+            das_query = 'dasgoclient --query="file dataset=' + dataset + '"'
+            query_out = os.popen(das_query)
+            files_found = ['root://xrootd-cms.infn.it/'+_file.strip() for _file in query_out]
+            physics_process = dataset.split("/")[1]
+            physics_processes.append(physics_process)
+            das_dict[sample][physics_process] = files_found
+            print(f"{len(files_found)} files found")
+                                    
     ## write json file
-    json_file = jobs_dir_name + '/metadata.json'
+    json_file = jobs_dir + '/metadata.json'
     json_content = {}
     
-    json_content["output_dir"] = output_dir
-    json_content["samples"] = []
-
-    json_content["job_ids"] = {}
-    for job_id, sample_name in enumerate(samples):
-        json_content["job_ids"][job_id] = das_files[sample_name]
-        json_content["samples"].append(sample_name)
+    json_content["output_dir"] = args.output
+    json_content["jobs_dir"] = args.jobs_dir
+    json_content["year"] = args.year    
+    json_content["type"] = dataset_type
+    if dataset_type == "data":  
+        json_content["golden_json"] = os.environ['CMSSW_BASE'] + "/src/PhysicsTools/NanoHc/data/JSON/" + golden_json[args.year]
+    else:
+        json_content["golden_json"] = None
+    json_content["sample_names"] = []
+    json_content["physics_processes"] = []
+    json_content["jobs"] = []
+        
+    for sample_name in samples: json_content["sample_names"].append(sample_name)
+    for physics_process in physics_processes: json_content["physics_processes"].append(physics_process)
+    
+    job_id = 0
+    for sample in samples:
+        for physics_process in das_dict[sample]:
+            for chunk in enumerate(get_chunks(das_dict[sample][physics_process],args.n)):
+                json_content["jobs"].append({"job_id": job_id, "input_files": chunk[1], "sample_name": sample ,"physics_process": physics_process})
+                job_id += 1
 
     with open(json_file, 'w') as file:
         json.dump(json_content, file, indent=4)
 
 ## produce condor submit file
-def create_condor_submit(jobs_dir_name):
-        
+def create_condor_submit(args):
+    
+    cmssw_base = os.environ['CMSSW_BASE']
+    jobs_dir_path = os.getcwd() + "/" + args.jobs_dir
+
     ## find number of jobs from json file
-    with open(jobs_dir_name + "/metadata.json", 'r') as file:
+    with open(args.jobs_dir + "/metadata.json", 'r') as file:
         data = json.load(file)  
-    jobs_list = list(data["job_ids"].keys())
+    njobs = len(data["jobs"])
+    jobs_list = [i for i in range(njobs)]
     
     ## write jobs txt file
-    with open(jobs_dir_name + "/job_ids.txt", 'w') as file:
+    with open(args.jobs_dir + "/job_ids.txt", 'w') as file:
         for index, item in enumerate(jobs_list):
             if index < len(jobs_list) - 1:
                 file.write(str(item) + '\n')
@@ -58,11 +100,14 @@ def create_condor_submit(jobs_dir_name):
                 file.write(str(item))
         
     ## write condor submit 
-    condor_submit_file = open(jobs_dir_name + "/submit.sh","w")
+    condor_submit_file = open(args.jobs_dir + "/submit.sh","w")
     condor_submit_file.write('''
 executable = condor_exec.sh
 
-arguments = $(jobid) 
+arguments = $(jobid) ''' + cmssw_base + ''' ''' + jobs_dir_path + ''' 
+
+request_memory  = 2000
+request_disk    = 10000000
 
 error   = log/err.$(Process)
 output  = log/out.$(Process)
@@ -75,57 +120,221 @@ queue jobid from job_ids.txt
 
     condor_submit_file.close()
 
-def merge_output_files(output_dir, jobs_dir_name):
 
-    file_path = jobs_dir_name + '/metadata.json'
+def merge_output_files(args):
+
+    file_path = args.jobs_dir + '/metadata.json'
     with open(file_path, 'r') as file:
         data = json.load(file)
-    output_dir = data["output_dir"]
-    samples = data["samples"]
+        
+    base_output_dir = data["output_dir"]
+    dataset_type = data["type"]
+    year = data["year"]
+    merged_dir = os.path.join(base_output_dir, dataset_type, year, "merged")
+    os.system("mkdir -p " + merged_dir)
     
-    for sample in samples:
-        hadd_command = "hadd " + output_dir + sample + ".root " + output_dir + "*" + sample + ".root"
-        # print(hadd_command)
-        os.system(hadd_command)
+    sample_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year)).iterdir() if d.is_dir()]
     
+    for sample_dir in sample_dirs:
+        if sample_dir == "merged": continue
+        input_files = []
+        output_file = os.path.join(merged_dir, sample_dir + "_tree.root")
+        
+        physics_process_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year, sample_dir)).iterdir() if d.is_dir()]
+
+        for physics_process_dir in physics_process_dirs:
+            infiles_dir = os.path.join(base_output_dir, dataset_type, year, sample_dir, physics_process_dir)
+            
+            for root, _, files in os.walk(infiles_dir):
+                for file in files:
+                    input_files.append(os.path.join(root, file))
+                          
+        cmd = 'haddnano.py {outfile} {infiles}'.format(outfile=output_file, infiles=' '.join(input_files))
+        os.system(cmd)
+
+
+def parse_sample_xsec(cfgfile):
+    xsec_dict = {}
+    with open(cfgfile) as f:
+        for l in f:
+            l = l.strip()
+            if not l or l.startswith('#'):
+                continue
+            pieces = l.split()
+            samp = None
+            xsec = None
+            isData = False
+            for s in pieces:
+                if '/MINIAOD' in s or '/NANOAOD' in s:
+                    samp = s.split('/')[1]
+                    if '/MINIAODSIM' not in s and '/NANOAODSIM' not in s:
+                        isData = True
+                        break
+                else:
+                    try:
+                        xsec = float(s)
+                    except ValueError:
+                        try:
+                            import numexpr
+                            xsec = numexpr.evaluate(s).item()
+                        except:
+                            pass
+            if samp is None:
+                print('Ignore line:\n%s' % l)
+            elif not isData and xsec is None:
+                print('Cannot find cross section:\n%s' % l)
+            else:
+                if samp in xsec_dict and xsec_dict[samp] != xsec:
+                    raise RuntimeError('Inconsistent entries for sample %s' % samp)
+                xsec_dict[samp] = xsec
+                if 'PSweights_' in samp:
+                    xsec_dict[samp.replace('PSweights_', '')] = xsec
+                    
+    return xsec_dict
+
+def add_weights(file, xsec, lumi=1000., treename='Events'):
+    from array import array
+    import ROOT
+    ROOT.PyConfig.IgnoreCommandLineOptions = True
+
+    def _get_sum(tree, wgtvar):
+        htmp = ROOT.TH1D('htmp', 'htmp', 1, 0, 10)
+        tree.Project('htmp', '1.0', wgtvar)
+        return float(htmp.Integral())
+    
+    def _fill_const_branch(tree, branch_name, buff, lenVar=0):
+        if lenVar > 0:
+            b = tree.Branch(branch_name, buff, branch_name + "[" + str(nScaleWeights) + "]" + '/F')
+            b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
+            for _ in range(tree.GetEntries()):
+                b.Fill()
+        else:
+            b = tree.Branch(branch_name, buff, branch_name + '/F')
+            b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
+            for _ in range(tree.GetEntries()):
+                b.Fill()
+                
+    f = ROOT.TFile(str(file), 'UPDATE')
+    run_tree = f.Get('Runs')
+    tree = f.Get(treename)
+
+    # fill cross section weights to the 'Events' tree
+    sumwgts = _get_sum(run_tree, 'genEventSumw')
+    xsecwgt = xsec * lumi / sumwgts
+    xsec_buff = array('f', [xsecwgt])
+    _fill_const_branch(tree, "xsecWeight", xsec_buff)
+
+    # fill LHE weight re-normalization factors
+    if tree.GetBranch('LHEScaleWeight'):
+        run_tree.GetEntry(0)
+        nScaleWeights = run_tree.nLHEScaleSumw
+        scale_weight_norm_buff = array('f',
+                                       [sumwgts / _get_sum(run_tree, 'LHEScaleSumw[%d]*genEventSumw' % i)
+                                        for i in range(nScaleWeights)])
+        print('LHEScaleWeightNorm: ' + str(scale_weight_norm_buff))
+        _fill_const_branch(tree, "LHEScaleWeightNorm", scale_weight_norm_buff, lenVar=nScaleWeights)
+        
+    if tree.GetBranch('LHEPdfWeight'):
+        run_tree.GetEntry(0)
+        nPdfWeights = run_tree.nLHEPdfSumw
+        pdf_weight_norm_buff = array('f',
+                                     [sumwgts / _get_sum(run_tree, 'LHEPdfSumw[%d]*genEventSumw' % i)
+                                      for i in range(nPdfWeights)])
+        print('LHEPdfWeightNorm: ' + str(pdf_weight_norm_buff))
+        _fill_const_branch(tree, "LHEPdfWeightNorm", pdf_weight_norm_buff, lenVar=nScaleWeights)
+
+    # fill PS weight re-normalization factors
+    if tree.GetBranch('PSWeight') and run_tree.GetBranch('PSSumw'):
+        run_tree.GetEntry(0)
+        nPSWeights = run_tree.nPSSumw
+        ps_weight_norm_buff = array('f',
+                                    [sumwgts / _get_sum(run_tree, 'PSSumw[%d]*genEventSumw' % i)
+                                     for i in range(nPSWeights)])
+        print('PSWeightNorm: ' + str(ps_weight_norm_buff))
+        _fill_const_branch(tree, 'PSWeightNorm', ps_weight_norm_buff, lenVar='nPSWeight')
+               
+    tree.Write(treename, ROOT.TObject.kOverwrite)
+    f.Close()
+
+def run_add_weights(args):
+    xsec_dict = parse_sample_xsec(args.xsec_file)
+
+    with open(args.jobs_dir + "/metadata.json", 'r') as file:
+        data = json.load(file) 
+    
+    year = data["year"]
+    dataset_type = data["type"]
+    base_output_dir = data["output_dir"]
+    
+    sample_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year)).iterdir() if d.is_dir()]
+
+    for sample in sample_dirs:
+        physics_process_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year, sample)).iterdir() if d.is_dir()]
+
+        for physics_process in physics_process_dirs:
+            if physics_process not in xsec_dict: 
+                print(f"Process {physics_process} not found in xsec file, xsec not added") 
+                continue
+                     
+            xsec = xsec_dict[physics_process]
+            print(f"Adding weights for physics process {physics_process}: xsec = {xsec}")  
+            
+            for file in Path(os.path.join(base_output_dir, dataset_type, year, sample, physics_process)).iterdir():
+                add_weights(file, xsec)
+
+
 def main():
 
     ## parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--year', type=str, help='Year to run', default="2018")
     parser.add_argument('--output', type=str, help='Output dir', default = "/eos/user/i/iparaske/HcTrees/")
+    parser.add_argument('--type', type=str, help='mc or data', default = "mc", choices=['mc', 'data'])
     parser.add_argument('--post',help='Merge output files',action='store_true')
+    parser.add_argument('-n',type=int, help='Number of files per job', default=10)
+    parser.add_argument('--xsec-file', type=str, help='xsec file', default = "samples/xsec.conf")
     args = parser.parse_args()
     
-    jobs_dir_name = "jobs_" + args.year
-
+    jobs_dir = "jobs_" + args.type + "_" + args.year
+    args.jobs_dir = jobs_dir
+   
     if args.post:
-        merge_output_files(args.output, jobs_dir_name)
-        sys.exit(0)
-    
-    print("Will write output trees to " + args.output)
-    
-    ## create output dir
-    os.system("mkdir -p " + args.output)
-    
-    ## create jobs dir based on year
-    os.system("mkdir -p " + jobs_dir_name)
+        # run_add_weights(args)
+        merge_output_files(args)
+        sys.exit(0)   
+   
+    ## check before overwriting jobs dir
+    if os.path.exists(jobs_dir):
+        while True:  # Loop until valid input is received
+            user_input = input(f"The directory '{jobs_dir}' already exists. Do you want to overwrite it? (y/n): ").lower()
+            if user_input in ('y', 'n'):
+                break  # Exit the loop if input is valid
+            print("Invalid input. Please enter 'y' or 'n'.")  # Prompt for valid input
+        if user_input == 'n': sys.exit(0)
 
-    ## create logs dir
-    os.system("mkdir -p " + jobs_dir_name + "/log/")
+    ## check before overwriting output dir
+    if os.path.exists(args.output):
+        while True:  # Loop until valid input is received
+            user_input = input(f"The directory '{args.output}' already exists. Do you want to overwrite it? (y/n): ").lower()
+            if user_input in ('y', 'n'):
+                break  # Exit the loop if input is valid
+            print("Invalid input. Please enter 'y' or 'n'.")  # Prompt for valid input
+        if user_input == 'n': sys.exit(0)
+
+    print("Will write output trees to " + args.output)
+    print("Number of files per job: " + str(args.n))
     
-    ## copy processor to jobs dir
-    os.system("cp processor.py " + jobs_dir_name)
+    ## create necessary dirs
+    os.system("mkdir -p " + jobs_dir + "/log/")
     
-    ## copy branches selections to jobs dir
-    os.system("cp keep_and_drop.txt " + jobs_dir_name)
-    
-    ## copy condor executable to jobs dir
-    os.system("cp condor_exec.sh " + jobs_dir_name)
+    ## copy necessary files to jobs dir
+    os.system("cp processor.py " + jobs_dir)
+    os.system("cp keep_and_drop*.txt " + jobs_dir)
+    os.system("cp condor_exec.sh " + jobs_dir)
     
     ## create metadata json and condor submit files in the jobs dir
-    create_meatadata_json(jobs_dir_name, args.output)
-    create_condor_submit(jobs_dir_name)
+    create_metadata_json(args)
+    create_condor_submit(args)
 
 if __name__ == "__main__":
     main()
