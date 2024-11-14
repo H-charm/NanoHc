@@ -42,11 +42,16 @@ Merging output files
 --------------------
 Run again ```runHcTrees.py``` with ```--post```  
 
+Resubmit failed jobs    
+--------------------  
+Run again ```runHcTrees.py``` with ```--resubmit```  
+Go to jobs dir and submit again to condor  
+
 Important notes 
 --------------  
 - Add/remove modules in ```static_files/processor.py```  
 - Add/remove samples in ```samples```   
-- You can find log files in each job dir   
+- You can find log files in each jobs dir   
 
 Argument full list  
 ------------------  
