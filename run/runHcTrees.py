@@ -8,6 +8,7 @@ import json
 import os
 import sys
 from pathlib import Path
+import helpers
 
 golden_json = {
     '2015': 'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',
@@ -15,13 +16,6 @@ golden_json = {
     '2017': 'Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt',
     '2018': 'Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt',
 }
-
-## to divide datasets by number of files per job
-def get_chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
-
 
 ## read samples yaml file and produce json file to be used by condor
 def create_metadata_json(args):
@@ -72,54 +66,55 @@ def create_metadata_json(args):
     job_id = 0
     for sample in samples:
         for physics_process in das_dict[sample]:
-            for chunk in enumerate(get_chunks(das_dict[sample][physics_process],args.n)):
+            for chunk in enumerate(helpers.get_chunks(das_dict[sample][physics_process],args.n)):
                 json_content["jobs"].append({"job_id": job_id, "input_files": chunk[1], "sample_name": sample ,"physics_process": physics_process})
                 job_id += 1
 
     with open(json_file, 'w') as file:
         json.dump(json_content, file, indent=4)
-
-## produce condor submit file
-def create_condor_submit(args):
+        
+def write_condor_submit(args, jobids_file):
     
     cmssw_base = os.environ['CMSSW_BASE']
-    jobs_dir_path = os.getcwd() + "/" + args.jobs_dir
+    jobs_dir_path =os.getcwd() + "/" + args.jobs_dir 
+    
+    condor_submit_file = open(args.jobs_dir + "/submit.sh","w")
+    condor_submit_file.write('''
+executable = condor_exec.sh
 
-    ## find number of jobs from json file
+arguments = $(jobid) ''' + cmssw_base + ''' ''' + jobs_dir_path  + ''' 
+
+request_memory  = 2000
+request_disk    = 10000000
+
+output = log/$(jobid).out
+error = log/$(jobid).err
+log = log/$(jobid).log
+
+JobBatchName = HcTrees_''' + args.type + '''_''' + args.year + '''
++JobFlavour = "longlunch"
+
+queue jobid from ''' + jobids_file)
+
+    condor_submit_file.close()
+
+def create_condor_submit(args):
+    
+    ## get job ids from json
     with open(args.jobs_dir + "/metadata.json", 'r') as file:
         data = json.load(file)  
     njobs = len(data["jobs"])
     jobs_list = [i for i in range(njobs)]
     
-    ## write jobs txt file
+    ## write job ids to txt file
     with open(args.jobs_dir + "/job_ids.txt", 'w') as file:
         for index, item in enumerate(jobs_list):
             if index < len(jobs_list) - 1:
                 file.write(str(item) + '\n')
             else:
                 file.write(str(item))
-        
-    ## write condor submit 
-    condor_submit_file = open(args.jobs_dir + "/submit.sh","w")
-    condor_submit_file.write('''
-executable = condor_exec.sh
-
-arguments = $(jobid) ''' + cmssw_base + ''' ''' + jobs_dir_path + ''' 
-
-request_memory  = 2000
-request_disk    = 10000000
-
-error   = log/err.$(Process)
-output  = log/out.$(Process)
-log     = log/logFile.log
-
-+JobFlavour = "longlunch"
-
-queue jobid from job_ids.txt
-    ''')
-
-    condor_submit_file.close()
-
+    
+    write_condor_submit(args, jobids_file="job_ids.txt")
 
 def merge_output_files(args):
 
@@ -151,7 +146,6 @@ def merge_output_files(args):
                           
         cmd = 'haddnano.py {outfile} {infiles}'.format(outfile=output_file, infiles=' '.join(input_files))
         os.system(cmd)
-
 
 def parse_sample_xsec(cfgfile):
     xsec_dict = {}
@@ -282,7 +276,60 @@ def run_add_weights(args):
             for file in Path(os.path.join(base_output_dir, dataset_type, year, sample, physics_process)).iterdir():
                 add_weights(file, xsec)
 
+def check_job_status(args):
+    
+    file_path = args.jobs_dir + '/metadata.json'
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    
+    njobs = len(data['jobs'])
+    jobids = {'running': [], 'failed': [], 'completed': []}
+    for jobid in range(njobs):
+        logpath = os.path.join(args.jobs_dir, "log", '%d.log' % jobid)
+        # print(logpath)
+        if not os.path.exists(logpath):
+            print('Cannot find log file %s' % logpath)
+            jobids['failed'].append(str(jobid))
+            continue
+        with open(logpath) as logfile:
+            errormsg = None
+            finished = False
+            for line in reversed(logfile.readlines()):
+                if 'Job removed' in line or 'aborted' in line:
+                    errormsg = line
+                if 'Job submitted from host' in line:
+                    # if seeing this first: the job has been resubmited
+                    break
+                if 'return value' in line:
+                    if 'return value 0' in line:
+                        finished = True
+                    else:
+                        errormsg = line
+                    break
+            if errormsg:
+                print(logpath + '\n   ' + errormsg)
+                jobids['failed'].append(str(jobid))
+            else:
+                if finished:
+                    jobids['completed'].append(str(jobid))
+                else:
+                    jobids['running'].append(str(jobid))
+    assert sum(len(jobids[k]) for k in jobids) == njobs
+    all_completed = len(jobids['completed']) == njobs
+    info = {k: len(jobids[k]) for k in jobids if len(jobids[k])}
+    print('Job %s status: ' % args.jobs_dir + str(info))
+    return all_completed, jobids
 
+def resubmit(args):
+    
+    jobids = check_job_status(args)[1]['failed']
+    jobids_file = os.path.join(args.jobs_dir, 'resubmit.txt')
+
+    with open(jobids_file, 'w') as f:
+        f.write('\n'.join(jobids))
+    
+    write_condor_submit(args, jobids_file="resubmit.txt")
+        
 def main():
 
     ## parse arguments
@@ -293,33 +340,28 @@ def main():
     parser.add_argument('--post',help='Merge output files',action='store_true')
     parser.add_argument('-n',type=int, help='Number of files per job', default=10)
     parser.add_argument('--xsec-file', type=str, help='xsec file', default = "samples/xsec.conf")
+    parser.add_argument('--check-status', help='Checks jobs status', action='store_true')
+    parser.add_argument('--resubmit', help='Resubmit failed jobs', action='store_true')
     args = parser.parse_args()
     
     jobs_dir = "jobs_" + args.type + "_" + args.year
     args.jobs_dir = jobs_dir
+
+    if args.resubmit:
+        resubmit(args)
+        sys.exit(0)
+    
+    if args.check_status:
+        check_job_status(args)
+        sys.exit(0)
    
     if args.post:
         # run_add_weights(args)
         merge_output_files(args)
         sys.exit(0)   
-   
-    ## check before overwriting jobs dir
-    if os.path.exists(jobs_dir):
-        while True:  # Loop until valid input is received
-            user_input = input(f"The directory '{jobs_dir}' already exists. Do you want to overwrite it? (y/n): ").lower()
-            if user_input in ('y', 'n'):
-                break  # Exit the loop if input is valid
-            print("Invalid input. Please enter 'y' or 'n'.")  # Prompt for valid input
-        if user_input == 'n': sys.exit(0)
-
-    ## check before overwriting output dir
-    if os.path.exists(args.output):
-        while True:  # Loop until valid input is received
-            user_input = input(f"The directory '{args.output}' already exists. Do you want to overwrite it? (y/n): ").lower()
-            if user_input in ('y', 'n'):
-                break  # Exit the loop if input is valid
-            print("Invalid input. Please enter 'y' or 'n'.")  # Prompt for valid input
-        if user_input == 'n': sys.exit(0)
+        
+    helpers.check_if_dir_exists(jobs_dir)
+    helpers.check_if_dir_exists(args.output)
 
     print("Will write output trees to " + args.output)
     print("Number of files per job: " + str(args.n))
@@ -328,9 +370,9 @@ def main():
     os.system("mkdir -p " + jobs_dir + "/log/")
     
     ## copy necessary files to jobs dir
-    os.system("cp processor.py " + jobs_dir)
-    os.system("cp keep_and_drop*.txt " + jobs_dir)
-    os.system("cp condor_exec.sh " + jobs_dir)
+    os.system("cp static_files/processor.py " + jobs_dir)
+    os.system("cp static_files/keep_and_drop*.txt " + jobs_dir)
+    os.system("cp static_files/condor_exec.sh " + jobs_dir)
     
     ## create metadata json and condor submit files in the jobs dir
     create_metadata_json(args)
