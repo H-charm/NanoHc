@@ -49,8 +49,8 @@ Go to jobs dir and submit again to condor
 
 Important notes 
 --------------  
-- Add/remove modules in ```static_files/processor.py```  
-- Add/remove samples in ```samples```   
+- Add/remove modules in ```run/static_files/processor.py```  
+- Add/remove samples in ```run/samples```   
 - You can find log files in each jobs dir   
 
 Argument full list  
