@@ -10,6 +10,18 @@ import sys
 from pathlib import Path
 import helpers
 
+## parse arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--year', type=str, help='Year to run', default="2018")
+parser.add_argument('--output', type=str, help='Output dir', default = "/eos/user/i/iparaske/HcTrees/")
+parser.add_argument('--type', type=str, help='mc or data', default = "mc", choices=['mc', 'data'])
+parser.add_argument('--post',help='Merge output files',action='store_true')
+parser.add_argument('-n',type=int, help='Number of files per job', default=10)
+parser.add_argument('--xsec-file', type=str, help='xsec file', default = "samples/xsec.conf")
+parser.add_argument('--check-status', help='Checks jobs status', action='store_true')
+parser.add_argument('--resubmit', help='Resubmit failed jobs', action='store_true')
+args = parser.parse_args()
+
 golden_json = {
     '2015': 'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',
     '2016': 'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',
@@ -18,7 +30,7 @@ golden_json = {
 }
 
 ## read samples yaml file and produce json file to be used by condor
-def create_metadata_json(args):
+def create_metadata_json():
     
     dataset_type = args.type
     jobs_dir = "jobs_" + dataset_type + "_" + args.year
@@ -73,7 +85,7 @@ def create_metadata_json(args):
     with open(json_file, 'w') as file:
         json.dump(json_content, file, indent=4)
         
-def write_condor_submit(args, jobids_file):
+def write_condor_submit(jobids_file):
     
     cmssw_base = os.environ['CMSSW_BASE']
     jobs_dir_path =os.getcwd() + "/" + args.jobs_dir 
@@ -98,7 +110,7 @@ queue jobid from ''' + jobids_file)
 
     condor_submit_file.close()
 
-def create_condor_submit(args):
+def create_condor_submit():
     
     ## get job ids from json
     with open(args.jobs_dir + "/metadata.json", 'r') as file:
@@ -114,9 +126,9 @@ def create_condor_submit(args):
             else:
                 file.write(str(item))
     
-    write_condor_submit(args, jobids_file="job_ids.txt")
+    write_condor_submit(jobids_file="job_ids.txt")
 
-def merge_output_files(args):
+def merge_output_files():
 
     file_path = args.jobs_dir + '/metadata.json'
     with open(file_path, 'r') as file:
@@ -250,7 +262,7 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
     tree.Write(treename, ROOT.TObject.kOverwrite)
     f.Close()
 
-def run_add_weights(args):
+def run_add_weights():
     xsec_dict = parse_sample_xsec(args.xsec_file)
 
     with open(args.jobs_dir + "/metadata.json", 'r') as file:
@@ -276,7 +288,7 @@ def run_add_weights(args):
             for file in Path(os.path.join(base_output_dir, dataset_type, year, sample, physics_process)).iterdir():
                 add_weights(file, xsec)
 
-def check_job_status(args):
+def check_job_status():
     
     file_path = args.jobs_dir + '/metadata.json'
     with open(file_path, 'r') as file:
@@ -320,7 +332,7 @@ def check_job_status(args):
     print('Job %s status: ' % args.jobs_dir + str(info))
     return all_completed, jobids
 
-def resubmit(args):
+def resubmit():
     
     jobids = check_job_status(args)[1]['failed']
     jobids_file = os.path.join(args.jobs_dir, 'resubmit.txt')
@@ -328,36 +340,24 @@ def resubmit(args):
     with open(jobids_file, 'w') as f:
         f.write('\n'.join(jobids))
     
-    write_condor_submit(args, jobids_file="resubmit.txt")
+    write_condor_submit(jobids_file="resubmit.txt")
         
 def main():
 
-    ## parse arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--year', type=str, help='Year to run', default="2018")
-    parser.add_argument('--output', type=str, help='Output dir', default = "/eos/user/i/iparaske/HcTrees/")
-    parser.add_argument('--type', type=str, help='mc or data', default = "mc", choices=['mc', 'data'])
-    parser.add_argument('--post',help='Merge output files',action='store_true')
-    parser.add_argument('-n',type=int, help='Number of files per job', default=10)
-    parser.add_argument('--xsec-file', type=str, help='xsec file', default = "samples/xsec.conf")
-    parser.add_argument('--check-status', help='Checks jobs status', action='store_true')
-    parser.add_argument('--resubmit', help='Resubmit failed jobs', action='store_true')
-    args = parser.parse_args()
-    
     jobs_dir = "jobs_" + args.type + "_" + args.year
     args.jobs_dir = jobs_dir
 
     if args.resubmit:
-        resubmit(args)
+        resubmit()
         sys.exit(0)
     
     if args.check_status:
-        check_job_status(args)
+        check_job_status()
         sys.exit(0)
    
     if args.post:
-        # run_add_weights(args)
-        merge_output_files(args)
+        # run_add_weights()
+        merge_output_files()
         sys.exit(0)   
         
     helpers.check_if_dir_exists(jobs_dir)
@@ -375,8 +375,8 @@ def main():
     os.system("cp static_files/condor_exec.sh " + jobs_dir)
     
     ## create metadata json and condor submit files in the jobs dir
-    create_metadata_json(args)
-    create_condor_submit(args)
+    create_metadata_json()
+    create_condor_submit()
 
 if __name__ == "__main__":
     main()
