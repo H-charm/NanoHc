@@ -36,20 +36,17 @@ condor_submit submit.sh
 
 Check jobs status  
 ----------------  
-Simply run the command in setup but with ```--check-status```  
+Run again ```runHcTrees.py``` with ```--check-status```  
 
 Merging output files  
 --------------------
-Simply run the command in setup but with ```--post```  
-```  
-cd $CMSSW_BASE/src/PhysicsTools/NanoHc/run  
-python3 runHcTrees.py --year <year> --output <output dir> -n <files per job> --post  
-```  
+Run again ```runHcTrees.py``` with ```--post```  
 
 Important notes 
 --------------  
 - Add/remove modules in ```static_files/processor.py```  
-- Add/remove samples in ```samples```    
+- Add/remove samples in ```samples```   
+- You can find log files in each job dir   
 
 Argument full list  
 ------------------  
