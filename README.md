@@ -52,6 +52,7 @@ Important notes
 - Add/remove modules in ```run/static_files/processor.py```  
 - Add/remove samples in ```run/samples```   
 - You can find log files in each jobs dir   
+- You can write new modules in ```python/producers```  
 
 Argument full list  
 ------------------  
