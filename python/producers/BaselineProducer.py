@@ -8,15 +8,25 @@ from ..helpers.utils import sumP4
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 class Zcandidate:
-    pass
+    
+    def __init__(self,lep1,lep2):
+        self.lep1 = lep1
+        self.lep2 = lep2
+        self.pt = sumP4(self.lep1, self.lep2).Pt()
+        self.eta = sumP4(self.lep1, self.lep2).Eta()
+        self.phi = sumP4(self.lep1, self.lep2).Phi()
+        self.mass = sumP4(self.lep1, self.lep2).M()
 
 
-class Hcandidate:
-    pass
-
-        
 class ZZcandidate:
-    pass
+
+    def __init__(self,Z1,Z2):
+        self.Z1 = Z1
+        self.Z2 = Z2
+        self.pt = sumP4(self.Z1, self.Z2).Pt()
+        self.eta = sumP4(self.Z1, self.Z2).Eta()
+        self.phi = sumP4(self.Z1, self.Z2).Phi()
+        self.mass = sumP4(self.Z1, self.Z2).M()
 
 
 class BaselineProducer(Module):
@@ -24,6 +34,18 @@ class BaselineProducer(Module):
     def __init__(self, year, dataset_type):
         self.year = year
         self.dataset_type = dataset_type
+        self.lep_vars = ["pt","eta","phi"]
+        self.jet_vars = ["pt","eta","phi","mass","bdisc","cvbdisc","cvldisc","gvudsdisc"]
+        self.jet_vars_mc = ["hadronFlavour"]
+        self.Z_vars = ["pt","eta","phi","mass","onshell_mass","offshell_mass"]
+        self.H_vars = ["pt","eta","phi","mass"]        
+        self.mu_prefix = "mu_"
+        self.el_prefix = "el_"
+        self.lep_prefix = "lep_"
+        self.jet_prefix = "jet_"
+        self.Z_prefix = "Z_"
+        self.ZZ_prefix = "ZZ_"
+        self.H_prefix = "H_"
 
     def beginJob(self):
         pass
@@ -37,45 +59,29 @@ class BaselineProducer(Module):
         self.out = wrappedOutputTree
         
         ## define lepton branches
-        self.out.branch("mu_pt", "F", 20, lenVar="nMu")
-        self.out.branch("mu_eta", "F", 20, lenVar="nMu")
-        self.out.branch("mu_phi", "F", 20, lenVar="nMu")
-        self.out.branch("el_pt", "F", 20, lenVar="nEl")
-        self.out.branch("el_eta", "F", 20, lenVar="nEl")
-        self.out.branch("el_phi", "F", 20, lenVar="nEl")
-        self.out.branch("lep_pt", "F", 20, lenVar="nLeptons")
-        self.out.branch("lep_eta", "F", 20, lenVar="nLeptons")
-        self.out.branch("lep_phi", "F", 20, lenVar="nLeptons")
+        for lep_var in self.lep_vars:
+            self.out.branch(self.mu_prefix + lep_var, "F", 20, lenVar="nMu")
+            self.out.branch(self.el_prefix + lep_var, "F", 20, lenVar="nEl")
+            self.out.branch(self.lep_prefix + lep_var, "F", 20, lenVar="nLep")
         
         ## define jet branches
-        self.out.branch("n_jets", "I")
-        self.out.branch("ak4_bdisc", "F", 20, lenVar="n_ak4")
-        self.out.branch("ak4_cvbdisc", "F", 20, lenVar="n_ak4")
-        self.out.branch("ak4_cvldisc", "F", 20, lenVar="n_ak4")
-        self.out.branch("ak4_gvudsdisc", "F", 20, lenVar="n_ak4")
-        self.out.branch("ak4_pt", "F", 20, lenVar="n_ak4")
-        self.out.branch("ak4_eta", "F", 20, lenVar="n_ak4")
-        self.out.branch("ak4_phi", "F", 20, lenVar="n_ak4")
-        self.out.branch("ak4_mass", "F", 20, lenVar="n_ak4")
-        if self.isMC: self.out.branch("ak4_hadronFlavour", "F", 20, lenVar="n_ak4")
+        for jet_var in self.jet_vars:
+            self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
+        if self.isMC: 
+            for jet_var in self.jet_vars_mc:
+                self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
         
         ## define trigger branches
         self.out.branch("passTriggers", "O")
         
         ## Zcandidates
-        self.out.branch("Zcandidate_mass", "F", 20, lenVar="n_Zcandidates")
-        self.out.branch("Zcandidate_pt", "F", 20, lenVar="n_Zcandidates")
-        self.out.branch("Zcandidate_eta", "F", 20, lenVar="n_Zcandidates")
-        self.out.branch("Zcandidate_phi", "F", 20, lenVar="n_Zcandidates")
-        self.out.branch("Zcandidate_onshell_mass", "F", 20, lenVar="n_Zcandidates_onshell")
-        self.out.branch("Zcandidate_offshell_mass", "F", 20, lenVar="n_Zcandidates_offshell")
+        for Z_var in self.Z_vars:
+            self.out.branch(self.Z_prefix + Z_var, "F", 20, lenVar="nZ")
   
         ## Hcandidates
-        self.out.branch("Hcandidate_mass", "F", 20, lenVar="n_Hcandidates")
-        self.out.branch("Hcandidate_pt", "F", 20, lenVar="n_Hcandidates")
-        self.out.branch("Hcandidate_eta", "F", 20, lenVar="n_Hcandidates")
-        self.out.branch("Hcandidate_phi", "F", 20, lenVar="n_Hcandidates")
-        
+        for H_var in self.H_vars:
+            self.out.branch(self.H_prefix + H_var, "F", 20, lenVar="nH")
+                    
         if self.isMC:
             self.out.branch("l1PreFiringWeight", "F", limitedPrecision=10)
         
@@ -87,8 +93,10 @@ class BaselineProducer(Module):
 
         if event.PV_npvsGood < 1: return False
 
-        if self._select_triggers(event) is False:
-            return False
+        # apply trigger selections on data
+        if not self.isMC: 
+            if self._select_triggers(event) is False:
+                return False
 
         self._select_muons(event)
         self._select_electrons(event)  
@@ -155,11 +163,9 @@ class BaselineProducer(Module):
             ])
         else:
             print(f"Year {self.year} not found")
-            
-        # apply trigger selections on data
-        if not self.isMC: 
-            if not out_data['passTriggers']:
-                return False
+                    
+        if not out_data['passTriggers']:
+            return False
 
         for key in out_data:
             self.out.fillBranch(key, out_data[key])
@@ -180,18 +186,11 @@ class BaselineProducer(Module):
             
             # let's put negative charged lepton always as lep1 (useful later)
             lep1, lep2 = (lepton_pair[0], lepton_pair[1]) if lepton_pair[0].pdgId < 0 else (lepton_pair[1], lepton_pair[0])
-            
-            Vboson = sumP4(lep1, lep2)
-            if Vboson.M() < 12 or Vboson.M() > 120:
-                continue
                         
-            Zcand = Zcandidate()
-            Zcand.pt = Vboson.Pt()
-            Zcand.mass = Vboson.M()
-            Zcand.eta = Vboson.Eta()
-            Zcand.phi = Vboson.Phi()
-            Zcand.lep1 = lep1
-            Zcand.lep2 = lep2
+            Zcand = Zcandidate(lep1,lep2)
+            
+            if Zcand.mass < 12 or Zcand.mass > 120:
+                continue
         
             event.Zcandidates.append(Zcand)
 
@@ -217,10 +216,10 @@ class BaselineProducer(Module):
                 
         Zcand_pairs = list(itertools.combinations(event.Zcandidates, 2))
         for Zcand_pair in Zcand_pairs:
-            
+                        
             self._flag_onshell_and_offshell_Z(Zcand_pair) 
             Z1, Z2 = (Zcand_pair[0], Zcand_pair[1]) if Zcand_pair[0].is_onshell else (Zcand_pair[1], Zcand_pair[0]) # by definition Z1 onshell, Z2 offshell
-            
+   
             if Z1.mass < 40: continue  
             
             leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2] 
@@ -255,13 +254,8 @@ class BaselineProducer(Module):
             if abs(Z1.lep1.pdgId) == abs(Z1.lep2.pdgId) == abs(Z2.lep1.pdgId) == abs(Z2.lep2.pdgId):
 
                 ## define Za as the one closest to Z mass, and Zb as the other pair
-                Ztemp1 = Zcandidate()
-                Ztemp1.lep1, Ztemp1.lep2 = Z1.lep1, Z2.lep2
-                Ztemp1.mass = sumP4(Ztemp1.lep1, Ztemp1.lep2).M()
-                
-                Ztemp2 = Zcandidate()
-                Ztemp2.lep1, Ztemp2.lep2 = Z2.lep1, Z1.lep2
-                Ztemp2.mass = sumP4(Ztemp2.lep1, Ztemp2.lep2).M()
+                Ztemp1 = Zcandidate(Z1.lep1, Z2.lep2)
+                Ztemp2 = Zcandidate(Z2.lep1, Z1.lep2)
 
                 mZ = 91.1876
                 Za, Zb = (Ztemp1, Ztemp2) if ( abs(Ztemp1.mass - mZ) < abs(Ztemp2.mass - mZ) ) else (Ztemp2, Ztemp1)
@@ -273,28 +267,17 @@ class BaselineProducer(Module):
             m_4l = sumP4(Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2).M()
             if m_4l < 70: continue
                 
-            ZZcand = ZZcandidate()
-            ZZcand.Z1 = Z1
-            ZZcand.Z2 = Z2
+            ZZcand = ZZcandidate(Z1,Z2)
             event.ZZcandidates.append(ZZcand)      
             
     def _select_H_candidates(self, event):
         
         event.Hcandidates = []
-                    
+        
+        ## for now keep all ZZ canidates as Higgs candidates            
         for ZZcand in event.ZZcandidates:
             
-            Z1 = ZZcand.Z1
-            Z2 = ZZcand.Z2
-            Vboson = sumP4(Z1, Z2)
-            
-            Hcand = Hcandidate()
-            Hcand.pt = Vboson.Pt()
-            Hcand.mass = Vboson.M()
-            Hcand.eta = Vboson.Eta()
-            Hcand.phi = Vboson.Phi()
-            Hcand.Z1 = Z1
-            Hcand.Z2 = Z2
+            Hcand = ZZcand
                         
             event.Hcandidates.append(Hcand)
         
@@ -401,15 +384,15 @@ class BaselineProducer(Module):
                 mu_eta.append(lep.eta)
                 mu_phi.append(lep.phi)            
             
-        out_data["lep_pt"] = lep_pt
-        out_data["lep_eta"] = lep_eta
-        out_data["lep_phi"] = lep_phi
-        out_data["el_pt"] = el_pt
-        out_data["el_eta"] = el_eta
-        out_data["el_phi"] = el_phi       
-        out_data["mu_pt"] = mu_pt
-        out_data["mu_eta"] = mu_eta
-        out_data["mu_phi"] = mu_phi
+        out_data[self.lep_prefix + "pt"] = lep_pt
+        out_data[self.lep_prefix + "eta"] = lep_eta
+        out_data[self.lep_prefix + "phi"] = lep_phi
+        out_data[self.el_prefix + "pt"] = el_pt
+        out_data[self.el_prefix + "eta"] = el_eta
+        out_data[self.el_prefix + "phi"] = el_phi       
+        out_data[self.mu_prefix + "pt"] = mu_pt
+        out_data[self.mu_prefix + "eta"] = mu_eta
+        out_data[self.mu_prefix + "phi"] = mu_phi
                     
         ## jets  
         ak4_bdisc = []
@@ -433,15 +416,15 @@ class BaselineProducer(Module):
             ak4_mass.append(jet.mass)
             if self.isMC: ak4_hadronFlavour.append(jet.hadronFlavour)
         
-        out_data["ak4_bdisc"] = ak4_bdisc
-        out_data["ak4_cvbdisc"] = ak4_cvbdisc
-        out_data["ak4_cvldisc"] = ak4_cvldisc 
-        out_data["ak4_gvudsdisc"] = ak4_gvudsdisc 
-        out_data["ak4_pt"] = ak4_pt 
-        out_data["ak4_eta"] = ak4_eta 
-        out_data["ak4_phi"] = ak4_phi 
-        out_data["ak4_mass"] = ak4_mass 
-        if self.isMC: out_data["ak4_hadronFlavour"] = ak4_hadronFlavour 
+        out_data[self.jet_prefix + "bdisc"] = ak4_bdisc
+        out_data[self.jet_prefix + "cvbdisc"] = ak4_cvbdisc
+        out_data[self.jet_prefix + "cvldisc"] = ak4_cvldisc 
+        out_data[self.jet_prefix + "gvudsdisc"] = ak4_gvudsdisc 
+        out_data[self.jet_prefix + "pt"] = ak4_pt 
+        out_data[self.jet_prefix + "eta"] = ak4_eta 
+        out_data[self.jet_prefix + "phi"] = ak4_phi 
+        out_data[self.jet_prefix + "mass"] = ak4_mass 
+        if self.isMC: out_data[self.jet_prefix + "hadronFlavour"] = ak4_hadronFlavour 
            
         ## Z candidates
         Zcandidate_mass = []
@@ -458,12 +441,12 @@ class BaselineProducer(Module):
             if Zcandidate.is_onshell: Zcandidate_onshell_mass.append(Zcandidate.mass)
             else: Zcandidate_offshell_mass.append(Zcandidate.mass)
                 
-        out_data["Zcandidate_mass"] = Zcandidate_mass
-        out_data["Zcandidate_pt"] = Zcandidate_pt
-        out_data["Zcandidate_eta"] = Zcandidate_eta 
-        out_data["Zcandidate_phi"] = Zcandidate_phi 
-        out_data["Zcandidate_onshell_mass"] = Zcandidate_onshell_mass
-        out_data["Zcandidate_offshell_mass"] = Zcandidate_offshell_mass
+        out_data[self.Z_prefix + "mass"] = Zcandidate_mass
+        out_data[self.Z_prefix + "pt"] = Zcandidate_pt
+        out_data[self.Z_prefix + "eta"] = Zcandidate_eta 
+        out_data[self.Z_prefix + "phi"] = Zcandidate_phi 
+        out_data[self.Z_prefix + "onshell_mass"] = Zcandidate_onshell_mass
+        out_data[self.Z_prefix + "offshell_mass"] = Zcandidate_offshell_mass
 
         ## H candidates
         Hcandidate_mass = []
@@ -476,10 +459,10 @@ class BaselineProducer(Module):
             Hcandidate_eta.append(Hcandidate.eta)
             Hcandidate_phi.append(Hcandidate.phi)
             
-        out_data["Hcandidate_mass"] = Hcandidate_mass
-        out_data["Hcandidate_pt"] = Hcandidate_pt
-        out_data["Hcandidate_eta"] = Hcandidate_eta 
-        out_data["Hcandidate_phi"] = Hcandidate_phi 
+        out_data[self.H_prefix + "mass"] = Hcandidate_mass
+        out_data[self.H_prefix + "pt"] = Hcandidate_pt
+        out_data[self.H_prefix + "eta"] = Hcandidate_eta 
+        out_data[self.H_prefix + "phi"] = Hcandidate_phi 
                 
         if self.isMC:
             out_data["l1PreFiringWeight"] = event.L1PreFiringWeight_Nom                
