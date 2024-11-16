@@ -41,8 +41,8 @@ p = PostProcessor(
     outputDir = output_dir, 
     inputFiles = files, 
     modules=[
-            # LeptonVariablesModule(),
-            # TopLeptonMvaModule("2018", 'ULv1'),     
+            LeptonVariablesModule(),
+            TopLeptonMvaModule(year, 'ULv2'),     
             BaselineProducer(year, dataset_type),
             # PileupWeightProducer(year, dataset_type),
             # ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 (keep it out for now)

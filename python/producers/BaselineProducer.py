@@ -112,7 +112,7 @@ class BaselineProducer(Module):
             return False
         
         self._select_ZZ_candidates(event)
-        if len(event.ZZcandidates) > 1: return False # for now keep only events with 1 ZZ candidate (we need MELA if we have more)
+        # if len(event.ZZcandidates) > 1: return False # for now keep only events with 1 ZZ candidate (we need MELA if we have more)
         
         self._select_H_candidates(event)
         
@@ -176,7 +176,8 @@ class BaselineProducer(Module):
 
         event.Zcandidates = []
         
-        lepton_pairs = list(itertools.combinations(event.selectedLeptons, 2))
+        mva_leptons = [lepton for lepton in event.selectedLeptons if lepton.mvaTOP > 0.9]
+        lepton_pairs = list(itertools.combinations(mva_leptons, 2))
         
         for lepton_pair in lepton_pairs:
             
