@@ -281,9 +281,9 @@ class BaselineProducer(Module):
                 ## reject if |mZa - mZ| < |mZ1 - mZ| and mZb < 12
                 if ( abs(Za.mass - mZ) < abs(Z1.mass - mZ) ) and Zb.mass < 12: continue
 
-            ## reject if inv mass of 4-lepton system < 70              
+            ## reject if inv mass of 4-lepton system < 105             
             m_4l = sumP4(Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2).M()
-            if m_4l < 70: continue
+            if m_4l < 105: continue
                 
             ZZcand = ZZcandidate(Z1,Z2)
             event.ZZcandidates.append(ZZcand)      
