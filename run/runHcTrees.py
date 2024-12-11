@@ -12,7 +12,7 @@ import helpers
 
 ## parse arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--year', type=str, help='Year to run', default="2018")
+parser.add_argument('--year', type=str, help='Year to run', default="2022")
 parser.add_argument('--output', type=str, help='Output dir', default = "/eos/user/i/iparaske/HcTrees/")
 parser.add_argument('--type', type=str, help='mc or data', default = "mc", choices=['mc', 'data'])
 parser.add_argument('--post',help='Merge output files',action='store_true')
@@ -23,10 +23,7 @@ parser.add_argument('--resubmit', help='Resubmit failed jobs', action='store_tru
 args = parser.parse_args()
 
 golden_json = {
-    '2015': 'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',
-    '2016': 'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',
-    '2017': 'Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt',
-    '2018': 'Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt',
+    '2022': 'Cert_Collisions2022_355100_362760_Golden.json',
 }
 
 ## read samples yaml file and produce json file to be used by condor
