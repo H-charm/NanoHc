@@ -124,43 +124,60 @@ class BaselineProducer(Module):
 
         out_data = {}
 
-        if self.year == "2016APV":
-            pass #FIX
-        if self.year == "2016":
-            pass #FIX
-        if self.year == "2017":
+        if self.year == "2022":
             out_data["passTriggers"] = passTrigger(event, [
-                'HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL',
-                'HLT_DoubleEle33_CaloIdL_GsfTrkIdVL',
-                'HLT_Ele16_Ele12_Ele8_CaloIdL_TrackIdL',
-                'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8', 
-                'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8', 
-                'HLT_TripleMu_12_10_5', 
-                'HLT_TripleMu_10_5_5_D2', 
-                'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL', 
-                'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
-                'HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ',
-                'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ',
-                'HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ', 
-                'HLT_Mu8_DiEle12_CaloIdL_TrackIdL', 
-                'HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ', 
-                'HLT_Ele35_WPTight_Gsf_v', 
-                'HLT_Ele38_WPTight_Gsf_v', 
-                'HLT_Ele40_WPTight_Gsf_v', 
-                'HLT_IsoMu27',
-            ])
-        elif self.year == "2018":
-            out_data["passTriggers"] = passTrigger(event, [
+                'HLT_Ele30_WPTight_Gsf',
+                'HLT_IsoMu24',
                 'HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL',
                 'HLT_DoubleEle25_CaloIdL_MW',
                 'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8',
-                'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL', 
-                'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
-                'HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
-                'HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ', 
-                'HLT_Ele32_WPTight_Gsf', 
-                'HLT_IsoMu24', 
+                'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL',
+                'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ',
+                'HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ',
+                'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ',
+                'HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ',
+                'HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ',
+                'HLT_TripleMu_10_5_5_DZ',
+                'HLT_TripleMu_12_10_5',
             ])
+
+        # if self.year == "2016APV":
+        #     pass #FIX
+        # if self.year == "2016":
+        #     pass #FIX
+        # if self.year == "2017":
+        #     out_data["passTriggers"] = passTrigger(event, [
+        #         'HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL',
+        #         'HLT_DoubleEle33_CaloIdL_GsfTrkIdVL',
+        #         'HLT_Ele16_Ele12_Ele8_CaloIdL_TrackIdL',
+        #         'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8', 
+        #         'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8', 
+        #         'HLT_TripleMu_12_10_5', 
+        #         'HLT_TripleMu_10_5_5_D2', 
+        #         'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL', 
+        #         'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
+        #         'HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ',
+        #         'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ',
+        #         'HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ', 
+        #         'HLT_Mu8_DiEle12_CaloIdL_TrackIdL', 
+        #         'HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ', 
+        #         'HLT_Ele35_WPTight_Gsf_v', 
+        #         'HLT_Ele38_WPTight_Gsf_v', 
+        #         'HLT_Ele40_WPTight_Gsf_v', 
+        #         'HLT_IsoMu27',
+        #     ])
+        # elif self.year == "2018":
+        #     out_data["passTriggers"] = passTrigger(event, [
+        #         'HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL',
+        #         'HLT_DoubleEle25_CaloIdL_MW',
+        #         'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8',
+        #         'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL', 
+        #         'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
+        #         'HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
+        #         'HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ', 
+        #         'HLT_Ele32_WPTight_Gsf', 
+        #         'HLT_IsoMu24', 
+        #     ])
         else:
             print(f"Year {self.year} not found")
                     
