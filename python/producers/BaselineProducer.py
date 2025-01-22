@@ -492,8 +492,8 @@ class BaselineProducer(Module):
         out_data[self.H_prefix + "eta"] = Hcandidate_eta 
         out_data[self.H_prefix + "phi"] = Hcandidate_phi 
                 
-        if self.isMC:
-            out_data["l1PreFiringWeight"] = event.L1PreFiringWeight_Nom                
+        # if self.isMC:
+        #     out_data["l1PreFiringWeight"] = event.L1PreFiringWeight_Nom                
                 
         ## fill all branches
         for key in out_data:
