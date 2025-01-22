@@ -287,7 +287,7 @@ class BaselineProducer(Module):
             if m_4l < 105: continue
 
             ## reject if inv mass of 4-lepton system > 140
-            if m_4l > 140: coninue
+            if m_4l > 140: continue
                 
             ZZcand = ZZcandidate(Z1,Z2)
             event.ZZcandidates.append(ZZcand)      
