@@ -333,25 +333,25 @@ class BaselineProducer(Module):
                 ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
                 if abs(el.etaSC) < 0.8:
                     if el.pt < 10:
-                        #if el.mvaFall17V2Iso < 0.9128577458: continue
-                        if el.mvaFall17V2Iso < 1.6339: continue
+                        #if el.mvaIso < 0.9128577458: continue
+                        if el.mvaIso < 1.6339: continue
                     else:
-                        #if el.mvaFall17V2Iso < 0.1559788054: continue
-                        if el.mvaFall17V2Iso < 0.3685: continue
+                        #if el.mvaIso < 0.1559788054: continue
+                        if el.mvaIso < 0.3685: continue
                 elif 0.8 < abs(el.etaSC) < 1.479:
                     if el.pt < 10:
-                        #if el.mvaFall17V2Iso < 0.9056792368: continue
-                        if el.mvaFall17V2Iso < 1.5499: continue
+                        #if el.mvaIso < 0.9056792368: continue
+                        if el.mvaIso < 1.5499: continue
                     else:
-                        #if el.mvaFall17V2Iso < 0.0273863727: continue
-                        if el.mvaFall17V2Iso < 0.2662: continue                    
+                        #if el.mvaIso < 0.0273863727: continue
+                        if el.mvaIso < 0.2662: continue                    
                 else: # |el.etaSC| > 1.479
                     if el.pt < 10:
-                        #if el.mvaFall17V2Iso < 0.9439440575: continue
-                        if el.mvaFall17V2Iso < 2.0629: continue
+                        #if el.mvaIso < 0.9439440575: continue
+                        if el.mvaIso < 2.0629: continue
                     else:
-                        #if el.mvaFall17V2Iso < -0.5532483665: continue
-                        if el.mvaFall17V2Iso < -0.5444: continue                         
+                        #if el.mvaIso < -0.5532483665: continue
+                        if el.mvaIso < -0.5444: continue                         
                                     
                 event.selectedElectrons.append(el)
 
