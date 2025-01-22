@@ -104,7 +104,7 @@ error = log/$(jobid).err
 log = log/$(jobid).log
 
 JobBatchName = HcTrees_''' + args.type + '''_''' + args.year + '''
-+JobFlavour = "longlunch"
++JobFlavour = "tomorrow"
 
 queue jobid from ''' + jobids_file)
 
