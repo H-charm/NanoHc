@@ -7,11 +7,10 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
 
 
-era_dict = {"2015": '2016preVFP_UL', "2016": '2016postVFP_UL', "2017": '2017_UL', "2018": '2018_UL'}
-key_dict = {"2015": 'Collisions16_UltraLegacy_goldenJSON',
-            "2016": 'Collisions16_UltraLegacy_goldenJSON',
-            "2017": 'Collisions17_UltraLegacy_goldenJSON',
-            "2018": 'Collisions18_UltraLegacy_goldenJSON'}
+era_dict = {"2021": '2022_Summer22EE', "2022": '2022_Summer22'}
+key_dict = {"2021": 'Cert_Collisions2022_355100_362760_Golden.json',
+            "2022": 'Cert_Collisions2022_355100_362760_Golden.json'
+            }
 
 
 class PileupWeightProducer(Module, object):
