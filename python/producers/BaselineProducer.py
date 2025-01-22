@@ -193,8 +193,9 @@ class BaselineProducer(Module):
 
         event.Zcandidates = []
         
-        mva_leptons = [lepton for lepton in event.selectedLeptons if lepton.mvaTOP > 0.9]
-        lepton_pairs = list(itertools.combinations(mva_leptons, 2))
+        # mva_leptons = [lepton for lepton in event.selectedLeptons if lepton.mvaTOP > 0.9]
+        # lepton_pairs = list(itertools.combinations(mva_leptons, 2))
+        lepton_pairs = list(itertools.combinations(event.selectedLeptons, 2))
         
         for lepton_pair in lepton_pairs:
             
