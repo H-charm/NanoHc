@@ -7,7 +7,7 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
 
 
-era_dict = {"2015": '2016preVFP_UL', "2016": '2016postVFP_UL', "2017": '2017_UL', "2018": '2018_UL'}
+era_dict = {"2021": '2022_Summer22EE', "2022": '2022_Summer22'}
 
 class ElectronSFProducer(Module, object):
 
@@ -16,7 +16,7 @@ class ElectronSFProducer(Module, object):
         self.dataset_type = dataset_type
         self.era = era_dict[self.year]
         correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electron.json.gz'
-        self.corr = correctionlib.CorrectionSet.from_file(correction_file)['UL-Electron-ID-SF']
+        self.corr = correctionlib.CorrectionSet.from_file(correction_file)['Electron-ID-SF']
 
     def get_sf(self, sf_type, lep):
         if abs(lep.pdgId) != 11:
