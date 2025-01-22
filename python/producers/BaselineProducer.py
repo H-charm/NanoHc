@@ -82,8 +82,8 @@ class BaselineProducer(Module):
         for H_var in self.H_vars:
             self.out.branch(self.H_prefix + H_var, "F", 20, lenVar="nH")
                     
-        if self.isMC:
-            self.out.branch("l1PreFiringWeight", "F", limitedPrecision=10)
+        # if self.isMC:
+        #     self.out.branch("l1PreFiringWeight", "F", limitedPrecision=10)
         
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
