@@ -7,7 +7,7 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
 
 
-era_dict = {"2021": '2022_Summer22EE', "2022": '2022_Summer22'}
+era_dict = {"2021": '2022_Summer22', "2022": '2022_Summer22EE'}
 key_dict = {"2021": 'Cert_Collisions2022_355100_362760_Golden.json',
             "2022": 'Cert_Collisions2022_355100_362760_Golden.json'
             }
