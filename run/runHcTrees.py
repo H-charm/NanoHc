@@ -24,6 +24,7 @@ args = parser.parse_args()
 
 golden_json = {
     '2022': 'Cert_Collisions2022_355100_362760_Golden.json',
+    '2023': 'Cert_Collisions2023_366442_370790_Golden.json'
 }
 
 ## read samples yaml file and produce json file to be used by condor
