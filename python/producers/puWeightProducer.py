@@ -7,9 +7,11 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
 
 
-era_dict = {"2021": '2022_Summer22', "2022": '2022_Summer22EE'}
-key_dict = {"2021": 'Cert_Collisions2022_355100_362760_Golden.json',
-            "2022": 'Cert_Collisions2022_355100_362760_Golden.json'
+era_dict = {"2022": '2022_Summer22', "2022EE": '2022_Summer22EE', "2023": '2023_Summer23', "2023BPix": '2023_Summer23BPix'}
+key_dict = {"2022":     'Collisions2022_355100_357900_eraBCD_GoldenJson',
+            "2022EE":   'Collisions2022_359022_362760_eraEFG_GoldenJson',
+            "2023":     'Collisions2023_366403_369802_eraBC_GoldenJson',
+            "2023BPix": 'Collisions2023_369803_370790_eraD_GoldenJson'
             }
 
 
@@ -19,7 +21,7 @@ class PileupWeightProducer(Module, object):
         self.dataset_type = dataset_type
         self.nvtxVar = 'Pileup_nTrueInt'
         self.era = era_dict[self.year]
-        correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/{self.era}/puWeights.json.gz'
+        correction_file = f"/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/{self.era}/puWeights.json.gz"
         self.corr = correctionlib.CorrectionSet.from_file(correction_file)[key_dict[self.year]]
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
