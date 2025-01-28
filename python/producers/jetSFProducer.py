@@ -66,6 +66,10 @@ class JetVMAPProducer(Module, object):
         # According to JetMet POG: These maps should be applied similarly both on Data and MC, to keep the phase-spaces equal.
         # https://cms-jerc.web.cern.ch/Recommendations/#jet-veto-maps
 
+        # There is a problem for the implementation in data. Use only MC atm
+        if not self.isMC:
+            return True
+
         for jet in event.selectedJets:
 
             wgtjetVMAP = self.corr.evaluate("jetvetomap", jet.eta, jet.phi)
