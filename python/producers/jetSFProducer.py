@@ -13,7 +13,7 @@ key_dict = {"2022":     'Summer22_23Sep2023_RunCD_V1',
             "2023BPix": 'Summer23BPixPrompt23_RunD_V1'
             }
 
-class JetJERC(Module, object):
+class JetJERCProducer(Module, object):
     def __init__(self, year, dataset_type, **kwargs):
         self.year = year
         self.dataset_type = dataset_type
@@ -46,7 +46,7 @@ class JetJERC(Module, object):
         
         return True
     
-class JetVMAP(Module, object):
+class JetVMAPProducer(Module, object):
     def __init__(self, year, dataset_type, **kwargs):
         self.year = year
         self.dataset_type = dataset_type
@@ -69,8 +69,8 @@ class JetVMAP(Module, object):
 
         for jet in event.selectedJets:
 
-            wgtjetVMAP = self.corr.evaluate(self.path, "jetvetomap", jet.eta, jet.phi)
+            wgtjetVMAP = self.corr.evaluate("jetvetomap", jet.eta, jet.phi)
 
-        self.out.fillBranch('jetVMAP', wgtjetVMAP)
+        self.out.fillBranch('jetVMAPWeight', wgtjetVMAP)
         
         return True
