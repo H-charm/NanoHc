@@ -316,7 +316,7 @@ class BaselineProducer(Module):
             
             if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and passMuID and (mu.isGlobal or (mu.isTracker and mu.nStations>0)):
                 mu._wp_ID = 'TightID'
-                mu._wp_Iso = 'LooseRelIso'
+                mu._wp_Iso = 'LoosePFIso'
                 event.selectedMuons.append(mu)
             
     ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py       

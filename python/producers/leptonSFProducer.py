@@ -15,6 +15,7 @@ class ElectronSFProducer(Module, object):
         self.year = year
         self.dataset_type = dataset_type
         self.era = era_dict[self.year]
+        self.path=f'{self.year}Re-recoE+PromptFG'
         correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electron.json.gz'
         self.corr = correctionlib.CorrectionSet.from_file(correction_file)['Electron-ID-SF']
 
@@ -24,11 +25,11 @@ class ElectronSFProducer(Module, object):
 
         wp = None
         if sf_type == 'Reco':
-            wp = 'RecoBelow20' if lep.pt < 20 else 'RecoAbove20'
+            wp = 'RecoBelow20' if lep.pt < 20 else 'Reco20to75' if 20 < lep.pt < 75 else 'RecoAbove75'
         elif sf_type == 'ID':
             wp = lep._wp_ID
 
-        scale_factor = self.corr.evaluate(self.era.replace('_UL', ''), "sf", wp, lep.etaSC, lep.pt)
+        scale_factor = self.corr.evaluate(self.path, "sf", wp, lep.etaSC, lep.pt)
         return scale_factor
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
@@ -76,9 +77,9 @@ class MuonSFProducer(Module, object):
             raise RuntimeError('Input lepton is not a muon')
         if sf_type == 'ID':
             assert lep._wp_ID == 'TightID'
-            key = 'NUM_TightID_DEN_genTracks'
+            key = 'NUM_TightID_DEN_TrackerMuons'
         elif sf_type == 'Iso':
-            key = f'NUM_{lep._wp_Iso}_DEN_TightIDandIPCut'
+            key = f'NUM_{lep._wp_Iso}_DEN_TightID'
         if lep.pt > 15:
             scale_factor = self.corr_muon_Z[key].evaluate(abs(lep.eta), lep.pt, "nominal")
         elif lep.pt <= 15:
@@ -104,8 +105,12 @@ class MuonSFProducer(Module, object):
         for lep in event.selectedMuons:
             if abs(lep.pdgId) != 13:
                 continue
-            wgtID *= self.get_sf('ID', lep)
-            wgtIso *= self.get_sf('Iso', lep)
+            if lep.pt>15:
+                wgtID *= self.get_sf('ID', lep)
+                wgtIso *= self.get_sf('Iso', lep)
+            else:
+                wgtID *= self.get_sf('ID', lep)
+
 
         eventWgt = wgtID * wgtIso
         self.out.fillBranch('muEffWeight', eventWgt)
