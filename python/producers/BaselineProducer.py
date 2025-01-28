@@ -31,8 +31,9 @@ class ZZcandidate:
 
 class BaselineProducer(Module):
     
-    def __init__(self, year, dataset_type):
+    def __init__(self, year, dataset_type, sample):
         self.year = year
+        self.sample = sample
         self.dataset_type = dataset_type
         self.lep_vars = ["pt","eta","phi"]
         self.jet_vars = ["pt","eta","phi","mass","bdisc","cvbdisc","cvldisc","gvudsdisc"]
@@ -73,6 +74,10 @@ class BaselineProducer(Module):
         
         ## define trigger branches
         self.out.branch("passTriggers", "O")
+        self.out.branch("HLT_passZZ4lEle", "O")   # pass Ele triggers
+        self.out.branch("HLT_passZZ4lMu", "O")    # pass Muon triggers
+        self.out.branch("HLT_passZZ4lMuEle", "O") # pass MuEle triggers
+        self.out.branch("HLT_passZZ4l", "O")      # pass trigger requirements for the given sample (including sample precedence vetos) 
         
         ## Zcandidates
         for Z_var in self.Z_vars:
@@ -93,10 +98,14 @@ class BaselineProducer(Module):
 
         if event.PV_npvsGood < 1: return False
 
-        # apply trigger selections on data
-        if not self.isMC: 
-            if self._select_triggers(event) is False:
-                return False
+        # # apply trigger selections on data
+        # if not self.isMC: 
+        #     if self._select_triggers(event) is False:
+        #         return False
+
+        # Apply trigger selections on trigger and data
+        if self._select_triggers(event) is False:
+            return False
 
         self._select_muons(event)
         self._select_electrons(event)  
@@ -122,72 +131,51 @@ class BaselineProducer(Module):
         
     def _select_triggers(self, event):
 
+        passTrigger = False 
         out_data = {}
-
-        if self.year == "2022":
-            out_data["passTriggers"] = passTrigger(event, [
-                'HLT_Ele30_WPTight_Gsf',
-                'HLT_IsoMu24',
-                'HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL',
-                'HLT_DoubleEle25_CaloIdL_MW',
-                'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8',
-                'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL',
-                'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ',
-                'HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ',
-                'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ',
-                'HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ',
-                'HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ',
-                'HLT_TripleMu_10_5_5_DZ',
-                'HLT_TripleMu_12_10_5',
-            ])
-
-        # if self.year == "2016APV":
-        #     pass #FIX
-        # if self.year == "2016":
-        #     pass #FIX
-        # if self.year == "2017":
-        #     out_data["passTriggers"] = passTrigger(event, [
-        #         'HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL',
-        #         'HLT_DoubleEle33_CaloIdL_GsfTrkIdVL',
-        #         'HLT_Ele16_Ele12_Ele8_CaloIdL_TrackIdL',
-        #         'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8', 
-        #         'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8', 
-        #         'HLT_TripleMu_12_10_5', 
-        #         'HLT_TripleMu_10_5_5_D2', 
-        #         'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL', 
-        #         'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
-        #         'HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ',
-        #         'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ',
-        #         'HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ', 
-        #         'HLT_Mu8_DiEle12_CaloIdL_TrackIdL', 
-        #         'HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ', 
-        #         'HLT_Ele35_WPTight_Gsf_v', 
-        #         'HLT_Ele38_WPTight_Gsf_v', 
-        #         'HLT_Ele40_WPTight_Gsf_v', 
-        #         'HLT_IsoMu27',
-        #     ])
-        # elif self.year == "2018":
-        #     out_data["passTriggers"] = passTrigger(event, [
-        #         'HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL',
-        #         'HLT_DoubleEle25_CaloIdL_MW',
-        #         'HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8',
-        #         'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL', 
-        #         'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
-        #         'HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ', 
-        #         'HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ', 
-        #         'HLT_Ele32_WPTight_Gsf', 
-        #         'HLT_IsoMu24', 
-        #     ])
+        if self.year == "2022" or self.year == "2022EE" : # Checked that these are unprescaled in run 359751
+            passSingleEle = event.HLT_Ele30_WPTight_Gsf #Note: we used Ele32 in 2018! 
+            passSingleMu = event.HLT_IsoMu24
+            passDiEle = event.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_DoubleEle25_CaloIdL_MW
+            passDiMu = event.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
+            passMuEle = event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ or event.HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ
+            passTriEle = False
+            passTriMu = event.HLT_TripleMu_10_5_5_DZ or event.HLT_TripleMu_12_10_5
+        elif self.year == "2023" or self.year == "2023BPix" : # Checked that these are unprescaled, reference twikis for 2023 Eg & Muon Triggers https://twiki.cern.ch/twiki/bin/view/CMS/EgHLTRunIIISummary & https://twiki.cern.ch/twiki/bin/view/CMS/MuonHLT2023
+            passSingleEle = event.HLT_Ele30_WPTight_Gsf
+            passSingleMu = event.HLT_IsoMu24
+            passDiEle = event.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL
+            passDiMu = event.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
+            passMuEle = event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL
+            passTriEle = False
+            passTriMu = event.HLT_TripleMu_10_5_5_DZ or event.HLT_TripleMu_12_10_5
         else:
             print(f"Year {self.year} not found")
-                    
-        if not out_data['passTriggers']:
-            return False
+
+
+        if self.isMC or self.sample == "any" :
+            passTrigger = passDiEle or passDiMu or passMuEle or passTriEle or passTriMu or passSingleEle or passSingleMu
+        else: # Data: ensure each event is taken only from a single sample
+            if self.sample == "" : sys.exit("ERROR: sample must be set in data") # we may want to merge triggers for test runs 
+            if ((self.sample=="DoubleEle" or self.sample=="DoubleEG"  or self.sample=="EGamma" ) and (passDiEle or passTriEle)) or \
+               ((self.sample=="Muon" or self.sample=="DoubleMu"  or self.sample=="DoubleMuon") and (passDiMu or passTriMu) and not passDiEle and not passTriEle) or \
+               ((self.sample=="MuEG" or self.sample=="MuonEG") and passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle) or \
+               ((self.sample=="SingleElectron" or self.sample=="EGamma") and passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle) or \
+               ((self.sample=="SingleMuon" or self.sample=="Muon") and passSingleMu and not passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle) :
+                   passTrigger = True
+
+        # if not out_data['passTriggers']:
+        #     return False
 
         for key in out_data:
             self.out.fillBranch(key, out_data[key])
 
-        return True
+        self.out.fillBranch("HLT_passZZ4lEle", passSingleEle or passDiEle or passTriEle)
+        self.out.fillBranch("HLT_passZZ4lMu", passSingleMu or passDiMu or passTriMu)
+        self.out.fillBranch("HLT_passZZ4lMuEle", passMuEle)
+        self.out.fillBranch("HLT_passZZ4l", passTrigger)
+
+        return passTrigger
 
     def _select_Z_candidates(self, event):
 
