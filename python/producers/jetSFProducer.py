@@ -63,9 +63,8 @@ class JetVMAPProducer(Module, object):
 
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
-
-        if not self.isMC:
-            return True
+        # According to JetMet POG: These maps should be applied similarly both on Data and MC, to keep the phase-spaces equal.
+        # https://cms-jerc.web.cern.ch/Recommendations/#jet-veto-maps
 
         for jet in event.selectedJets:
 
