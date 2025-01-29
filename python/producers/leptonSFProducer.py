@@ -15,7 +15,7 @@ class ElectronSFProducer(Module, object):
         self.year = year
         self.dataset_type = dataset_type
         self.era = era_dict[self.year]
-        self.path=f'{self.year}Re-recoE+PromptFG'
+        self.path=f'{self.year}Re-recoBCD'
         correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electron.json.gz'
         self.corr = correctionlib.CorrectionSet.from_file(correction_file)['Electron-ID-SF']
 
@@ -115,4 +115,72 @@ class MuonSFProducer(Module, object):
         eventWgt = wgtID * wgtIso
         self.out.fillBranch('muEffWeight', eventWgt)
 
+        return True
+
+class MuonScaleProducer(Module, object):
+    
+    def __init__(self, year, dataset_type, **kwargs):
+        self.year = year
+        self.dataset_type = dataset_type
+        self.era = era_dict[self.year]
+        self.isMC = dataset_type == "mc"
+        
+        if self.year == "2022":
+            self.fname = "2022_schemaV2.json.gz" if "pre_EE" in kwargs.get("tag", "") else "2022EE_schemaV2.json.gz"
+        elif self.year == "2023":
+            self.fname = "2023_schemaV2.json.gz" if "pre_BPix" in kwargs.get("tag", "") else "2023BPix_schemaV2.json.gz"
+        else:
+            raise ValueError(f"MuonScaleProducer: Era {self.year} not supported")
+        
+        json_path = f"/afs/cern.ch/user/p/pkatris/Run3_Hc/CMSSW_13_3_0/src/PhysicsTools/NanoHc/data/MuonScale/{self.fname}"
+        
+        from correctionlib import CorrectionSet
+        self.corr = CorrectionSet.from_file(json_path)["cb_params"]
+    
+    def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
+        if self.isMC:
+            self.out = wrappedOutputTree
+            self.out.branch('muonScale', "F", limitedPrecision=10)
+    
+    def analyze(self, event):
+        if not self.isMC:
+            return True
+        
+        for lep in event.selectedMuons:
+            if abs(lep.pdgId) != 13:
+                continue
+            scale_corr = self.corr.evaluate(abs(lep.eta), float(lep.nTrackerLayers), 1)
+            self.out.fillBranch('muonScale', scale_corr)
+        
+        return True
+
+
+class ElectronScaleProducer(Module, object):
+    
+    def __init__(self, year, dataset_type, **kwargs):
+        self.year = year
+        self.dataset_type = dataset_type
+        self.era = era_dict[self.year]
+        self.isMC = dataset_type == "mc"
+        
+        correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electronSS.json.gz'
+        
+        from correctionlib import CorrectionSet
+        self.corr = CorrectionSet.from_file(correction_file)["Scale"]
+    
+    def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
+        if self.isMC:
+            self.out = wrappedOutputTree
+            self.out.branch('electronScale', "F", limitedPrecision=10)
+    
+    def analyze(self, event):
+        if not self.isMC:
+            return True
+        
+        for lep in event.selectedElectrons:
+            if abs(lep.pdgId) != 11:
+                continue
+            scale_corr = self.corr.evaluate("total_correction", lep.seedGain, float(event.run), lep.eta, lep.r9, lep.scEtOverPt)
+            self.out.fillBranch('electronScale', scale_corr)
+        
         return True
