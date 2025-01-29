@@ -132,7 +132,7 @@ class MuonScaleProducer(Module, object):
         else:
             raise ValueError(f"MuonScaleProducer: Era {self.year} not supported")
         
-        json_path = f"/afs/cern.ch/user/p/pkatris/Run3_Hc/CMSSW_13_3_0/src/PhysicsTools/NanoHc/data/MuonScale/{self.fname}"
+        json_path = f"../../data/MuonScale/{self.fname}"
         
         from correctionlib import CorrectionSet
         self.corr = CorrectionSet.from_file(json_path)["cb_params"]
