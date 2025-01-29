@@ -245,7 +245,7 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
                                      [sumwgts / _get_sum(run_tree, 'LHEPdfSumw[%d]*genEventSumw' % i)
                                       for i in range(nPdfWeights)])
         print('LHEPdfWeightNorm: ' + str(pdf_weight_norm_buff))
-        _fill_const_branch(tree, "LHEPdfWeightNorm", pdf_weight_norm_buff, lenVar=nScaleWeights)
+        _fill_const_branch(tree, "LHEPdfWeightNorm", pdf_weight_norm_buff, lenVar=nPdfWeights)
 
     # fill PS weight re-normalization factors
     if tree.GetBranch('PSWeight') and run_tree.GetBranch('PSSumw'):
@@ -255,7 +255,7 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
                                     [sumwgts / _get_sum(run_tree, 'PSSumw[%d]*genEventSumw' % i)
                                      for i in range(nPSWeights)])
         print('PSWeightNorm: ' + str(ps_weight_norm_buff))
-        _fill_const_branch(tree, 'PSWeightNorm', ps_weight_norm_buff, lenVar='nPSWeight')
+        _fill_const_branch(tree, 'PSWeightNorm', ps_weight_norm_buff, lenVar=nPSWeights)
                
     tree.Write(treename, ROOT.TObject.kOverwrite)
     f.Close()
@@ -354,7 +354,7 @@ def main():
         sys.exit(0)
    
     if args.post:
-        # run_add_weights()
+        run_add_weights()
         merge_output_files()
         sys.exit(0)   
         
