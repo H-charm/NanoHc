@@ -1,7 +1,7 @@
 from PhysicsTools.NanoAODTools.postprocessing.framework.postprocessor import PostProcessor
 from PhysicsTools.NanoHc.producers.BaselineProducer import BaselineProducer
 from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
-from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer
+from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer, ElectronScaleProducer, MuonScaleProducer
 from PhysicsTools.NanoHc.producers.leptonvariables import LeptonVariablesModule
 from PhysicsTools.NanoHc.producers.topleptonmva import TopLeptonMvaModule
 from PhysicsTools.NanoHc.producers.jetSFProducer import JetVMAPProducer
@@ -45,10 +45,12 @@ p = PostProcessor(
             # LeptonVariablesModule(),
             # TopLeptonMvaModule(year, 'ULv2'),     
             BaselineProducer(year, dataset_type, sample),
-            JetVMAPProducer(year,dataset_type),
-            # PileupWeightProducer(year, dataset_type),
-            # ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 (keep it out for now)
-            # MuonSFProducer(year, dataset_type),
+            # JetVMAPProducer(year,dataset_type),
+            PileupWeightProducer(year, dataset_type),
+            ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 (keep it out for now)
+            ElectronScaleProducer(year,dataset_type),
+            MuonSFProducer(year, dataset_type),
+            MuonScaleProducer(year, dataset_type),
             ],
     branchsel=keep_and_drop_input_branches,
     outputbranchsel=keep_and_drop_output_branches,
