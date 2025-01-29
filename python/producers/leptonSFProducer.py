@@ -8,6 +8,11 @@ from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
 
 
 era_dict = {"2022": '2022_Summer22', "2022EE": '2022_Summer22EE', "2023": '2023_Summer23', "2023BPix": '2023_Summer23BPix'}
+key_dict = {"2022":     '2022Re-recoBCD',
+            "2022EE":   '2022Re-recoE+PromptFG',
+            "2023":     '2023PromptC',
+            "2023BPix": '2023PromptD'
+            }
 
 class ElectronSFProducer(Module, object):
 
@@ -15,7 +20,7 @@ class ElectronSFProducer(Module, object):
         self.year = year
         self.dataset_type = dataset_type
         self.era = era_dict[self.year]
-        self.path=f'{self.year}Re-recoBCD'
+        #self.path=f'{self.year}Re-recoBCD'
         correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electron.json.gz'
         self.corr = correctionlib.CorrectionSet.from_file(correction_file)['Electron-ID-SF']
 
@@ -29,7 +34,7 @@ class ElectronSFProducer(Module, object):
         elif sf_type == 'ID':
             wp = lep._wp_ID
 
-        scale_factor = self.corr.evaluate(self.path, "sf", wp, lep.etaSC, lep.pt)
+        scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt)
         return scale_factor
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
@@ -126,9 +131,13 @@ class MuonScaleProducer(Module, object):
         self.isMC = dataset_type == "mc"
         
         if self.year == "2022":
-            self.fname = "2022_schemaV2.json.gz" if "pre_EE" in kwargs.get("tag", "") else "2022EE_schemaV2.json.gz"
+            self.fname = "2022_schemaV2.json.gz"
+        elif self.year == "2022EE":
+            self.fname = "2022EE_schemaV2.json.gz"
         elif self.year == "2023":
-            self.fname = "2023_schemaV2.json.gz" if "pre_BPix" in kwargs.get("tag", "") else "2023BPix_schemaV2.json.gz"
+            self.fname = "2023_schemaV2.json.gz"
+        elif self.year == "2023BPix":
+            self.fname = "2023BPix_schemaV2.json.gz"
         else:
             raise ValueError(f"MuonScaleProducer: Era {self.year} not supported")
         
