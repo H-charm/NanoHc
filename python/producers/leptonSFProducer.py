@@ -34,7 +34,13 @@ class ElectronSFProducer(Module, object):
         elif sf_type == 'ID':
             wp = lep._wp_ID
 
-        scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt)
+        if self.year == "2022" or self.year == "2022EE":
+            scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt)
+        elif self.year == "2023" or self.year == "2023BPix":
+            scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt, lep.phi)
+        else:
+            raise ValueError(f"ElectronSFProducer: Era {self.year} not supported")
+
         return scale_factor
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
