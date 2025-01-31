@@ -195,7 +195,7 @@ class ElectronScaleProducer(Module, object):
         for lep in event.selectedElectrons:
             if abs(lep.pdgId) != 11:
                 continue
-            scale_corr = self.corr.evaluate("total_correction", lep.seedGain, float(event.run), lep.eta, lep.r9, lep.scEtOverPt)
+            scale_corr = self.corr.evaluate("total_correction", lep.seedGain, float(event.run), lep.eta, lep.r9, lep.pt)
             self.out.fillBranch('electronScale', scale_corr)
         
         return True
