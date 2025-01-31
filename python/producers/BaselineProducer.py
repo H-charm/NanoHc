@@ -7,6 +7,8 @@ import itertools
 from ..helpers.utils import sumP4
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
+lumi_dict = {"2022": 9.6, "2022EE": 27.7, "2023": 17.794, "2023BPix": 9.451}
+
 class Zcandidate:
     
     def __init__(self,lep1,lep2):
@@ -78,6 +80,8 @@ class BaselineProducer(Module):
         self.out.branch("HLT_passZZ4lMu", "O")    # pass Muon triggers
         self.out.branch("HLT_passZZ4lMuEle", "O") # pass MuEle triggers
         self.out.branch("HLT_passZZ4l", "O")      # pass trigger requirements for the given sample (including sample precedence vetos) 
+
+        self.out.branch("lumiwgt", "F")
         
         ## Zcandidates
         for Z_var in self.Z_vars:
@@ -353,8 +357,8 @@ class BaselineProducer(Module):
         for jet in jets:
             if jet.pt <= 15 and abs(jet.eta) >= 2.5:
                 continue
-            if abs(jet.phi) > math.pi: # Introduced due to jetvetomaps corrections
-                continue
+            # if abs(jet.phi) > math.pi: # Introduced due to jetvetomaps corrections
+            #     continue
             
             jet_isolated = True
             for lep in event.selectedLeptons:
@@ -377,6 +381,8 @@ class BaselineProducer(Module):
     def _fill_event_info(self, event):
         out_data = {}
         
+        out_data["lumiwgt"] = lumi_dict[self.year]
+
         ## leptons
         leptons_pt_sorted = sorted(event.selectedLeptons, key=lambda particle: particle.pt, reverse=True)
 

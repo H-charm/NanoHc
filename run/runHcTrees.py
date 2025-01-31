@@ -24,7 +24,9 @@ args = parser.parse_args()
 
 golden_json = {
     '2022': 'Cert_Collisions2022_355100_362760_Golden.json',
-    '2023': 'Cert_Collisions2023_366442_370790_Golden.json'
+    '2022EE': 'Cert_Collisions2022_355100_362760_Golden.json',
+    '2023': 'Cert_Collisions2023_366442_370790_Golden.json',
+    '2023BPix': 'Cert_Collisions2023_366442_370790_Golden.json'
 }
 
 ## read samples yaml file and produce json file to be used by condor
@@ -206,17 +208,25 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
         tree.Project('htmp', '1.0', wgtvar)
         return float(htmp.Integral())
     
-    def _fill_const_branch(tree, branch_name, buff, lenVar=0):
-        if lenVar > 0:
-            b = tree.Branch(branch_name, buff, branch_name + "[" + str(nScaleWeights) + "]" + '/F')
-            b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
-            for _ in range(tree.GetEntries()):
-                b.Fill()
+    def _fill_const_branch(tree, branch_name, buff, lenVar=None):
+        if lenVar is not None:
+            b = tree.Branch(branch_name, buff, '%s[%s]/F' % (branch_name, lenVar))
+            b_lenVar = tree.GetBranch(lenVar)
+            buff_lenVar = array('I', [0])
+            b_lenVar.SetAddress(buff_lenVar)
         else:
             b = tree.Branch(branch_name, buff, branch_name + '/F')
-            b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
-            for _ in range(tree.GetEntries()):
-                b.Fill()
+
+        b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
+        for i in range(tree.GetEntries()):
+            if lenVar is not None:
+                b_lenVar.GetEntry(i)
+            b.Fill()
+
+        b.ResetAddress()
+        if lenVar is not None:
+            b_lenVar.ResetAddress()
+
                 
     f = ROOT.TFile(str(file), 'UPDATE')
     run_tree = f.Get('Runs')
@@ -236,7 +246,7 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
                                        [sumwgts / _get_sum(run_tree, 'LHEScaleSumw[%d]*genEventSumw' % i)
                                         for i in range(nScaleWeights)])
         print('LHEScaleWeightNorm: ' + str(scale_weight_norm_buff))
-        _fill_const_branch(tree, "LHEScaleWeightNorm", scale_weight_norm_buff, lenVar=nScaleWeights)
+        _fill_const_branch(tree, "LHEScaleWeightNorm", scale_weight_norm_buff, lenVar='nScaleWeight')
         
     if tree.GetBranch('LHEPdfWeight'):
         run_tree.GetEntry(0)
@@ -245,7 +255,7 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
                                      [sumwgts / _get_sum(run_tree, 'LHEPdfSumw[%d]*genEventSumw' % i)
                                       for i in range(nPdfWeights)])
         print('LHEPdfWeightNorm: ' + str(pdf_weight_norm_buff))
-        _fill_const_branch(tree, "LHEPdfWeightNorm", pdf_weight_norm_buff, lenVar=nPdfWeights)
+        _fill_const_branch(tree, "LHEPdfWeightNorm", pdf_weight_norm_buff, lenVar='nLHEPdfWeight')
 
     # fill PS weight re-normalization factors
     if tree.GetBranch('PSWeight') and run_tree.GetBranch('PSSumw'):
@@ -255,7 +265,7 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
                                     [sumwgts / _get_sum(run_tree, 'PSSumw[%d]*genEventSumw' % i)
                                      for i in range(nPSWeights)])
         print('PSWeightNorm: ' + str(ps_weight_norm_buff))
-        _fill_const_branch(tree, 'PSWeightNorm', ps_weight_norm_buff, lenVar=nPSWeights)
+        _fill_const_branch(tree, 'PSWeightNorm', ps_weight_norm_buff, lenVar='nPSWeight')
                
     tree.Write(treename, ROOT.TObject.kOverwrite)
     f.Close()
