@@ -4,5 +4,5 @@ keep event
 keep PV_npvs
 keep genWeight
 # PDF/Scale weights
-keep *LHEScaleWeight
+keep *LHE*Weight
 keep *PSWeight
