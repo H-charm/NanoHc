@@ -357,8 +357,8 @@ class BaselineProducer(Module):
         for jet in jets:
             if jet.pt <= 15 and abs(jet.eta) >= 2.5:
                 continue
-            if abs(jet.phi) > math.pi: # Introduced due to jetvetomaps corrections
-                continue
+            # if abs(jet.phi) > math.pi: # Introduced due to jetvetomaps corrections
+            #     continue
             
             jet_isolated = True
             for lep in event.selectedLeptons:
