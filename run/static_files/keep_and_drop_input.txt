@@ -2,6 +2,8 @@ drop *
 keep Muon_*
 keep Electron_*
 keep Jet_*
+keep GenJet_*
+keep nGenJet
 keep FsrPhoton_*
 keep HLT_*
 keep Pileup_*
