@@ -238,24 +238,24 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
     xsec_buff = array('f', [xsecwgt])
     _fill_const_branch(tree, "xsecWeight", xsec_buff)
 
-    # fill LHE weight re-normalization factors
-    if tree.GetBranch('LHEScaleWeight'):
-        run_tree.GetEntry(0)
-        nScaleWeights = run_tree.nLHEScaleSumw
-        scale_weight_norm_buff = array('f',
-                                       [sumwgts / _get_sum(run_tree, 'LHEScaleSumw[%d]*genEventSumw' % i)
-                                        for i in range(nScaleWeights)])
-        print('LHEScaleWeightNorm: ' + str(scale_weight_norm_buff))
-        _fill_const_branch(tree, "LHEScaleWeightNorm", scale_weight_norm_buff, lenVar='nScaleWeight')
+    # # fill LHE weight re-normalization factors
+    # if tree.GetBranch('LHEScaleWeight'):
+    #     run_tree.GetEntry(0)
+    #     nScaleWeights = run_tree.nLHEScaleSumw
+    #     scale_weight_norm_buff = array('f',
+    #                                    [sumwgts / _get_sum(run_tree, 'LHEScaleSumw[%d]*genEventSumw' % i)
+    #                                     for i in range(nScaleWeights)])
+    #     print('LHEScaleWeightNorm: ' + str(scale_weight_norm_buff))
+    #     _fill_const_branch(tree, "LHEScaleWeightNorm", scale_weight_norm_buff, lenVar='nScaleWeight')
         
-    if tree.GetBranch('LHEPdfWeight'):
-        run_tree.GetEntry(0)
-        nPdfWeights = run_tree.nLHEPdfSumw
-        pdf_weight_norm_buff = array('f',
-                                     [sumwgts / _get_sum(run_tree, 'LHEPdfSumw[%d]*genEventSumw' % i)
-                                      for i in range(nPdfWeights)])
-        print('LHEPdfWeightNorm: ' + str(pdf_weight_norm_buff))
-        _fill_const_branch(tree, "LHEPdfWeightNorm", pdf_weight_norm_buff, lenVar='nLHEPdfWeight')
+    # if tree.GetBranch('LHEPdfWeight'):
+    #     run_tree.GetEntry(0)
+    #     nPdfWeights = run_tree.nLHEPdfSumw
+    #     pdf_weight_norm_buff = array('f',
+    #                                  [sumwgts / _get_sum(run_tree, 'LHEPdfSumw[%d]*genEventSumw' % i)
+    #                                   for i in range(nPdfWeights)])
+    #     print('LHEPdfWeightNorm: ' + str(pdf_weight_norm_buff))
+    #     _fill_const_branch(tree, "LHEPdfWeightNorm", pdf_weight_norm_buff, lenVar='nLHEPdfWeight')
 
     # fill PS weight re-normalization factors
     if tree.GetBranch('PSWeight') and run_tree.GetBranch('PSSumw'):
