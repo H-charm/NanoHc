@@ -3,6 +3,5 @@ keep luminosityBlock
 keep event
 keep PV_npvs
 keep genWeight
-# PDF/Scale weights
 keep *LHE*Weight
 keep *PSWeight
