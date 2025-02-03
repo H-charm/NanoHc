@@ -55,7 +55,7 @@ class JetVMAPProducer(Module, object):
             
                 # Correct phi and evaluate veto map
                 phi = self.fixPhi(jet.phi)
-                veto_map_value = self.evaluator_VETO.evaluate(self.veto_map_name, jet.eta, phi)
+                veto_map_value = self.corr.evaluate(self.veto_map_name, jet.eta, phi)
 
                 # Check if the jet is vetoed
                 if veto_map_value > 0:
