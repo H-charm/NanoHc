@@ -32,8 +32,12 @@ class eleScaleRes(Module):
         self.overwritePt = overwritePt
         self.isMC = True if self.dataset_type == "mc" else False
 
-        correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{era_dict[self.year]}/electronSS.json.gz'
-        
+        if self.year == "2022" or self.year == "2022EE":
+            correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{era_dict[self.year]}/electronSS.json.gz'
+        elif self.year == "2023":
+            correction_file = f"../../data/ElectronScale/electronSS_preBPix.json.gz"
+        elif self.year == "2023BPix":
+            correction_file = f"../../data/ElectronScale/electronSS_postBPix.json.gz"
         #evaluator = correctionlib.CorrectionSet.from_file(correction_file)
         self.corr_scale = correctionlib.CorrectionSet.from_file(correction_file)["Scale"]
         self.corr_smear = correctionlib.CorrectionSet.from_file(correction_file)["Smearing"]
