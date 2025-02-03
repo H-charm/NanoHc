@@ -1,0 +1,9 @@
+<library name="MuonScaRe" file="MuonScaRe">
+    <use name="FWCore/Framework"/>
+    <use name="FWCore/ParameterSet"/>
+    <use name="FWCore/Utilities"/>
+    <use name="DataFormats/Common"/>
+    <use name="root"/>
+    <use name="PhysicsTools/NanoHc"/>
+    <flags EDM_PLUGIN="1"/>
+</library>
