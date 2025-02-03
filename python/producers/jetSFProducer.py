@@ -21,6 +21,7 @@ class JetVMAPProducer(Module, object):
 
         self.year = year
         self.dataset_type = dataset_type
+        self.veto_map_name = "jetvetomap"
         self.era = era_dict[self.year]
         correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/{self.era}/jetvetomaps.json.gz'
         self.corr = correctionlib.CorrectionSet.from_file(correction_file)[key_dict[self.year]]
