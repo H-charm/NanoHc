@@ -48,10 +48,7 @@ class JetVMAPProducer(Module, object):
         - jet EM fraction (charged + neutral) < 0.9
         - jets that don't overlap with PF muon (dR < 0.2)
         """
-
-        # # There is a problem for the implementation in data. Use only MC atm
-        # if not self.isMC:
-        #     return True
+        
         veto_flag = 0
         for i,jet in enumerate(event.selectedJets):
             if (jet.pt> 15 and (jet.jetId ==2 or jet.jetId ==6) and jet.chEmEF < 0.9 and jet.neEmEF <0.9 and jet.muonIdx1 == -1 and jet.muonIdx2 == -1):
@@ -64,7 +61,7 @@ class JetVMAPProducer(Module, object):
                 if veto_map_value > 0:
                     veto_flag = 1  # Set flag if a vetoed jet is found
                     break  # Break out of the loop since we only need one veto to trigger
-                    
+
         # Fill the branch with the veto result
         self.out.fillBranch("Flag_JetVetoed", veto_flag)
         
@@ -106,16 +103,16 @@ keyMC_dict = {
     ]
 }
 
-keyData_dict={
-    "2022": [
-    ]
-    "2022EE": [
-    ]
-    "2023": [
-    ]
-    "2023BPix": [
-    ]
-}
+# keyData_dict={
+#     "2022": [
+#     ]
+#     "2022EE": [
+#     ]
+#     "2023": [
+#     ]
+#     "2023BPix": [
+#     ]
+# }
 class jetJERCProducer(Module):
     def __init__(self, year, dataset_type, overwritePt=False, usePhiDependentJEC=False, **kwargs):
         """Correct jets following recommendations of JME POG.
