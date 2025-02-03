@@ -34,13 +34,18 @@ class eleScaleRes(Module):
 
         if self.year == "2022" or self.year == "2022EE":
             correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{era_dict[self.year]}/electronSS.json.gz'
+            self.corr_scale = correctionlib.CorrectionSet.from_file(correction_file)["Scale"]
+            self.corr_smear = correctionlib.CorrectionSet.from_file(correction_file)["Smearing"]
         elif self.year == "2023":
             correction_file = f"../../data/ElectronScale/electronSS_preBPix.json.gz"
+            self.corr_scale = correctionlib.CorrectionSet.from_file(correction_file)["2023PromptC_ScaleJSON"]
+            self.corr_smear = correctionlib.CorrectionSet.from_file(correction_file)["2023PromptC_SmearingJSON"]
         elif self.year == "2023BPix":
             correction_file = f"../../data/ElectronScale/electronSS_postBPix.json.gz"
+            self.corr_scale = correctionlib.CorrectionSet.from_file(correction_file)["2023PromptD_ScaleJSON"]
+            self.corr_smear = correctionlib.CorrectionSet.from_file(correction_file)["2023PromptD_SmearingJSON"]
         #evaluator = correctionlib.CorrectionSet.from_file(correction_file)
-        self.corr_scale = correctionlib.CorrectionSet.from_file(correction_file)["Scale"]
-        self.corr_smear = correctionlib.CorrectionSet.from_file(correction_file)["Smearing"]
+        
         
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
