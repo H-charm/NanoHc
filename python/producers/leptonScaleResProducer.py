@@ -32,11 +32,11 @@ class eleScaleRes(Module):
         self.overwritePt = overwritePt
         self.isMC = True if self.dataset_type == "mc" else False
 
-        correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.year}/electronSS.json.gz'
+        correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{era_dict[self.year]}/electronSS.json.gz'
         
-        evaluator = correctionlib.CorrectionSet.from_file(json)
-        self.corr_scale = CorrectionSet.from_file(correction_file)["Scale"]
-        self.corr_smear = CorrectionSet.from_file(correction_file)["Smearing"]
+        #evaluator = correctionlib.CorrectionSet.from_file(correction_file)
+        self.corr_scale = correctionlib.CorrectionSet.from_file(correction_file)["Scale"]
+        self.corr_smear = correctionlib.CorrectionSet.from_file(correction_file)["Smearing"]
         
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
