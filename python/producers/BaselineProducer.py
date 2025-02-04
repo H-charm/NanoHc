@@ -135,6 +135,9 @@ class BaselineProducer(Module):
         
     def _select_triggers(self, event):
 
+        # ### Good PV filter
+        # if not event.Flag_goodVertices : return False
+
         passTrigger = False 
         out_data = {}
         if self.year == "2022" or self.year == "2022EE" : # Checked that these are unprescaled in run 359751
@@ -171,8 +174,8 @@ class BaselineProducer(Module):
         # if not out_data['passTriggers']:
         #     return False
 
-        for key in out_data:
-            self.out.fillBranch(key, out_data[key])
+        # for key in out_data:
+        #     self.out.fillBranch(key, out_data[key])
 
         self.out.fillBranch("HLT_passZZ4lEle", passSingleEle or passDiEle or passTriEle)
         self.out.fillBranch("HLT_passZZ4lMu", passSingleMu or passDiMu or passTriMu)
@@ -325,25 +328,25 @@ class BaselineProducer(Module):
                 ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
                 if abs(el.etaSC) < 0.8:
                     if el.pt < 10:
-                        #if el.mvaIso < 0.9128577458: continue
-                        if el.mvaIso < 1.6339: continue
+                        if el.mvaIso < 0.9044286167: continue
+                        # if el.mvaIso < 1.6339: continue
                     else:
-                        #if el.mvaIso < 0.1559788054: continue
-                        if el.mvaIso < 0.3685: continue
+                        if el.mvaIso < 0.1968600840: continue
+                        # if el.mvaIso < 0.3685: continue
                 elif 0.8 < abs(el.etaSC) < 1.479:
                     if el.pt < 10:
-                        #if el.mvaIso < 0.9056792368: continue
-                        if el.mvaIso < 1.5499: continue
+                        if el.mvaIso < 0.9094166886: continue
+                        # if el.mvaIso < 1.5499: continue
                     else:
-                        #if el.mvaIso < 0.0273863727: continue
-                        if el.mvaIso < 0.2662: continue                    
+                        if el.mvaIso < 0.0759172100: continue
+                        # if el.mvaIso < 0.2662: continue                    
                 else: # |el.etaSC| > 1.479
                     if el.pt < 10:
-                        #if el.mvaIso < 0.9439440575: continue
-                        if el.mvaIso < 2.0629: continue
+                        if el.mvaIso < 0.9443653660: continue
+                        # if el.mvaIso < 2.0629: continue
                     else:
-                        #if el.mvaIso < -0.5532483665: continue
-                        if el.mvaIso < -0.5444: continue                         
+                        if el.mvaIso < -0.5169136775: continue
+                        # if el.mvaIso < -0.5444: continue                         
                                     
                 event.selectedElectrons.append(el)
 
