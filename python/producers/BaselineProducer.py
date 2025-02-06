@@ -239,12 +239,25 @@ class BaselineProducer(Module):
             leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2] 
             
             ## two DISTINCT leptons must pass pt > 10 and pt > 20
-            at_least_one_passed_pt20 = False
-            at_least_one_passed_pt10 = False
+            # at_least_one_passed_pt20 = False
+            # at_least_one_passed_pt10 = False
+            # for lep in leptons:
+            #     if lep.pt > 20: at_least_one_passed_pt20 = True
+            #     elif lep.pt > 10: at_least_one_passed_pt10 = True
+            # if not (at_least_one_passed_pt10 and at_least_one_passed_pt20): continue
+
+            # Two DISTINCT leptons must pass pt > 10 and pt > 20
+            num_passed_pt20 = 0
+            num_passed_pt10 = 0
+
             for lep in leptons:
-                if lep.pt > 20: at_least_one_passed_pt20 = True
-                elif lep.pt > 10: at_least_one_passed_pt10 = True
-            if not (at_least_one_passed_pt10 and at_least_one_passed_pt20): continue
+                if lep.pt > 20:
+                    num_passed_pt20 += 1
+                elif lep.pt > 10:
+                    num_passed_pt10 += 1
+
+            # Ensure we have at least one lepton passing each threshold, and they are distinct
+            if num_passed_pt20 == 0 or (num_passed_pt10 + num_passed_pt20) < 2: continue 
             
             lepton_pairs = list(itertools.combinations(leptons, 2)) # 6 combinations
             
