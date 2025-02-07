@@ -4,6 +4,7 @@ from ..helpers.triggerHelper import passTrigger
 import ROOT
 import math
 import itertools
+from functools import cmp_to_key
 from ..helpers.utils import sumP4
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
@@ -41,6 +42,7 @@ class BaselineProducer(Module):
         self.jet_vars = ["pt","eta","phi","mass","bdisc","cvbdisc","cvldisc","gvudsdisc"]
         self.jet_vars_mc = ["hadronFlavour"]
         self.Z_vars = ["pt","eta","phi","mass","onshell_mass","offshell_mass"]
+        self.ZZ_vars = ["pt","eta","phi","mass"] 
         self.H_vars = ["pt","eta","phi","mass"]        
         self.mu_prefix = "mu_"
         self.el_prefix = "el_"
@@ -86,6 +88,10 @@ class BaselineProducer(Module):
         ## Zcandidates
         for Z_var in self.Z_vars:
             self.out.branch(self.Z_prefix + Z_var, "F", 20, lenVar="nZ")
+
+        ## Zcandidates
+        for ZZ_var in self.ZZ_vars:
+            self.out.branch(self.ZZ_prefix + ZZ_var, "F", 20, lenVar="nZZ")
   
         ## Hcandidates
         for H_var in self.H_vars:
@@ -304,14 +310,50 @@ class BaselineProducer(Module):
             
     def _select_H_candidates(self, event):
         
+        def best_candidate_comparator(a, b):
+            if abs(a.Z1.mass - b.Z1.mass) < 1e-4 : # If Z1 masses are similar, compare Z2 sum of transverse momenta
+                if a.Z2.lep1.pt + a.Z2.lep2.pt > b.Z2.lep1.pt + b.Z2.lep2.pt:
+                    return -1  # a is better
+                else:
+                    return 1   # b is better
+            else:
+                if abs(a.Z1.mass - 91.1876) < abs(b.Z1.mass - 91.1876):
+                    return -1  # a is better
+                else:
+                    return 1   # b is better
+
         event.Hcandidates = []
+
+        if len(event.ZZcandidates) == 0:
+            return
+        ##---------------------
+        ## Comparator
+        best_candidate = min(event.ZZcandidates, key=cmp_to_key(best_candidate_comparator))
+        event.Hcandidates.append(best_candidate)
+
+
+        # mZ = 91.1876
+    
+        # # Filter ZZ candidates within Higgs mass window
+        # valid_ZZ_candidates = []
+        # for ZZcand in event.ZZcandidates:
+        #     # if 105 <= ZZcand.mass <= 140:
+        #     valid_ZZ_candidates.append(ZZcand)
         
-        ## for now keep all ZZ canidates as Higgs candidates            
-        for ZZcand in event.ZZcandidates:
+        # if not valid_ZZ_candidates:
+        #     return  # No valid Higgs candidate found
+        # else:
+        #     if 
+        #     best_candidate = min(
+        #         valid_ZZ_candidates,
+        #         key=lambda ZZcand: abs(ZZcand.Z1.mass - mZ) 
+        #     )
+
+        # event.Hcandidates.append(best_candidate)
+
+    
+
             
-            Hcand = ZZcand
-                        
-            event.Hcandidates.append(Hcand)
         
     ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py    
     def _select_muons(self, event):
@@ -373,7 +415,7 @@ class BaselineProducer(Module):
         FsrPhotons = Collection(event, "FsrPhoton")
 
         for jet in jets:
-            if jet.pt <= 15 and abs(jet.eta) >= 2.5:
+            if jet.pt <= 20 or abs(jet.eta) >= 2.5:
                 continue
             # if abs(jet.phi) > math.pi: # Introduced due to jetvetomaps corrections
             #     continue
@@ -489,6 +531,24 @@ class BaselineProducer(Module):
         out_data[self.Z_prefix + "phi"] = Zcandidate_phi 
         out_data[self.Z_prefix + "onshell_mass"] = Zcandidate_onshell_mass
         out_data[self.Z_prefix + "offshell_mass"] = Zcandidate_offshell_mass
+
+        ## ZZ candidates
+        ZZcandidate_mass = []
+        ZZcandidate_pt = []
+        ZZcandidate_eta = []
+        ZZcandidate_phi = []
+        ZZcandidate_onshell_mass = []
+        ZZcandidate_offshell_mass = []
+        for ZZcandidate in event.ZZcandidates:
+            ZZcandidate_mass.append(ZZcandidate.mass)
+            ZZcandidate_pt.append(ZZcandidate.pt)
+            ZZcandidate_eta.append(ZZcandidate.eta)
+            ZZcandidate_phi.append(ZZcandidate.phi)
+                
+        out_data[self.ZZ_prefix + "mass"] = ZZcandidate_mass
+        out_data[self.ZZ_prefix + "pt"] = ZZcandidate_pt
+        out_data[self.ZZ_prefix + "eta"] = ZZcandidate_eta 
+        out_data[self.ZZ_prefix + "phi"] = ZZcandidate_phi 
 
         ## H candidates
         Hcandidate_mass = []
