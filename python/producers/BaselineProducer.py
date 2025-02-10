@@ -123,8 +123,8 @@ class BaselineProducer(Module):
         if len(event.selectedLeptons) < 4: return False
 
         self._select_jets(event)
-        if len(event.selectedJets) == 0:
-            return False
+        # if len(event.selectedJets) == 0:
+        #     return False
         
         self._select_Z_candidates(event)
         if len(event.Zcandidates) < 2:
@@ -188,7 +188,8 @@ class BaselineProducer(Module):
         self.out.fillBranch("HLT_passZZ4lMuEle", passMuEle)
         self.out.fillBranch("HLT_passZZ4l", passTrigger)
 
-        return passTrigger
+        # return passTrigger
+        return True # pass Everything
 
     def _select_Z_candidates(self, event):
 
