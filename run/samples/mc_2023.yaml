@@ -13,8 +13,9 @@ ttH: #125 GeV
   - /TTH_Hto2Z_4LFilter_M-125_TuneCP5_13p6TeV_powheg-jhugenv752-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v3/NANOAODSIM
 bbH: #125 GeV
   - /bbH_Hto2Zto4L_M-125_TuneCP5_13p6TeV_JHUGenV752-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v2/NANOAODSIM
-ZZ:
+qqZZ:
   - /ZZto4L_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v3/NANOAODSIM
+ggZZ:
   - /GluGlutoContinto2Zto4E_TuneCP5_13p6TeV_mcfm701-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v3/NANOAODSIM
   - /GluGlutoContinto2Zto4Mu_TuneCP5_13p6TeV_mcfm701-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v3/NANOAODSIM
   - /GluGlutoContinto2Zto4Tau_TuneCP5_13p6TeV_mcfm701-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v3/NANOAODSIM
