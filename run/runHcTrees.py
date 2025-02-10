@@ -23,8 +23,12 @@ parser.add_argument('--resubmit', help='Resubmit failed jobs', action='store_tru
 args = parser.parse_args()
 
 golden_json = {
+    '2021': 'Cert_Collisions2022_355100_362760_Golden.json',
     '2022': 'Cert_Collisions2022_355100_362760_Golden.json',
     '2022EE': 'Cert_Collisions2022_355100_362760_Golden.json',
+    '2022EE_eraE': 'Cert_Collisions2022_355100_362760_Golden.json',
+    '2022EE_eraG': 'Cert_Collisions2022_355100_362760_Golden.json',
+    '2022EE_eraF': 'Cert_Collisions2022_355100_362760_Golden.json',
     '2023': 'Cert_Collisions2023_366442_370790_Golden.json',
     '2023BPix': 'Cert_Collisions2023_366442_370790_Golden.json'
 }
@@ -53,7 +57,13 @@ def create_metadata_json():
             files_found = ['root://xrootd-cms.infn.it/'+_file.strip() for _file in query_out]
             physics_process = dataset.split("/")[1]
             physics_processes.append(physics_process)
-            das_dict[sample][physics_process] = files_found
+            #das_dict[sample][physics_process] = files_found
+                # Ensure the dictionary structure exists
+
+    
+            if physics_process not in das_dict[sample]:
+                das_dict[sample][physics_process] = []  # Initialize as a list
+            das_dict[sample][physics_process].extend(files_found)
             print(f"{len(files_found)} files found")
                                     
     ## write json file
