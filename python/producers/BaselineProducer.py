@@ -1,6 +1,6 @@
 from PhysicsTools.NanoAODTools.postprocessing.framework.datamodel import Collection
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
-from ..helpers.triggerHelper import passTrigger
+# from ..helpers.triggerHelper import passTrigger
 import ROOT
 import math
 import itertools
@@ -30,6 +30,7 @@ class ZZcandidate:
         self.eta = sumP4(self.Z1, self.Z2).Eta()
         self.phi = sumP4(self.Z1, self.Z2).Phi()
         self.mass = sumP4(self.Z1, self.Z2).M()
+        self.mass2 = sumP4(self.Z1, self.Z2).M()
 
 
 class BaselineProducer(Module):
@@ -38,12 +39,12 @@ class BaselineProducer(Module):
         self.year = year
         self.sample = sample
         self.dataset_type = dataset_type
-        self.lep_vars = ["pt","eta","phi"]
+        self.lep_vars = ["pt","eta","phi", "pdgId"]
         self.jet_vars = ["pt","eta","phi","mass","bdisc","cvbdisc","cvldisc","gvudsdisc"]
         self.jet_vars_mc = ["hadronFlavour"]
         self.Z_vars = ["pt","eta","phi","mass","onshell_mass","offshell_mass"]
-        self.ZZ_vars = ["pt","eta","phi","mass"] 
-        self.H_vars = ["pt","eta","phi","mass"]        
+        self.ZZ_vars = ["pt","eta","phi","mass", "mass_4mu", "mass_4e", "mass_2e2mu"] 
+        self.H_vars = ["pt","eta","phi","mass", "mass_4mu", "mass_4e", "mass_2e2mu"]        
         self.mu_prefix = "mu_"
         self.el_prefix = "el_"
         self.lep_prefix = "lep_"
@@ -131,7 +132,6 @@ class BaselineProducer(Module):
             return False
         
         self._select_ZZ_candidates(event)
-        # if len(event.ZZcandidates) > 1: return False # for now keep only events with 1 ZZ candidate (we need MELA if we have more)
         
         self._select_H_candidates(event)
         
@@ -140,9 +140,6 @@ class BaselineProducer(Module):
         return True
         
     def _select_triggers(self, event):
-
-        # ### Good PV filter
-        # if not event.Flag_goodVertices : return False
 
         passTrigger = False 
         out_data = {}
@@ -188,8 +185,7 @@ class BaselineProducer(Module):
         self.out.fillBranch("HLT_passZZ4lMuEle", passMuEle)
         self.out.fillBranch("HLT_passZZ4l", passTrigger)
 
-        # return passTrigger
-        return True # pass Everything
+        return passTrigger
 
     def _select_Z_candidates(self, event):
 
@@ -450,34 +446,43 @@ class BaselineProducer(Module):
         lep_pt = []
         lep_eta = []
         lep_phi = []
+        lep_pdgId=[]
         el_pt = []
         el_eta = []
         el_phi = []
+        el_pdgId =[]
         mu_pt = []
         mu_eta = []
         mu_phi = []
+        mu_pdgId = []
         for lep in leptons_pt_sorted:
             lep_pt.append(lep.pt)
             lep_eta.append(lep.eta)
             lep_phi.append(lep.phi)
+            lep_pdgId.append(lep.pdgId)
             if abs(lep.pdgId) == 11: # el
                 el_pt.append(lep.pt)
                 el_eta.append(lep.eta)
                 el_phi.append(lep.phi)
+                el_pdgId.append(lep.pdgId)
             if abs(lep.pdgId) == 13: # mu
                 mu_pt.append(lep.pt)
                 mu_eta.append(lep.eta)
-                mu_phi.append(lep.phi)            
+                mu_phi.append(lep.phi)
+                mu_pdgId.append(lep.pdgId)            
             
         out_data[self.lep_prefix + "pt"] = lep_pt
         out_data[self.lep_prefix + "eta"] = lep_eta
         out_data[self.lep_prefix + "phi"] = lep_phi
+        out_data[self.lep_prefix + "pdgId"] = lep_pdgId
         out_data[self.el_prefix + "pt"] = el_pt
         out_data[self.el_prefix + "eta"] = el_eta
-        out_data[self.el_prefix + "phi"] = el_phi       
+        out_data[self.el_prefix + "phi"] = el_phi 
+        out_data[self.el_prefix + "pdgId"] = el_pdgId     
         out_data[self.mu_prefix + "pt"] = mu_pt
         out_data[self.mu_prefix + "eta"] = mu_eta
         out_data[self.mu_prefix + "phi"] = mu_phi
+        out_data[self.mu_prefix + "pdgId"] = mu_pdgId
                     
         ## jets  
         ak4_bdisc = []
@@ -525,6 +530,7 @@ class BaselineProducer(Module):
             Zcandidate_phi.append(Zcandidate.phi)
             if Zcandidate.is_onshell: Zcandidate_onshell_mass.append(Zcandidate.mass)
             else: Zcandidate_offshell_mass.append(Zcandidate.mass)
+
                 
         out_data[self.Z_prefix + "mass"] = Zcandidate_mass
         out_data[self.Z_prefix + "pt"] = Zcandidate_pt
@@ -535,6 +541,9 @@ class BaselineProducer(Module):
 
         ## ZZ candidates
         ZZcandidate_mass = []
+        ZZcandidate_mass_4e = []
+        ZZcandidate_mass_4mu = []
+        ZZcandidate_mass_2e2mu = []
         ZZcandidate_pt = []
         ZZcandidate_eta = []
         ZZcandidate_phi = []
@@ -545,14 +554,26 @@ class BaselineProducer(Module):
             ZZcandidate_pt.append(ZZcandidate.pt)
             ZZcandidate_eta.append(ZZcandidate.eta)
             ZZcandidate_phi.append(ZZcandidate.phi)
+            if abs(ZZcandidate.Z1.lep1.pdgId) == 11 and abs(ZZcandidate.Z2.lep1.pdgId) == 11 and abs(ZZcandidate.Z1.lep2.pdgId) == 11 and abs(ZZcandidate.Z2.lep2.pdgId) == 11:
+                ZZcandidate_mass_4e.append(ZZcandidate.mass2)
+            elif abs(ZZcandidate.Z1.lep1.pdgId) == 13 and abs(ZZcandidate.Z2.lep1.pdgId) == 13 and abs(ZZcandidate.Z1.lep2.pdgId) == 13 and abs(ZZcandidate.Z2.lep2.pdgId) == 13:
+                ZZcandidate_mass_4mu.append(ZZcandidate.mass2)
+            elif (abs(ZZcandidate.Z1.lep1.pdgId) == 13 and abs(ZZcandidate.Z2.lep1.pdgId) == 11 and abs(ZZcandidate.Z1.lep2.pdgId) == 13 and abs(ZZcandidate.Z2.lep2.pdgId) == 11) or (abs(ZZcandidate.Z1.lep1.pdgId) == 11 and abs(ZZcandidate.Z2.lep1.pdgId) == 13 and abs(ZZcandidate.Z1.lep2.pdgId) == 11 and abs(ZZcandidate.Z2.lep2.pdgId) == 13):
+                ZZcandidate_mass_2e2mu.append(ZZcandidate.mass2)
                 
         out_data[self.ZZ_prefix + "mass"] = ZZcandidate_mass
+        out_data[self.ZZ_prefix + "mass_4e"] = ZZcandidate_mass_4e
+        out_data[self.ZZ_prefix + "mass_4mu"] = ZZcandidate_mass_4mu
+        out_data[self.ZZ_prefix + "mass_2e2mu"] = ZZcandidate_mass_2e2mu
         out_data[self.ZZ_prefix + "pt"] = ZZcandidate_pt
         out_data[self.ZZ_prefix + "eta"] = ZZcandidate_eta 
         out_data[self.ZZ_prefix + "phi"] = ZZcandidate_phi 
 
         ## H candidates
         Hcandidate_mass = []
+        Hcandidate_mass_4e = []
+        Hcandidate_mass_4mu = []
+        Hcandidate_mass_2e2mu = []
         Hcandidate_pt = []
         Hcandidate_eta = []
         Hcandidate_phi = []
@@ -561,8 +582,18 @@ class BaselineProducer(Module):
             Hcandidate_pt.append(Hcandidate.pt)
             Hcandidate_eta.append(Hcandidate.eta)
             Hcandidate_phi.append(Hcandidate.phi)
+            if abs(Hcandidate.Z1.lep1.pdgId) == 11 and abs(Hcandidate.Z2.lep1.pdgId) == 11:
+                Hcandidate_mass_4e.append(Hcandidate.mass2)
+            elif abs(Hcandidate.Z1.lep1.pdgId) == 13 and abs(Hcandidate.Z2.lep1.pdgId) == 13:
+                Hcandidate_mass_4mu.append(Hcandidate.mass2)
+            elif (abs(Hcandidate.Z1.lep1.pdgId) == 13 and abs(Hcandidate.Z2.lep1.pdgId) == 11) or (abs(Hcandidate.Z1.lep1.pdgId) == 11 and abs(Hcandidate.Z2.lep1.pdgId) == 13):
+                Hcandidate_mass_2e2mu.append(Hcandidate.mass2)
+
             
         out_data[self.H_prefix + "mass"] = Hcandidate_mass
+        out_data[self.H_prefix + "mass_4e"] = Hcandidate_mass_4e
+        out_data[self.H_prefix + "mass_4mu"] = Hcandidate_mass_4mu
+        out_data[self.H_prefix + "mass_2e2mu"] = Hcandidate_mass_2e2mu
         out_data[self.H_prefix + "pt"] = Hcandidate_pt
         out_data[self.H_prefix + "eta"] = Hcandidate_eta 
         out_data[self.H_prefix + "phi"] = Hcandidate_phi 
