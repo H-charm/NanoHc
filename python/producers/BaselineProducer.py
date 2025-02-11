@@ -8,7 +8,8 @@ from functools import cmp_to_key
 from ..helpers.utils import sumP4
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
-lumi_dict = {"2022": 9.6, "2022EE": 27.7, "2023": 17.794, "2023BPix": 9.451}
+#lumi_dict = {"2022": 9.6, "2022EE": 27.7, "2023": 17.794, "2023BPix": 9.451}
+lumi_dict = {"2022": 7.98, "2022EE": 26.67, "2023": 17.794, "2023BPix": 9.451}
 
 class Zcandidate:
     
