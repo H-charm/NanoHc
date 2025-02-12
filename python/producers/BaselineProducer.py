@@ -191,6 +191,9 @@ class BaselineProducer(Module):
     def _select_Z_candidates(self, event):
 
         event.Zcandidates = []
+
+        event.Zcandidates_mu = []
+        event.Zcandidates_el = []
         
         # mva_leptons = [lepton for lepton in event.selectedLeptons if lepton.mvaTOP > 0.9]
         # lepton_pairs = list(itertools.combinations(mva_leptons, 2))
@@ -212,6 +215,11 @@ class BaselineProducer(Module):
         
             event.Zcandidates.append(Zcand)
 
+            if lep1 == -11:
+                event.Zcandidates_el.append(Zcand)
+            elif lep1 == -13:
+                event.Zcandidates_mu.append(Zcand)
+
     def _flag_onshell_and_offshell_Z(self, Zcand_pair):
                     
         Z1 = Zcand_pair[0]
@@ -231,6 +239,9 @@ class BaselineProducer(Module):
     def _select_ZZ_candidates(self, event):
         
         event.ZZcandidates = []
+        event.ZZcandidates_4e = []
+        event.ZZcandidates_4mu = []
+        event.ZZcandidates_2e2mu = []
                 
         Zcand_pairs = list(itertools.combinations(event.Zcandidates, 2))
         for Zcand_pair in Zcand_pairs:
@@ -305,7 +316,14 @@ class BaselineProducer(Module):
                 
             ZZcand = ZZcandidate(Z1,Z2)
             event.ZZcandidates.append(ZZcand)      
-            
+
+            if abs(Z1.lep1.pdgId) == abs(Z1.lep2.pdgId) == abs(Z2.lep1.pdgId) == abs(Z2.lep2.pdgId) == 11:
+                event.ZZcandidates_4e.append(ZZcand)
+            elif abs(Z1.lep1.pdgId) == abs(Z1.lep2.pdgId) == abs(Z2.lep1.pdgId) == abs(Z2.lep2.pdgId) == 13:
+                event.ZZcandidates_4mu.append(ZZcand)
+            else:
+                event.ZZcandidates_2e2mu.append(ZZcand)
+
     def _select_H_candidates(self, event):
         
         def best_candidate_comparator(a, b):
@@ -321,6 +339,9 @@ class BaselineProducer(Module):
                     return 1   # b is better
 
         event.Hcandidates = []
+        event.Hcandidates_4e = []
+        event.Hcandidates_4mu = []
+        event.Hcandidates_2e2mu = []
 
         if len(event.ZZcandidates) == 0:
             return
@@ -329,6 +350,21 @@ class BaselineProducer(Module):
         best_candidate = min(event.ZZcandidates, key=cmp_to_key(best_candidate_comparator))
         event.Hcandidates.append(best_candidate)
 
+        # 4e
+        if len(event.ZZcandidates_4e) == 0:
+            return
+        best_candidate_4e = min(event.ZZcandidates_4e, key=cmp_to_key(best_candidate_comparator))
+        event.Hcandidates_4e.append(best_candidate_4e)
+        # 4mu
+        if len(event.ZZcandidates_4mu) == 0:
+            return
+        best_candidate_4mu = min(event.ZZcandidates_4mu, key=cmp_to_key(best_candidate_comparator))
+        event.Hcandidates_4mu.append(best_candidate_4mu)
+        # 2e2mu
+        if len(event.ZZcandidates_4mu) == 0:
+            return
+        best_candidate_2e2mu = min(event.ZZcandidates_2e2mu, key=cmp_to_key(best_candidate_comparator))
+        event.Hcandidates_2e2mu.append(best_candidate_2e2mu)
 
         # mZ = 91.1876
     
@@ -555,13 +591,25 @@ class BaselineProducer(Module):
             ZZcandidate_pt.append(ZZcandidate.pt)
             ZZcandidate_eta.append(ZZcandidate.eta)
             ZZcandidate_phi.append(ZZcandidate.phi)
-            if abs(ZZcandidate.Z1.lep1.pdgId) == 11 and abs(ZZcandidate.Z2.lep1.pdgId) == 11 and abs(ZZcandidate.Z1.lep2.pdgId) == 11 and abs(ZZcandidate.Z2.lep2.pdgId) == 11:
-                ZZcandidate_mass_4e.append(ZZcandidate.mass2)
-            elif abs(ZZcandidate.Z1.lep1.pdgId) == 13 and abs(ZZcandidate.Z2.lep1.pdgId) == 13 and abs(ZZcandidate.Z1.lep2.pdgId) == 13 and abs(ZZcandidate.Z2.lep2.pdgId) == 13:
-                ZZcandidate_mass_4mu.append(ZZcandidate.mass2)
-            elif (abs(ZZcandidate.Z1.lep1.pdgId) == 13 and abs(ZZcandidate.Z2.lep1.pdgId) == 11 and abs(ZZcandidate.Z1.lep2.pdgId) == 13 and abs(ZZcandidate.Z2.lep2.pdgId) == 11) or (abs(ZZcandidate.Z1.lep1.pdgId) == 11 and abs(ZZcandidate.Z2.lep1.pdgId) == 13 and abs(ZZcandidate.Z1.lep2.pdgId) == 11 and abs(ZZcandidate.Z2.lep2.pdgId) == 13):
-                ZZcandidate_mass_2e2mu.append(ZZcandidate.mass2)
-                
+            # if abs(ZZcandidate.Z1.lep1.pdgId) == 11 and abs(ZZcandidate.Z2.lep1.pdgId) == 11 and abs(ZZcandidate.Z1.lep2.pdgId) == 11 and abs(ZZcandidate.Z2.lep2.pdgId) == 11:
+            #     ZZcandidate_mass_4e.append(ZZcandidate.mass2)
+            # elif abs(ZZcandidate.Z1.lep1.pdgId) == 13 and abs(ZZcandidate.Z2.lep1.pdgId) == 13 and abs(ZZcandidate.Z1.lep2.pdgId) == 13 and abs(ZZcandidate.Z2.lep2.pdgId) == 13:
+            #     ZZcandidate_mass_4mu.append(ZZcandidate.mass2)
+            # elif (abs(ZZcandidate.Z1.lep1.pdgId) == 13 and abs(ZZcandidate.Z2.lep1.pdgId) == 11 and abs(ZZcandidate.Z1.lep2.pdgId) == 13 and abs(ZZcandidate.Z2.lep2.pdgId) == 11) or (abs(ZZcandidate.Z1.lep1.pdgId) == 11 and abs(ZZcandidate.Z2.lep1.pdgId) == 13 and abs(ZZcandidate.Z1.lep2.pdgId) == 11 and abs(ZZcandidate.Z2.lep2.pdgId) == 13):
+            #     ZZcandidate_mass_2e2mu.append(ZZcandidate.mass2)
+        
+        for ZZcands in event.ZZcandidates_4e:
+            ZZcandidate_mass_4e.append(ZZcands.mass)
+        
+        for ZZcands in event.ZZcandidates_4mu:
+            ZZcandidate_mass_4mu.append(ZZcands.mass)
+
+        for ZZcands in event.ZZcandidates_2e2mu:
+            ZZcandidate_mass_2e2mu.append(ZZcands.mass2)
+        
+        if len(event.ZZcandidates) != (len(event.ZZcandidates_4e) + len(event.ZZcandidates_4mu) + len(event.ZZcandidates_2e2mu)):
+            print("PROBLEM")
+
         out_data[self.ZZ_prefix + "mass"] = ZZcandidate_mass
         out_data[self.ZZ_prefix + "mass_4e"] = ZZcandidate_mass_4e
         out_data[self.ZZ_prefix + "mass_4mu"] = ZZcandidate_mass_4mu
@@ -583,14 +631,25 @@ class BaselineProducer(Module):
             Hcandidate_pt.append(Hcandidate.pt)
             Hcandidate_eta.append(Hcandidate.eta)
             Hcandidate_phi.append(Hcandidate.phi)
-            if abs(Hcandidate.Z1.lep1.pdgId) == 11 and abs(Hcandidate.Z2.lep1.pdgId) == 11:
-                Hcandidate_mass_4e.append(Hcandidate.mass2)
-            elif abs(Hcandidate.Z1.lep1.pdgId) == 13 and abs(Hcandidate.Z2.lep1.pdgId) == 13:
-                Hcandidate_mass_4mu.append(Hcandidate.mass2)
-            elif (abs(Hcandidate.Z1.lep1.pdgId) == 13 and abs(Hcandidate.Z2.lep1.pdgId) == 11) or (abs(Hcandidate.Z1.lep1.pdgId) == 11 and abs(Hcandidate.Z2.lep1.pdgId) == 13):
-                Hcandidate_mass_2e2mu.append(Hcandidate.mass2)
+            # if abs(Hcandidate.Z1.lep1.pdgId) == 11  and abs(Hcandidate.Z2.lep1.pdgId) == 11 and abs(Hcandidate.Z1.lep2.pdgId) == 11 and abs(Hcandidate.Z2.lep2.pdgId) == 11:
+            #     Hcandidate_mass_4e.append(Hcandidate.mass2)
+            # elif abs(Hcandidate.Z1.lep1.pdgId) == 13 and abs(Hcandidate.Z2.lep1.pdgId) == 13 and abs(Hcandidate.Z1.lep2.pdgId) == 13 and abs(Hcandidate.Z2.lep2.pdgId) == 13:
+            #     Hcandidate_mass_4mu.append(Hcandidate.mass2)
+            # elif (abs(Hcandidate.Z1.lep1.pdgId) == 13 and abs(Hcandidate.Z1.lep2.pdgId) == 13 and abs(Hcandidate.Z2.lep1.pdgId) == 11 and abs(Hcandidate.Z2.lep2.pdgId) == 11) or (abs(Hcandidate.Z1.lep1.pdgId) == 11 and abs(Hcandidate.Z1.lep2.pdgId) == 11 and abs(Hcandidate.Z2.lep1.pdgId) == 13 and abs(Hcandidate.Z2.lep2.pdgId) == 13):
+            #     Hcandidate_mass_2e2mu.append(Hcandidate.mass2)
 
-            
+        for Hcands in event.Hcandidates_4e:
+            Hcandidate_mass_4e.append(Hcands.mass)
+        
+        for Hcands in event.Hcandidates_4mu:
+            Hcandidate_mass_4mu.append(Hcands.mass)
+
+        for Hcands in event.Hcandidates_2e2mu:
+            Hcandidate_mass_2e2mu.append(Hcands.mass2)
+        
+        # if len(event.Hcandidates) != (len(event.Hcandidates_4e) + len(event.Hcandidates_4mu) + len(event.Hcandidates_2e2mu)):
+        #     print("PROBLEM WITH H CANDS")
+                
         out_data[self.H_prefix + "mass"] = Hcandidate_mass
         out_data[self.H_prefix + "mass_4e"] = Hcandidate_mass_4e
         out_data[self.H_prefix + "mass_4mu"] = Hcandidate_mass_4mu
