@@ -138,38 +138,14 @@ def create_condor_submit():
     
     write_condor_submit(jobids_file="job_ids.txt")
 
-def merge_output_files():
-
-    file_path = args.jobs_dir + '/metadata.json'
-    with open(file_path, 'r') as file:
-        data = json.load(file)
-        
-    base_output_dir = data["output_dir"]
-    dataset_type = data["type"]
-    year = data["year"]
-    merged_dir = os.path.join(base_output_dir, dataset_type, year, "merged")
-    os.system("mkdir -p " + merged_dir)
-    
-    sample_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year)).iterdir() if d.is_dir()]
-    
-    for sample_dir in sample_dirs:
-        if sample_dir == "merged": continue
-        input_files = []
-        output_file = os.path.join(merged_dir, sample_dir + "_tree.root")
-        
-        physics_process_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year, sample_dir)).iterdir() if d.is_dir()]
-
-        for physics_process_dir in physics_process_dirs:
-            infiles_dir = os.path.join(base_output_dir, dataset_type, year, sample_dir, physics_process_dir)
-            
-            for root, _, files in os.walk(infiles_dir):
-                for file in files:
-                    input_files.append(os.path.join(root, file))
-                          
-        cmd = 'haddnano.py {outfile} {infiles}'.format(outfile=output_file, infiles=' '.join(input_files))
-        os.system(cmd)
+import os
+import subprocess
+import json
+from pathlib import Path
+import ROOT
 
 def parse_sample_xsec(cfgfile):
+    """ Parses the cross-section file and returns a dictionary. """
     xsec_dict = {}
     with open(cfgfile) as f:
         for l in f:
@@ -196,115 +172,162 @@ def parse_sample_xsec(cfgfile):
                         except:
                             pass
             if samp is None:
-                print('Ignore line:\n%s' % l)
+                print(f"Ignore line:\n{l}")
             elif not isData and xsec is None:
-                print('Cannot find cross section:\n%s' % l)
+                print(f"Cannot find cross section:\n{l}")
             else:
                 if samp in xsec_dict and xsec_dict[samp] != xsec:
-                    raise RuntimeError('Inconsistent entries for sample %s' % samp)
+                    raise RuntimeError(f"Inconsistent entries for sample {samp}")
                 xsec_dict[samp] = xsec
-                if 'PSweights_' in samp:
-                    xsec_dict[samp.replace('PSweights_', '')] = xsec
-                    
     return xsec_dict
 
 def add_weights(file, xsec, lumi=1000., treename='Events'):
+    """ Adds cross-section weights to a merged ROOT file if not already present. """
     from array import array
-    import ROOT
     ROOT.PyConfig.IgnoreCommandLineOptions = True
 
     def _get_sum(tree, wgtvar):
         htmp = ROOT.TH1D('htmp', 'htmp', 1, 0, 10)
         tree.Project('htmp', '1.0', wgtvar)
-        return float(htmp.Integral())
+        sum_value = float(htmp.Integral())
+        htmp.Delete()
+        return sum_value
     
-    def _fill_const_branch(tree, branch_name, buff, lenVar=None):
-        if lenVar is not None:
-            b = tree.Branch(branch_name, buff, '%s[%s]/F' % (branch_name, lenVar))
-            b_lenVar = tree.GetBranch(lenVar)
-            buff_lenVar = array('I', [0])
-            b_lenVar.SetAddress(buff_lenVar)
-        else:
-            b = tree.Branch(branch_name, buff, branch_name + '/F')
-
-        b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
-        for i in range(tree.GetEntries()):
-            if lenVar is not None:
-                b_lenVar.GetEntry(i)
+    def _fill_const_branch(tree, branch_name, buff):
+        if tree.GetBranch(branch_name):  # Prevent overwriting existing branch
+            print(f"Branch {branch_name} already exists in {file}, skipping.")
+            return
+        b = tree.Branch(branch_name, buff, f'{branch_name}/F')
+        for _ in range(tree.GetEntries()):
             b.Fill()
 
-        b.ResetAddress()
-        if lenVar is not None:
-            b_lenVar.ResetAddress()
-
-                
     f = ROOT.TFile(str(file), 'UPDATE')
     run_tree = f.Get('Runs')
     tree = f.Get(treename)
 
-    # fill cross section weights to the 'Events' tree
-    sumwgts = _get_sum(run_tree, 'genEventSumw')
-    xsecwgt = xsec * lumi / sumwgts
-    xsec_buff = array('f', [xsecwgt])
-    _fill_const_branch(tree, "xsecWeight", xsec_buff)
-
-    # # fill LHE weight re-normalization factors
-    # if tree.GetBranch('LHEScaleWeight'):
-    #     run_tree.GetEntry(0)
-    #     nScaleWeights = run_tree.nLHEScaleSumw
-    #     scale_weight_norm_buff = array('f',
-    #                                    [sumwgts / _get_sum(run_tree, 'LHEScaleSumw[%d]*genEventSumw' % i)
-    #                                     for i in range(nScaleWeights)])
-    #     print('LHEScaleWeightNorm: ' + str(scale_weight_norm_buff))
-    #     _fill_const_branch(tree, "LHEScaleWeightNorm", scale_weight_norm_buff, lenVar='nScaleWeight')
+    # Check if 'xsecWeight' branch already exists
+    if tree.GetBranch("xsecWeight"):
+        print(f"xsecWeight already exists in {file}, skipping weight addition.")
+    else:
+        sumwgts = _get_sum(run_tree, 'genEventSumw')
+        if sumwgts == 0:
+            raise ValueError(f"genEventSumw is zero in {file}, preventing division by zero.")
         
-    # if tree.GetBranch('LHEPdfWeight'):
-    #     run_tree.GetEntry(0)
-    #     nPdfWeights = run_tree.nLHEPdfSumw
-    #     pdf_weight_norm_buff = array('f',
-    #                                  [sumwgts / _get_sum(run_tree, 'LHEPdfSumw[%d]*genEventSumw' % i)
-    #                                   for i in range(nPdfWeights)])
-    #     print('LHEPdfWeightNorm: ' + str(pdf_weight_norm_buff))
-    #     _fill_const_branch(tree, "LHEPdfWeightNorm", pdf_weight_norm_buff, lenVar='nLHEPdfWeight')
+        xsecwgt = xsec * lumi / sumwgts
+        xsec_buff = array('f', [xsecwgt])
+        _fill_const_branch(tree, "xsecWeight", xsec_buff)
+        print(f"Added xsecWeight to {file}")
 
-    # fill PS weight re-normalization factors
-    # if tree.GetBranch('PSWeight') and run_tree.GetBranch('PSSumw'):
-    #     run_tree.GetEntry(0)
-    #     nPSWeights = run_tree.nPSSumw
-    #     ps_weight_norm_buff = array('f',
-    #                                 [sumwgts / _get_sum(run_tree, 'PSSumw[%d]*genEventSumw' % i)
-    #                                  for i in range(nPSWeights)])
-    #     print('PSWeightNorm: ' + str(ps_weight_norm_buff))
-    #     _fill_const_branch(tree, 'PSWeightNorm', ps_weight_norm_buff, lenVar='nPSWeight')
-               
     tree.Write(treename, ROOT.TObject.kOverwrite)
     f.Close()
 
 def run_add_weights():
+    """ Merges, applies weights, and combines physics processes per sample. """
     xsec_dict = parse_sample_xsec(args.xsec_file)
 
     with open(args.jobs_dir + "/metadata.json", 'r') as file:
-        data = json.load(file) 
-    
-    year = data["year"]
-    dataset_type = data["type"]
+        data = json.load(file)
+
     base_output_dir = data["output_dir"]
+    dataset_type = data["type"]
+    year = data["year"]
+    
+    sample_dirs = {sample: [] for sample in data["sample_names"]}
+
+    for sample in sample_dirs:
+        sample_path = os.path.join(base_output_dir, dataset_type, year, sample)
+        if not os.path.isdir(sample_path):
+            continue
+
+        physics_process_dirs = [
+            d.name for d in Path(sample_path).iterdir() if d.is_dir()
+        ]
+
+        for physics_process in physics_process_dirs:
+            if physics_process not in xsec_dict:
+                print(f"Process {physics_process} not found in xsec file, skipping.")
+                continue
+
+            xsec = xsec_dict[physics_process]
+            process_dir = os.path.join(sample_path, physics_process)
+            root_files = list(Path(process_dir).glob("*.root"))
+
+            if not root_files:
+                print(f"No ROOT files found in {process_dir}, skipping...")
+                continue
+
+            # Step 1: Merge split files for this process
+            merged_file = os.path.join(process_dir, "merged_tree.root")
+            if len(root_files) > 1:
+                merge_cmd = f"haddnano.py {merged_file} {' '.join(map(str, root_files))}"
+                print(f"Merging {len(root_files)} files into {merged_file}")
+                subprocess.run(merge_cmd, shell=True, check=True)
+            else:
+                merged_file = str(root_files[0])
+
+            # Step 2: Add weights to the merged file
+            weighted_file = os.path.join(process_dir, "weighted_tree.root")
+            subprocess.run(f"cp {merged_file} {weighted_file}", shell=True)  # Copy before modifying
+            add_weights(weighted_file, xsec)  # Apply weight to merged file
+            sample_dirs[sample].append(weighted_file)
+
+    # Step 3: Merge weighted process files per sample
+    for sample, process_files in sample_dirs.items():
+        if len(process_files) > 1:
+            final_merged_file = os.path.join(base_output_dir, dataset_type, year, sample, f"{sample}_final_merged.root")
+            merge_cmd = f"haddnano.py {final_merged_file} {' '.join(process_files)}"
+            print(f"Merging {len(process_files)} weighted files into {final_merged_file}")
+            subprocess.run(merge_cmd, shell=True, check=True)
+        elif process_files:
+            final_merged_file = process_files[0]  # If only one file, it's already final
+            print(f"Only one file for {sample}, no need to merge.")
+
+def merge_output_files():
+    """ Merges all weighted_tree.root files per sample into one final ROOT file. """
+
+    # Load metadata
+    file_path = os.path.join(args.jobs_dir, 'metadata.json')
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+
+    base_output_dir = data["output_dir"]
+    dataset_type = data["type"]
+    year = data["year"]
     
     sample_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year)).iterdir() if d.is_dir()]
 
     for sample in sample_dirs:
-        physics_process_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year, sample)).iterdir() if d.is_dir()]
+        sample_path = os.path.join(base_output_dir, dataset_type, year, sample)
 
-        for physics_process in physics_process_dirs:
-            if physics_process not in xsec_dict: 
-                print(f"Process {physics_process} not found in xsec file, xsec not added") 
-                continue
-                     
-            xsec = xsec_dict[physics_process]
-            print(f"Adding weights for physics process {physics_process}: xsec = {xsec}")  
-            
-            for file in Path(os.path.join(base_output_dir, dataset_type, year, sample, physics_process)).iterdir():
-                add_weights(file, xsec)
+        # Skip merged directory if exists
+        if sample == "merged":
+            continue
+
+        # Find all weighted_tree.root files within physics processes
+        weighted_files = []
+        physics_process_dirs = [d for d in Path(sample_path).iterdir() if d.is_dir()]
+        
+        for process_dir in physics_process_dirs:
+            weighted_file = os.path.join(process_dir, "weighted_tree.root")
+            if os.path.exists(weighted_file):
+                weighted_files.append(weighted_file)
+
+        if not weighted_files:
+            print(f"No weighted files found for sample {sample}, skipping...")
+            continue
+
+        # Define final merged output file
+        final_merged_file = os.path.join(sample_path, f"{sample}_final_merged.root")
+
+        if len(weighted_files) > 1:
+            # Merge all weighted_tree.root files for this sample
+            merge_cmd = f"haddnano.py {final_merged_file} {' '.join(weighted_files)}"
+            print(f"Merging {len(weighted_files)} weighted files into {final_merged_file}")
+            subprocess.run(merge_cmd, shell=True, check=True)
+        else:
+            # If only one weighted file exists, no need to merge, just rename
+            os.rename(weighted_files[0], final_merged_file)
+            print(f"Only one weighted file for {sample}, renamed to {final_merged_file}")
 
 def check_job_status():
     
@@ -351,15 +374,16 @@ def check_job_status():
     return all_completed, jobids
 
 def resubmit():
+    # Ensure check_job_status accepts 'args' as an argument
+    jobids = check_job_status()[1]['failed']  
     
-    jobids = check_job_status(args)[1]['failed']
     jobids_file = os.path.join(args.jobs_dir, 'resubmit.txt')
 
     with open(jobids_file, 'w') as f:
         f.write('\n'.join(jobids))
-    
-    write_condor_submit(jobids_file="resubmit.txt")
-        
+
+    # Pass the correct absolute path to write_condor_submit
+    write_condor_submit(jobids_file=jobids_file)
 def main():
 
     jobs_dir = "jobs_" + args.type + "_" + args.year
