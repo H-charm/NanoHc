@@ -282,8 +282,13 @@ def run_add_weights():
             final_merged_file = process_files[0]  # If only one file, it's already final
             print(f"Only one file for {sample}, no need to merge.")
 
+import os
+import subprocess
+import json
+from pathlib import Path
+
 def merge_output_files():
-    """ Merges all weighted_tree.root files per sample into one final ROOT file. """
+    """ Merges all weighted_tree.root files per sample into one final ROOT file in the merged/ directory. """
 
     # Load metadata
     file_path = os.path.join(args.jobs_dir, 'metadata.json')
@@ -294,38 +299,60 @@ def merge_output_files():
     dataset_type = data["type"]
     year = data["year"]
     
+    # Create merged output directory
+    merged_dir = os.path.join(base_output_dir, dataset_type, year, "merged")
+    os.makedirs(merged_dir, exist_ok=True)
+
     sample_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year)).iterdir() if d.is_dir()]
 
     for sample in sample_dirs:
         sample_path = os.path.join(base_output_dir, dataset_type, year, sample)
 
-        # Skip merged directory if exists
+        # Skip the merged directory itself
         if sample == "merged":
             continue
 
-        # Find all weighted_tree.root files within physics processes
         weighted_files = []
         physics_process_dirs = [d for d in Path(sample_path).iterdir() if d.is_dir()]
         
         for process_dir in physics_process_dirs:
             weighted_file = os.path.join(process_dir, "weighted_tree.root")
             if os.path.exists(weighted_file):
-                weighted_files.append(weighted_file)
+                # Copy and rename weighted files to merged directory
+                renamed_weighted_file = os.path.join(merged_dir, f"{sample}_weighted_{process_dir.name}.root")
+                subprocess.run(f"cp {weighted_file} {renamed_weighted_file}", shell=True)
+                weighted_files.append(renamed_weighted_file)
 
+        # If no weighted files exist, just merge the raw files (for data)
         if not weighted_files:
-            print(f"No weighted files found for sample {sample}, skipping...")
-            continue
+            print(f"No weighted files found for sample {sample}. Merging raw data files instead.")
+            input_files = []
+            for process_dir in physics_process_dirs:
+                infiles_dir = os.path.join(base_output_dir, dataset_type, year, sample, process_dir.name)
+                for root, _, files in os.walk(infiles_dir):
+                    for file in files:
+                        if file.endswith(".root"):
+                            input_files.append(os.path.join(root, file))
 
-        # Define final merged output file
-        final_merged_file = os.path.join(sample_path, f"{sample}_final_merged.root")
+            # Define merged output file
+            output_file = os.path.join(merged_dir, f"{sample}_merged.root")
 
-        if len(weighted_files) > 1:
-            # Merge all weighted_tree.root files for this sample
+            if input_files:
+                merge_cmd = f"haddnano.py {output_file} {' '.join(input_files)}"
+                print(f"Merging raw data files for {sample} into {output_file}")
+                subprocess.run(merge_cmd, shell=True, check=True)
+            else:
+                print(f"No ROOT files found for {sample}, skipping...")
+
+        # If multiple weighted files exist, merge them
+        elif len(weighted_files) > 1:
+            final_merged_file = os.path.join(merged_dir, f"{sample}_final_merged.root")
             merge_cmd = f"haddnano.py {final_merged_file} {' '.join(weighted_files)}"
             print(f"Merging {len(weighted_files)} weighted files into {final_merged_file}")
             subprocess.run(merge_cmd, shell=True, check=True)
         else:
-            # If only one weighted file exists, no need to merge, just rename
+            # If only one weighted file exists, rename it as the final output
+            final_merged_file = os.path.join(merged_dir, f"{sample}_final_merged.root")
             os.rename(weighted_files[0], final_merged_file)
             print(f"Only one weighted file for {sample}, renamed to {final_merged_file}")
 
@@ -398,7 +425,7 @@ def main():
         sys.exit(0)
    
     if args.post:
-        run_add_weights()
+        # run_add_weights()
         merge_output_files()
         sys.exit(0)   
         
