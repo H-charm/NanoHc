@@ -45,14 +45,26 @@ class BaselineProducer(Module):
         self.jet_vars_mc = ["hadronFlavour"]
         self.Z_vars = ["pt","eta","phi","mass","onshell_mass","offshell_mass"]
         self.ZZ_vars = ["pt","eta","phi","mass", "mass_4mu", "mass_4e", "mass_2e2mu"] 
-        self.H_vars = ["pt","eta","phi","mass", "mass_4mu", "mass_4e", "mass_2e2mu"]        
+        self.H_vars = ["pt","eta","phi","mass", "mass_4mu", "mass_4e", "mass_2e2mu"]  
+        self.H4e_vars=["mass"]
+        self.H4mu_vars=["mass"]
+        self.H2e2mu_vars=["mass"]  
+        self.ZZ4e_vars=["mass"]
+        self.ZZ4mu_vars=["mass"]
+        self.ZZ2e2mu_vars=["mass"]     
         self.mu_prefix = "mu_"
         self.el_prefix = "el_"
         self.lep_prefix = "lep_"
         self.jet_prefix = "jet_"
         self.Z_prefix = "Z_"
         self.ZZ_prefix = "ZZ_"
+        self.ZZ4e_prefix = "ZZ4e_"
+        self.ZZ4mu_prefix = "ZZ4mu_"
+        self.ZZ2e2mu_prefix = "ZZ2e2mu_"
         self.H_prefix = "H_"
+        self.H4e_prefix = "H4e_"
+        self.H4mu_prefix = "H4mu_"
+        self.H2e2mu_prefix = "H2e2mu_"
 
     def beginJob(self):
         pass
@@ -94,11 +106,28 @@ class BaselineProducer(Module):
         ## Zcandidates
         for ZZ_var in self.ZZ_vars:
             self.out.branch(self.ZZ_prefix + ZZ_var, "F", 20, lenVar="nZZ")
+
+        for ZZ4e_var in self.ZZ4e_vars:
+            self.out.branch(self.ZZ4e_prefix + ZZ4e_var, "F", 20, lenVar="nZZ4e")
+        
+        for ZZ4mu_var in self.ZZ4mu_vars:
+            self.out.branch(self.ZZ4mu_prefix + ZZ4mu_var, "F", 20, lenVar="nZZ4mu")
+
+        for ZZ2e2mu_var in self.ZZ2e2mu_vars:
+            self.out.branch(self.ZZ2e2mu_prefix + ZZ2e2mu_var, "F", 20, lenVar="nZZ2e2mu")    
   
         ## Hcandidates
         for H_var in self.H_vars:
             self.out.branch(self.H_prefix + H_var, "F", 20, lenVar="nH")
-                    
+
+        for H4e_var in self.H4e_vars:
+            self.out.branch(self.H4e_prefix + H4e_var, "F", 20, lenVar="nH4e")
+        
+        for H4mu_var in self.H4mu_vars:
+            self.out.branch(self.H4mu_prefix + H4mu_var, "F", 20, lenVar="nH4mu")
+
+        for H2e2mu_var in self.H2e2mu_vars:
+            self.out.branch(self.H2e2mu_prefix + H2e2mu_var, "F", 20, lenVar="nH2e2mu")                    
         # if self.isMC:
         #     self.out.branch("l1PreFiringWeight", "F", limitedPrecision=10)
         
@@ -168,11 +197,11 @@ class BaselineProducer(Module):
             passTrigger = passDiEle or passDiMu or passMuEle or passTriEle or passTriMu or passSingleEle or passSingleMu
         else: # Data: ensure each event is taken only from a single sample
             if self.sample == "" : sys.exit("ERROR: sample must be set in data") # we may want to merge triggers for test runs 
-            if (self.sample in ["DoubleEle", "DoubleEG", "EGamma"] and (passSingleEle or passDiEle or passTriEle)) or \
-            (self.sample in ["Muon", "DoubleMu", "DoubleMuon"] and (passDiMu or passTriMu) and not (passSingleEle and passDiEle and passTriEle)) or \
-            (self.sample in ["MuEG", "MuonEG"] and passMuEle and not (passSingleEle and passDiEle and passTriEle and passSingleMu and passDiMu and passTriMu)) or \
-            (self.sample in ["SingleElectron", "EGamma"] and passSingleEle and not (passMuEle and passDiMu and passTriMu and passDiEle and passTriEle)) or \
-            (self.sample in ["SingleMuon", "Muon"] and passSingleMu and not (passSingleEle and passMuEle and passDiMu and passTriMu and passDiEle and passTriEle)):
+            if (self.sample in ["DoubleEle", "DoubleEG", "EGamma"] and (passDiEle or passTriEle)) or \
+            (self.sample in ["Muon", "DoubleMu", "DoubleMuon"] and (passDiMu or passTriMu) and not passDiEle and not passTriEle) or \
+            (self.sample in ["MuEG", "MuonEG"] and passMuEle and not passDiEle and not passTriEle and not passDiMu and not passTriMu) or \
+            (self.sample in ["SingleElectron", "EGamma"] and passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle) or \
+            (self.sample in ["SingleMuon", "Muon"] and passSingleMu and not passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle):
                 passTrigger = True
 
         # if not out_data['passTriggers']:
@@ -191,9 +220,6 @@ class BaselineProducer(Module):
     def _select_Z_candidates(self, event):
 
         event.Zcandidates = []
-
-        event.Zcandidates_mu = []
-        event.Zcandidates_el = []
         
         # mva_leptons = [lepton for lepton in event.selectedLeptons if lepton.mvaTOP > 0.9]
         # lepton_pairs = list(itertools.combinations(mva_leptons, 2))
@@ -215,11 +241,6 @@ class BaselineProducer(Module):
         
             event.Zcandidates.append(Zcand)
 
-            if lep1 == -11:
-                event.Zcandidates_el.append(Zcand)
-            elif lep1 == -13:
-                event.Zcandidates_mu.append(Zcand)
-
     def _flag_onshell_and_offshell_Z(self, Zcand_pair):
                     
         Z1 = Zcand_pair[0]
@@ -239,9 +260,6 @@ class BaselineProducer(Module):
     def _select_ZZ_candidates(self, event):
         
         event.ZZcandidates = []
-        event.ZZcandidates_4e = []
-        event.ZZcandidates_4mu = []
-        event.ZZcandidates_2e2mu = []
                 
         Zcand_pairs = list(itertools.combinations(event.Zcandidates, 2))
         for Zcand_pair in Zcand_pairs:
@@ -316,14 +334,7 @@ class BaselineProducer(Module):
                 
             ZZcand = ZZcandidate(Z1,Z2)
             event.ZZcandidates.append(ZZcand)      
-
-            if abs(Z1.lep1.pdgId) == abs(Z1.lep2.pdgId) == abs(Z2.lep1.pdgId) == abs(Z2.lep2.pdgId) == 11:
-                event.ZZcandidates_4e.append(ZZcand)
-            elif abs(Z1.lep1.pdgId) == abs(Z1.lep2.pdgId) == abs(Z2.lep1.pdgId) == abs(Z2.lep2.pdgId) == 13:
-                event.ZZcandidates_4mu.append(ZZcand)
-            else:
-                event.ZZcandidates_2e2mu.append(ZZcand)
-
+            
     def _select_H_candidates(self, event):
         
         def best_candidate_comparator(a, b):
@@ -339,9 +350,6 @@ class BaselineProducer(Module):
                     return 1   # b is better
 
         event.Hcandidates = []
-        event.Hcandidates_4e = []
-        event.Hcandidates_4mu = []
-        event.Hcandidates_2e2mu = []
 
         if len(event.ZZcandidates) == 0:
             return
@@ -350,21 +358,6 @@ class BaselineProducer(Module):
         best_candidate = min(event.ZZcandidates, key=cmp_to_key(best_candidate_comparator))
         event.Hcandidates.append(best_candidate)
 
-        # 4e
-        if len(event.ZZcandidates_4e) == 0:
-            return
-        best_candidate_4e = min(event.ZZcandidates_4e, key=cmp_to_key(best_candidate_comparator))
-        event.Hcandidates_4e.append(best_candidate_4e)
-        # 4mu
-        if len(event.ZZcandidates_4mu) == 0:
-            return
-        best_candidate_4mu = min(event.ZZcandidates_4mu, key=cmp_to_key(best_candidate_comparator))
-        event.Hcandidates_4mu.append(best_candidate_4mu)
-        # 2e2mu
-        if len(event.ZZcandidates_4mu) == 0:
-            return
-        best_candidate_2e2mu = min(event.ZZcandidates_2e2mu, key=cmp_to_key(best_candidate_comparator))
-        event.Hcandidates_2e2mu.append(best_candidate_2e2mu)
 
         # mZ = 91.1876
     
@@ -577,83 +570,81 @@ class BaselineProducer(Module):
         out_data[self.Z_prefix + "offshell_mass"] = Zcandidate_offshell_mass
 
         ## ZZ candidates
+        # Initialize output lists
         ZZcandidate_mass = []
-        ZZcandidate_mass_4e = []
-        ZZcandidate_mass_4mu = []
-        ZZcandidate_mass_2e2mu = []
+        ZZcandidate_mass_4e=[]
+        ZZcandidate_mass_4mu=[]
+        ZZcandidate_mass_2e2mu=[]
         ZZcandidate_pt = []
         ZZcandidate_eta = []
         ZZcandidate_phi = []
-        ZZcandidate_onshell_mass = []
-        ZZcandidate_offshell_mass = []
+
         for ZZcandidate in event.ZZcandidates:
             ZZcandidate_mass.append(ZZcandidate.mass)
             ZZcandidate_pt.append(ZZcandidate.pt)
             ZZcandidate_eta.append(ZZcandidate.eta)
             ZZcandidate_phi.append(ZZcandidate.phi)
-            # if abs(ZZcandidate.Z1.lep1.pdgId) == 11 and abs(ZZcandidate.Z2.lep1.pdgId) == 11 and abs(ZZcandidate.Z1.lep2.pdgId) == 11 and abs(ZZcandidate.Z2.lep2.pdgId) == 11:
-            #     ZZcandidate_mass_4e.append(ZZcandidate.mass2)
-            # elif abs(ZZcandidate.Z1.lep1.pdgId) == 13 and abs(ZZcandidate.Z2.lep1.pdgId) == 13 and abs(ZZcandidate.Z1.lep2.pdgId) == 13 and abs(ZZcandidate.Z2.lep2.pdgId) == 13:
-            #     ZZcandidate_mass_4mu.append(ZZcandidate.mass2)
-            # elif (abs(ZZcandidate.Z1.lep1.pdgId) == 13 and abs(ZZcandidate.Z2.lep1.pdgId) == 11 and abs(ZZcandidate.Z1.lep2.pdgId) == 13 and abs(ZZcandidate.Z2.lep2.pdgId) == 11) or (abs(ZZcandidate.Z1.lep1.pdgId) == 11 and abs(ZZcandidate.Z2.lep1.pdgId) == 13 and abs(ZZcandidate.Z1.lep2.pdgId) == 11 and abs(ZZcandidate.Z2.lep2.pdgId) == 13):
-            #     ZZcandidate_mass_2e2mu.append(ZZcandidate.mass2)
-        
-        for ZZcands in event.ZZcandidates_4e:
-            ZZcandidate_mass_4e.append(ZZcands.mass)
-        
-        for ZZcands in event.ZZcandidates_4mu:
-            ZZcandidate_mass_4mu.append(ZZcands.mass)
 
-        for ZZcands in event.ZZcandidates_2e2mu:
-            ZZcandidate_mass_2e2mu.append(ZZcands.mass2)
-        
-        if len(event.ZZcandidates) != (len(event.ZZcandidates_4e) + len(event.ZZcandidates_4mu) + len(event.ZZcandidates_2e2mu)):
-            print("PROBLEM")
+            # Extract PDG IDs
+            lep_ids = {
+                abs(ZZcandidate.Z1.lep1.pdgId),
+                abs(ZZcandidate.Z1.lep2.pdgId),
+                abs(ZZcandidate.Z2.lep1.pdgId),
+                abs(ZZcandidate.Z2.lep2.pdgId)
+            }
 
+            # Classify by decay channel
+            if lep_ids == {11}:  
+                ZZcandidate_mass_4e.append(ZZcandidate.mass)
+            elif lep_ids == {13}:  
+                ZZcandidate_mass_4mu.append(ZZcandidate.mass)
+            elif lep_ids == {11, 13}:  
+                ZZcandidate_mass_2e2mu.append(ZZcandidate.mass)
+
+        # Store in output dictionary
         out_data[self.ZZ_prefix + "mass"] = ZZcandidate_mass
-        out_data[self.ZZ_prefix + "mass_4e"] = ZZcandidate_mass_4e
-        out_data[self.ZZ_prefix + "mass_4mu"] = ZZcandidate_mass_4mu
-        out_data[self.ZZ_prefix + "mass_2e2mu"] = ZZcandidate_mass_2e2mu
+        out_data[self.ZZ4e_prefix + "mass"] = ZZcandidate_mass_4e
+        out_data[self.ZZ4mu_prefix + "mass"] = ZZcandidate_mass_4mu
+        out_data[self.ZZ2e2mu_prefix + "mass"] = ZZcandidate_mass_2e2mu
         out_data[self.ZZ_prefix + "pt"] = ZZcandidate_pt
-        out_data[self.ZZ_prefix + "eta"] = ZZcandidate_eta 
-        out_data[self.ZZ_prefix + "phi"] = ZZcandidate_phi 
+        out_data[self.ZZ_prefix + "eta"] = ZZcandidate_eta
+        out_data[self.ZZ_prefix + "phi"] = ZZcandidate_phi
 
-        ## H candidates
+        # Similar structure for Higgs candidates
         Hcandidate_mass = []
-        Hcandidate_mass_4e = []
-        Hcandidate_mass_4mu = []
-        Hcandidate_mass_2e2mu = []
+        Hcandidate_mass_4e=[]
+        Hcandidate_mass_4mu=[]
+        Hcandidate_mass_2e2mu=[]
         Hcandidate_pt = []
         Hcandidate_eta = []
         Hcandidate_phi = []
+
         for Hcandidate in event.Hcandidates:
             Hcandidate_mass.append(Hcandidate.mass)
             Hcandidate_pt.append(Hcandidate.pt)
             Hcandidate_eta.append(Hcandidate.eta)
             Hcandidate_phi.append(Hcandidate.phi)
-            # if abs(Hcandidate.Z1.lep1.pdgId) == 11  and abs(Hcandidate.Z2.lep1.pdgId) == 11 and abs(Hcandidate.Z1.lep2.pdgId) == 11 and abs(Hcandidate.Z2.lep2.pdgId) == 11:
-            #     Hcandidate_mass_4e.append(Hcandidate.mass2)
-            # elif abs(Hcandidate.Z1.lep1.pdgId) == 13 and abs(Hcandidate.Z2.lep1.pdgId) == 13 and abs(Hcandidate.Z1.lep2.pdgId) == 13 and abs(Hcandidate.Z2.lep2.pdgId) == 13:
-            #     Hcandidate_mass_4mu.append(Hcandidate.mass2)
-            # elif (abs(Hcandidate.Z1.lep1.pdgId) == 13 and abs(Hcandidate.Z1.lep2.pdgId) == 13 and abs(Hcandidate.Z2.lep1.pdgId) == 11 and abs(Hcandidate.Z2.lep2.pdgId) == 11) or (abs(Hcandidate.Z1.lep1.pdgId) == 11 and abs(Hcandidate.Z1.lep2.pdgId) == 11 and abs(Hcandidate.Z2.lep1.pdgId) == 13 and abs(Hcandidate.Z2.lep2.pdgId) == 13):
-            #     Hcandidate_mass_2e2mu.append(Hcandidate.mass2)
 
-        for Hcands in event.Hcandidates_4e:
-            Hcandidate_mass_4e.append(Hcands.mass)
-        
-        for Hcands in event.Hcandidates_4mu:
-            Hcandidate_mass_4mu.append(Hcands.mass)
+            # Extract PDG IDs
+            lep_ids = {
+                abs(Hcandidate.Z1.lep1.pdgId),
+                abs(Hcandidate.Z1.lep2.pdgId),
+                abs(Hcandidate.Z2.lep1.pdgId),
+                abs(Hcandidate.Z2.lep2.pdgId)
+            }
 
-        for Hcands in event.Hcandidates_2e2mu:
-            Hcandidate_mass_2e2mu.append(Hcands.mass2)
-        
-        # if len(event.Hcandidates) != (len(event.Hcandidates_4e) + len(event.Hcandidates_4mu) + len(event.Hcandidates_2e2mu)):
-        #     print("PROBLEM WITH H CANDS")
+            # Classify by decay channel
+            if lep_ids == {11}:  
+                Hcandidate_mass_4e.append(Hcandidate.mass)
+            elif lep_ids == {13}:  
+                Hcandidate_mass_4mu.append(Hcandidate.mass)
+            elif lep_ids == {11, 13}:  
+                Hcandidate_mass_2e2mu.append(Hcandidate.mass)
                 
         out_data[self.H_prefix + "mass"] = Hcandidate_mass
-        out_data[self.H_prefix + "mass_4e"] = Hcandidate_mass_4e
-        out_data[self.H_prefix + "mass_4mu"] = Hcandidate_mass_4mu
-        out_data[self.H_prefix + "mass_2e2mu"] = Hcandidate_mass_2e2mu
+        out_data[self.H4e_prefix + "mass"] = Hcandidate_mass_4e
+        out_data[self.H4mu_prefix + "mass"] = Hcandidate_mass_4mu
+        out_data[self.H2e2mu_prefix + "mass"] =  Hcandidate_mass_2e2mu
         out_data[self.H_prefix + "pt"] = Hcandidate_pt
         out_data[self.H_prefix + "eta"] = Hcandidate_eta 
         out_data[self.H_prefix + "phi"] = Hcandidate_phi 
