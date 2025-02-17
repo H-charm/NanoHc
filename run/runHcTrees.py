@@ -210,6 +210,7 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
         print(f"xsecWeight already exists in {file}, skipping weight addition.")
     else:
         sumwgts = _get_sum(run_tree, 'genEventSumw')
+        print(sumwgts)
         if sumwgts == 0:
             raise ValueError(f"genEventSumw is zero in {file}, preventing division by zero.")
         

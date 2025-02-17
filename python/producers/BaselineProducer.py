@@ -197,11 +197,11 @@ class BaselineProducer(Module):
             passTrigger = passDiEle or passDiMu or passMuEle or passTriEle or passTriMu or passSingleEle or passSingleMu
         else: # Data: ensure each event is taken only from a single sample
             if self.sample == "" : sys.exit("ERROR: sample must be set in data") # we may want to merge triggers for test runs 
-            if (self.sample in ["DoubleEle", "DoubleEG", "EGamma"] and (passSingleEle or passDiEle or passTriEle)) or \
-            (self.sample in ["Muon", "DoubleMu", "DoubleMuon"] and (passDiMu or passTriMu) and not (passSingleEle and passDiEle and passTriEle)) or \
-            (self.sample in ["MuEG", "MuonEG"] and passMuEle and not (passSingleEle and passDiEle and passTriEle and passSingleMu and passDiMu and passTriMu)) or \
-            (self.sample in ["SingleElectron", "EGamma"] and passSingleEle and not (passMuEle and passDiMu and passTriMu and passDiEle and passTriEle)) or \
-            (self.sample in ["SingleMuon", "Muon"] and passSingleMu and not (passSingleEle and passMuEle and passDiMu and passTriMu and passDiEle and passTriEle)):
+            if (self.sample in ["DoubleEle", "DoubleEG", "EGamma"] and (passDiEle or passTriEle)) or \
+            (self.sample in ["Muon", "DoubleMu", "DoubleMuon"] and (passDiMu or passTriMu) and not passDiEle and not passTriEle) or \
+            (self.sample in ["MuEG", "MuonEG"] and passMuEle and not passDiEle and not passTriEle and not passDiMu and not passTriMu) or \
+            (self.sample in ["SingleElectron", "EGamma"] and passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle) or \
+            (self.sample in ["SingleMuon", "Muon"] and passSingleMu and not passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle):
                 passTrigger = True
 
         # if not out_data['passTriggers']:
