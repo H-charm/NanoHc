@@ -46,6 +46,7 @@ def create_metadata_json():
         samples = yaml.safe_load(file)
 
     physics_processes = []
+    eras=[]
     das_dict = {}
     for sample in samples:        
         das_dict[sample] = {}
@@ -57,6 +58,10 @@ def create_metadata_json():
             files_found = ['root://xrootd-cms.infn.it/'+_file.strip() for _file in query_out]
             physics_process = dataset.split("/")[1]
             physics_processes.append(physics_process)
+            if dataset_type == "data":
+                era = dataset.split("/")[2]
+                eras.append(era)
+
             #das_dict[sample][physics_process] = files_found
                 # Ensure the dictionary structure exists
 
@@ -80,10 +85,13 @@ def create_metadata_json():
         json_content["golden_json"] = None
     json_content["sample_names"] = []
     json_content["physics_processes"] = []
+    json_content["eras"] = []
     json_content["jobs"] = []
         
     for sample_name in samples: json_content["sample_names"].append(sample_name)
     for physics_process in physics_processes: json_content["physics_processes"].append(physics_process)
+    if dataset_type == "data":
+        for era in eras: json_content["eras"].append(era)
     
     job_id = 0
     for sample in samples:

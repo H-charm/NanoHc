@@ -105,18 +105,102 @@ keyMC_dict = {
     ]
 }
 
-# keyData_dict={
-#     "2022": [
-#     ]
-#     "2022EE": [
-#     ]
-#     "2023": [
-#     ]
-#     "2023BPix": [
-#     ]
-# }
+# year: L1Key, L2Key, L3Key, L2L3Key
+keyData_dict={
+    # 2022
+    "Run2022C-22Sep2023-v1": [
+        "Summer22_22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer22_22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer22_22Sep2023_RunCD_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer22_22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+    "Run2022D-22Sep2023-v1": [
+        "Summer22_22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer22_22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer22_22Sep2023_RunCD_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer22_22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+    # 2022EE
+    #eraE
+    "Run2022E-22Sep2023-v1": [
+        "Summer22EE_22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunE_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunE_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunE_V2_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+    #eraF
+    "Run2022F-22Sep2023-v1": [
+        "Summer22EE_22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunF_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi""
+    ]
+    "Run2022F-22Sep2023-v2":[
+        "Summer22EE_22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunF_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi""
+    ]
+    #eraG
+    "Run2022G-22Sep2023-v1": [
+        "Summer22EE_22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunG_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+    "Run2022G-22Sep2023-v2": [
+        "Summer22EE_22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunG_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer22EE_22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+    # 2023
+    "Run2023C-22Sep2023_v1-v1": [
+        "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi",
+        "Summer23Prompt23_RunCv123_V1_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+    "Run2023C-22Sep2023_v2-v1": [
+        "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi",
+        "Summer23Prompt23_RunCv123_V1_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+    "Run2023C-22Sep2023_v3-v1": [
+        "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi",
+        "Summer23Prompt23_RunCv123_V1_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+    "Run2023C-22Sep2023_v4-v1": [
+        "Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi",
+        "Summer23Prompt23_RunCv4_V1_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+    "Run2023C-22Sep2023_v4-v2": [
+        "Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi",
+        "Summer23Prompt23_RunCv4_V1_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+    #2023BPix
+    "Run2023D-22Sep2023_v1-v1": [
+        "Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V1_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+    "Run2023D-22Sep2023_v2-v1": [
+        "Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V1_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi"
+    ]
+}
 class jetJERCProducer(Module):
-    def __init__(self, year, dataset_type, overwritePt=False, usePhiDependentJEC=False, **kwargs):
+    def __init__(self, year, era_data, dataset_type, overwritePt=False, usePhiDependentJEC=False, **kwargs):
         """Correct jets following recommendations of JME POG.
         Parameters:
             json_JERC: full path of json file with JERC corrections
@@ -132,6 +216,7 @@ class jetJERCProducer(Module):
         """
 
         self.year = year
+        self.era_data = era_data
         self.dataset_type = dataset_type
         self.era = era_dict[self.year]
         self.isMC = True if self.dataset_type == "mc" else False
@@ -159,7 +244,11 @@ class jetJERCProducer(Module):
             self.evaluator_JER = self.evaluator_JERC[keyMC_dict[self.year][4]]
             self.evaluator_JERsf = self.evaluator_JERC[keyMC_dict[self.year][5]]
         else:
-            raise RuntimeError('Data not implemented yet')
+            self.evaluator_L1 = self.evaluator_JERC[keyData_dict[self.era_data][0]]
+            self.evaluator_L2 = self.evaluator_JERC[keyData_dict[self.era_data][1]]
+            self.evaluator_L3 = self.evaluator_JERC[keyData_dict[self.era_data][2]]
+            self.evaluator_L2L3 = self.evaluator_JERC[keyData_dict[self.era_data][3]]
+            
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.out = wrappedOutputTree
@@ -258,13 +347,13 @@ class jetJERCProducer(Module):
                 mass_smear_dn.append(mass_JEC_JER_dn)
                 pt_scale_up.append(-1)
                 pt_scale_dn.append(-1)
-            # else:
-            #     ## Data
-            #     ## No JER for Data
-            #     pt_corr.append(pt_JEC)
-            #     pt_uncorr.append(pt_raw)
-            #     mass_corr.append(mass_JEC)
-            #     mass_uncorr.append(mass_raw)
+            else:
+                ## Data
+                ## No JER for Data
+                pt_corr.append(pt_JEC)
+                pt_uncorr.append(pt_raw)
+                mass_corr.append(mass_JEC)
+                mass_uncorr.append(mass_raw)
 
         if self.overwritePt :
             self.out.fillBranch("Jet_uncorrected_pt", pt_uncorr)
