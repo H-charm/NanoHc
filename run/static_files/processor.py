@@ -1,7 +1,7 @@
 from PhysicsTools.NanoAODTools.postprocessing.framework.postprocessor import PostProcessor
 from PhysicsTools.NanoHc.producers.BaselineProducer import BaselineProducer
 from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
-from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer, ElectronScaleProducer, MuonScaleProducer
+from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer
 from PhysicsTools.NanoHc.producers.leptonvariables import LeptonVariablesModule
 from PhysicsTools.NanoHc.producers.topleptonmva import TopLeptonMvaModule
 from PhysicsTools.NanoHc.producers.jetSFProducer import JetVMAPProducer, jetJERCProducer
@@ -26,6 +26,10 @@ dataset_type = data["type"]
 golden_json = data["golden_json"]
 sample = data["jobs"][int(jobid)]["sample_name"]
 physics_process = data["jobs"][int(jobid)]["physics_process"]
+if dataset_type == "data":
+    era_data = data["jobs"][int(jobid)]["eras"]
+else:
+    era_data = None
 
 ## convert keep_and_drop_input.txt to python list
 with open('keep_and_drop_input.txt', 'r') as file:
@@ -47,12 +51,10 @@ p = PostProcessor(
             # TopLeptonMvaModule(year, 'ULv2'),     
             BaselineProducer(year, dataset_type, sample),
             JetVMAPProducer(year,dataset_type),
-            # jetJERCProducer(year,dataset_type),
+            jetJERCProducer(year, era_data, dataset_type),
             PileupWeightProducer(year, dataset_type),
             # ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 (keep it out for now)
             MuonSFProducer(year, dataset_type),
-            # MuonScaleProducer(year, dataset_type),
-            # ElectronScaleProducer(year,dataset_type),
             eleScaleRes(year,dataset_type),
             # muonScaleRes(year,dataset_type),
             ],
