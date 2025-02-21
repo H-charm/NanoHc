@@ -64,12 +64,22 @@ def create_metadata_json():
 
             #das_dict[sample][physics_process] = files_found
                 # Ensure the dictionary structure exists
-
     
-            if physics_process not in das_dict[sample]:
-                das_dict[sample][physics_process] = []  # Initialize as a list
-            das_dict[sample][physics_process].extend(files_found)
-            print(f"{len(files_found)} files found")
+                if physics_process not in das_dict[sample]:
+                    das_dict[sample][physics_process] = {}  # Initialize as an empty dictionary
+
+                if era not in das_dict[sample][physics_process]:
+                    das_dict[sample][physics_process][era] = []  # Initialize as a list
+
+                das_dict[sample][physics_process][era].extend(files_found)
+
+                print(f"{len(files_found)} files found")
+            else:
+                if physics_process not in das_dict[sample]:
+                    das_dict[sample][physics_process] = []  # Initialize as a list
+                das_dict[sample][physics_process].extend(files_found)
+                print(f"{len(files_found)} files found")
+
                                     
     ## write json file
     json_file = jobs_dir + '/metadata.json'
@@ -85,7 +95,8 @@ def create_metadata_json():
         json_content["golden_json"] = None
     json_content["sample_names"] = []
     json_content["physics_processes"] = []
-    json_content["eras"] = []
+    if dataset_type == "data": 
+        json_content["eras"] = []
     json_content["jobs"] = []
         
     for sample_name in samples: json_content["sample_names"].append(sample_name)
@@ -94,11 +105,19 @@ def create_metadata_json():
         for era in eras: json_content["eras"].append(era)
     
     job_id = 0
-    for sample in samples:
-        for physics_process in das_dict[sample]:
-            for chunk in enumerate(helpers.get_chunks(das_dict[sample][physics_process],args.n)):
-                json_content["jobs"].append({"job_id": job_id, "input_files": chunk[1], "sample_name": sample ,"physics_process": physics_process})
-                job_id += 1
+    if dataset_type == "data":
+        for sample in samples:
+            for physics_process in das_dict[sample]:
+                for era in das_dict[sample][physics_process]:
+                    for chunk in enumerate(helpers.get_chunks(das_dict[sample][physics_process][era],args.n)):
+                        json_content["jobs"].append({"job_id": job_id, "input_files": chunk[1], "sample_name": sample ,"physics_process": physics_process, "era": era })
+                        job_id += 1
+    else:
+        for sample in samples:
+            for physics_process in das_dict[sample]:
+                for chunk in enumerate(helpers.get_chunks(das_dict[sample][physics_process],args.n)):
+                    json_content["jobs"].append({"job_id": job_id, "input_files": chunk[1], "sample_name": sample ,"physics_process": physics_process})
+                    job_id += 1
 
     with open(json_file, 'w') as file:
         json.dump(json_content, file, indent=4)

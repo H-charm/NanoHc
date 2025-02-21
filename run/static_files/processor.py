@@ -27,7 +27,7 @@ golden_json = data["golden_json"]
 sample = data["jobs"][int(jobid)]["sample_name"]
 physics_process = data["jobs"][int(jobid)]["physics_process"]
 if dataset_type == "data":
-    era_data = data["jobs"][int(jobid)]["eras"]
+    era_data = data["jobs"][int(jobid)]["era"]
 else:
     era_data = None
 
