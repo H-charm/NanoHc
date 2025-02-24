@@ -62,7 +62,7 @@ class eleScaleRes(Module):
             self.out.branch("Electron_smearDn_pt", "F", lenVar="nElectron")
 
     def analyze(self, event):
-        electrons = event.selectedElectrons
+        electrons = Collection(event, "Electron")
 
         pt_corr = []
         pt_smear_up = []
@@ -162,10 +162,10 @@ class muonScaleRes(Module):
 
 
     def analyze(self, event):
-        if event.selectedMuons == 0 :
+        if event.nMuon == 0 :
             return True
 
-        muons = event.selectedMuons 
+        muons = Collection(event, "Muon")
 
         pt_corr = [0.]*len(muons)
         if self.isMC:
