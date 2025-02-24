@@ -7,11 +7,11 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
 
 
-era_dict = {"2022": '2022_Summer22', "2022EE": '2022_Summer22EE', "2023": '2023_Summer23', "2023BPix": '2023_Summer23BPix'}
-key_dict = {"2022":     '2022Re-recoBCD',
-            "2022EE":   '2022Re-recoE+PromptFG',
-            "2023":     '2023PromptC',
-            "2023BPix": '2023PromptD'
+era_dict = {"2016APV": '2016preVFP_UL', "2016": '2016postVFP_UL', "2017": '2017_UL', "2018": '2018_UL'}
+key_dict = {"2016APV": '2016preVFP',
+            "2016":    '2016postVFP',
+            "2017":    '2017',
+            "2018":    '2018'
             }
 
 class ElectronSFProducer(Module, object):
@@ -20,9 +20,8 @@ class ElectronSFProducer(Module, object):
         self.year = year
         self.dataset_type = dataset_type
         self.era = era_dict[self.year]
-        #self.path=f'{self.year}Re-recoBCD'
         correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electron.json.gz'
-        self.corr = correctionlib.CorrectionSet.from_file(correction_file)['Electron-ID-SF']
+        self.corr = correctionlib.CorrectionSet.from_file(correction_file)['UL-Electron-ID-SF']
 
     def get_sf(self, sf_type, lep):
         if abs(lep.pdgId) != 11:
@@ -30,16 +29,11 @@ class ElectronSFProducer(Module, object):
 
         wp = None
         if sf_type == 'Reco':
-            wp = 'RecoBelow20' if lep.pt < 20 else 'Reco20to75' if 20 < lep.pt < 75 else 'RecoAbove75'
+            wp = 'RecoBelow20' if lep.pt < 20 else 'RecoAbove20'
         elif sf_type == 'ID':
             wp = lep._wp_ID
 
-        if self.year == "2022" or self.year == "2022EE":
-            scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt)
-        elif self.year == "2023" or self.year == "2023BPix":
-            scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt, lep.phi)
-        else:
-            raise ValueError(f"ElectronSFProducer: Era {self.year} not supported")
+        scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt)
 
         return scale_factor
 
@@ -88,9 +82,9 @@ class MuonSFProducer(Module, object):
             raise RuntimeError('Input lepton is not a muon')
         if sf_type == 'ID':
             assert lep._wp_ID == 'TightID'
-            key = 'NUM_TightID_DEN_TrackerMuons'
+            key = 'NUM_TightID_DEN_TrackerMuons' # NUM_TightID_DEN_genTracks
         elif sf_type == 'Iso':
-            key = f'NUM_{lep._wp_Iso}_DEN_TightID'
+            key = f'NUM_{lep._wp_Iso}_DEN_TightIDandIPCut'
         if lep.pt > 15:
             scale_factor = self.corr_muon_Z[key].evaluate(abs(lep.eta), lep.pt, "nominal")
         elif lep.pt <= 15:
