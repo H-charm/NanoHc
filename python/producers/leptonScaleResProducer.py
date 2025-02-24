@@ -19,7 +19,7 @@ from ROOT import MuonScaRe
 era_dict = {"2022": '2022_Summer22', "2022EE": '2022_Summer22EE', "2023": '2023_Summer23', "2023BPix": '2023_Summer23BPix'}
 
 class eleScaleRes(Module):
-    def __init__(self, year, dataset_type, overwritePt=False, **kwargs):
+    def __init__(self, year, dataset_type, overwritePt=True, **kwargs):
         """Add branches for electron scale and resolution corrections.
         Parameters:
             json: full path of json file
@@ -116,7 +116,7 @@ key_dict={
 }
 
 class muonScaleRes(Module):
-    def __init__(self, year, dataset_type, overwritePt=False, maxPt=200., **kwargs):
+    def __init__(self, year, dataset_type, overwritePt=True, maxPt=200., **kwargs):
         """Add branches for muon scale and resolution corrections.
         Parameters:
             json: full path of json file
