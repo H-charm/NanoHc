@@ -49,9 +49,9 @@ class JetVMAPProducer(Module, object):
         - jet EM fraction (charged + neutral) < 0.9
         - jets that don't overlap with PF muon (dR < 0.2)
         """
-        
+        jets = Collection(event, "Jet")
         veto_flag = 0
-        for i,jet in enumerate(event.selectedJets):
+        for i,jet in enumerate(jets):
             if (jet.pt> 15 and (jet.jetId ==2 or jet.jetId ==6) and jet.chEmEF < 0.9 and jet.neEmEF <0.9 and jet.muonIdx1 == -1 and jet.muonIdx2 == -1):
             
                 # Correct phi and evaluate veto map
@@ -199,7 +199,7 @@ keyData_dict={
     ]
 }
 class jetJERCProducer(Module):
-    def __init__(self, year, era_data, dataset_type, overwritePt=False, usePhiDependentJEC=False, **kwargs):
+    def __init__(self, year, era_data, dataset_type, overwritePt=True, usePhiDependentJEC=False, **kwargs):
         """Correct jets following recommendations of JME POG.
         Parameters:
             json_JERC: full path of json file with JERC corrections
@@ -275,7 +275,7 @@ class jetJERCProducer(Module):
         return phi
 
     def analyze(self, event):
-
+        jets = Collection(event, "Jet")
         if self.isMC: ## genJet info is necessary for JER
             gen_jets = Collection(event, "GenJet")
             gen_jets_pt = np.array([gen_jet.pt for gen_jet in gen_jets])
@@ -293,7 +293,7 @@ class jetJERCProducer(Module):
         pt_scale_up = []
         pt_scale_dn = []
 
-        for jet in event.selectedJets:
+        for jet in jets:
             #### JEC ####
             ## To be applied to both data and MC
             ## Jet in NanoAOD are already corrected
