@@ -225,7 +225,7 @@ class jetJERCProducer(Module):
         correction_file_JERsmear = '/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/jer_smear.json.gz'
 
         self.overwritePt = overwritePt
-        self.usePhiDependentJEC = usePhiDependentJEC
+        self.usePhiDependentJEC = True if year=="2023BPix" else False
 
         self.evaluator_JERC = correctionlib.CorrectionSet.from_file(correction_file_JERC)
         self.evaluator_jer = correctionlib.CorrectionSet.from_file(correction_file_JERsmear)
