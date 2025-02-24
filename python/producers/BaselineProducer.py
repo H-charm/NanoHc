@@ -8,7 +8,6 @@ from functools import cmp_to_key
 from ..helpers.utils import sumP4
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
-#lumi_dict = {"2022": 9.6, "2022EE": 27.7, "2023": 17.794, "2023BPix": 9.451}
 lumi_dict = {"2022": 7.98, "2022EE": 26.67, "2023": 17.794, "2023BPix": 9.451}
 
 class Zcandidate:
@@ -21,7 +20,6 @@ class Zcandidate:
         self.phi = sumP4(self.lep1, self.lep2).Phi()
         self.mass = sumP4(self.lep1, self.lep2).M()
 
-
 class ZZcandidate:
 
     def __init__(self,Z1,Z2):
@@ -33,25 +31,28 @@ class ZZcandidate:
         self.mass = sumP4(self.Z1, self.Z2).M()
         self.mass2 = sumP4(self.Z1, self.Z2).M()
 
-
 class BaselineProducer(Module):
     
     def __init__(self, year, dataset_type, sample):
         self.year = year
         self.sample = sample
         self.dataset_type = dataset_type
+
+        # Define the variables you want to plot
         self.lep_vars = ["pt","eta","phi", "pdgId"]
         self.jet_vars = ["pt","eta","phi","mass","bdisc","cvbdisc","cvldisc","gvudsdisc"]
         self.jet_vars_mc = ["hadronFlavour"]
         self.Z_vars = ["pt","eta","phi","mass","onshell_mass","offshell_mass"]
-        self.ZZ_vars = ["pt","eta","phi","mass", "mass_4mu", "mass_4e", "mass_2e2mu"] 
-        self.H_vars = ["pt","eta","phi","mass", "mass_4mu", "mass_4e", "mass_2e2mu"]  
-        self.H4e_vars=["mass"]
-        self.H4mu_vars=["mass"]
-        self.H2e2mu_vars=["mass"]  
-        self.ZZ4e_vars=["mass"]
-        self.ZZ4mu_vars=["mass"]
-        self.ZZ2e2mu_vars=["mass"]     
+        self.ZZ_vars = ["pt","eta","phi","mass"] 
+        self.H_vars = ["pt","eta","phi","mass"]  
+        self.H4e_vars=["pt","eta","phi","mass"]
+        self.H4mu_vars=["pt","eta","phi","mass"]
+        self.H2e2mu_vars=["pt","eta","phi","mass"]  
+        self.ZZ4e_vars=["pt","eta","phi","mass"]
+        self.ZZ4mu_vars=["pt","eta","phi","mass"]
+        self.ZZ2e2mu_vars=["pt","eta","phi","mass"]
+
+        # Define the prefixes
         self.mu_prefix = "mu_"
         self.el_prefix = "el_"
         self.lep_prefix = "lep_"
@@ -77,59 +78,57 @@ class BaselineProducer(Module):
         
         self.out = wrappedOutputTree
         
-        ## define lepton branches
+        # Define lepton branches
         for lep_var in self.lep_vars:
             self.out.branch(self.mu_prefix + lep_var, "F", 20, lenVar="nMu")
             self.out.branch(self.el_prefix + lep_var, "F", 20, lenVar="nEl")
             self.out.branch(self.lep_prefix + lep_var, "F", 20, lenVar="nLep")
         
-        ## define jet branches
+        # Define jet branches
         for jet_var in self.jet_vars:
             self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
         if self.isMC: 
             for jet_var in self.jet_vars_mc:
                 self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
         
-        ## define trigger branches
-        self.out.branch("passTriggers", "O")
+        # Define trigger branches
         self.out.branch("HLT_passZZ4lEle", "O")   # pass Ele triggers
         self.out.branch("HLT_passZZ4lMu", "O")    # pass Muon triggers
         self.out.branch("HLT_passZZ4lMuEle", "O") # pass MuEle triggers
         self.out.branch("HLT_passZZ4l", "O")      # pass trigger requirements for the given sample (including sample precedence vetos) 
 
+        # Define luminosity branch
         self.out.branch("lumiwgt", "F")
-        
-        ## Zcandidates
+
+        # Define branches for the Zcandidates
         for Z_var in self.Z_vars:
             self.out.branch(self.Z_prefix + Z_var, "F", 20, lenVar="nZ")
 
-        ## Zcandidates
+        # Define branches for the ZZcandidates
         for ZZ_var in self.ZZ_vars:
             self.out.branch(self.ZZ_prefix + ZZ_var, "F", 20, lenVar="nZZ")
 
         for ZZ4e_var in self.ZZ4e_vars:
             self.out.branch(self.ZZ4e_prefix + ZZ4e_var, "F", 20, lenVar="nZZ4e")
-        
+
         for ZZ4mu_var in self.ZZ4mu_vars:
             self.out.branch(self.ZZ4mu_prefix + ZZ4mu_var, "F", 20, lenVar="nZZ4mu")
 
         for ZZ2e2mu_var in self.ZZ2e2mu_vars:
-            self.out.branch(self.ZZ2e2mu_prefix + ZZ2e2mu_var, "F", 20, lenVar="nZZ2e2mu")    
-  
-        ## Hcandidates
+            self.out.branch(self.ZZ2e2mu_prefix + ZZ2e2mu_var, "F", 20, lenVar="nZZ2e2mu")
+
+        # Define branches for the Hcandidates
         for H_var in self.H_vars:
             self.out.branch(self.H_prefix + H_var, "F", 20, lenVar="nH")
 
         for H4e_var in self.H4e_vars:
             self.out.branch(self.H4e_prefix + H4e_var, "F", 20, lenVar="nH4e")
-        
+
         for H4mu_var in self.H4mu_vars:
             self.out.branch(self.H4mu_prefix + H4mu_var, "F", 20, lenVar="nH4mu")
 
         for H2e2mu_var in self.H2e2mu_vars:
-            self.out.branch(self.H2e2mu_prefix + H2e2mu_var, "F", 20, lenVar="nH2e2mu")                    
-        # if self.isMC:
-        #     self.out.branch("l1PreFiringWeight", "F", limitedPrecision=10)
+            self.out.branch(self.H2e2mu_prefix + H2e2mu_var, "F", 20, lenVar="nH2e2mu")
         
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
@@ -404,6 +403,7 @@ class BaselineProducer(Module):
         event.selectedElectrons = []
 
         electrons = Collection(event, "Electron")
+        
         for el in electrons:
             el.etaSC = el.eta + el.deltaEtaSC
             if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
@@ -413,24 +413,18 @@ class BaselineProducer(Module):
                 if abs(el.etaSC) < 0.8:
                     if el.pt < 10:
                         if el.mvaIso < 0.9044286167: continue
-                        # if el.mvaIso < 1.6339: continue
                     else:
                         if el.mvaIso < 0.1968600840: continue
-                        # if el.mvaIso < 0.3685: continue
                 elif 0.8 < abs(el.etaSC) < 1.479:
                     if el.pt < 10:
                         if el.mvaIso < 0.9094166886: continue
-                        # if el.mvaIso < 1.5499: continue
                     else:
-                        if el.mvaIso < 0.0759172100: continue
-                        # if el.mvaIso < 0.2662: continue                    
+                        if el.mvaIso < 0.0759172100: continue                  
                 else: # |el.etaSC| > 1.479
                     if el.pt < 10:
                         if el.mvaIso < 0.9443653660: continue
-                        # if el.mvaIso < 2.0629: continue
                     else:
-                        if el.mvaIso < -0.5169136775: continue
-                        # if el.mvaIso < -0.5444: continue                         
+                        if el.mvaIso < -0.5169136775: continue                      
                                     
                 event.selectedElectrons.append(el)
 
@@ -444,8 +438,6 @@ class BaselineProducer(Module):
         for jet in jets:
             if jet.pt <= 20 or abs(jet.eta) >= 2.5:
                 continue
-            # if abs(jet.phi) > math.pi: # Introduced due to jetvetomaps corrections
-            #     continue
             
             jet_isolated = True
             for lep in event.selectedLeptons:
@@ -526,20 +518,20 @@ class BaselineProducer(Module):
         ak4_hadronFlavour = []
         
         for jet in event.selectedJets:
-            ak4_bdisc.append(jet.btagDeepFlavB)
-            ak4_cvbdisc.append(jet.btagDeepFlavCvB)
-            ak4_cvldisc.append(jet.btagDeepFlavCvL)
-            ak4_gvudsdisc.append(jet.btagDeepFlavQG)
+            # ak4_bdisc.append(jet.btagDeepFlavB)
+            # ak4_cvbdisc.append(jet.btagDeepFlavCvB)
+            # ak4_cvldisc.append(jet.btagDeepFlavCvL)
+            # ak4_gvudsdisc.append(jet.btagDeepFlavQG)
             ak4_pt.append(jet.pt)
             ak4_eta.append(jet.eta)
             ak4_phi.append(jet.phi)
             ak4_mass.append(jet.mass)
             if self.isMC: ak4_hadronFlavour.append(jet.hadronFlavour)
         
-        out_data[self.jet_prefix + "bdisc"] = ak4_bdisc
-        out_data[self.jet_prefix + "cvbdisc"] = ak4_cvbdisc
-        out_data[self.jet_prefix + "cvldisc"] = ak4_cvldisc 
-        out_data[self.jet_prefix + "gvudsdisc"] = ak4_gvudsdisc 
+        # out_data[self.jet_prefix + "bdisc"] = ak4_bdisc
+        # out_data[self.jet_prefix + "cvbdisc"] = ak4_cvbdisc
+        # out_data[self.jet_prefix + "cvldisc"] = ak4_cvldisc 
+        # out_data[self.jet_prefix + "gvudsdisc"] = ak4_gvudsdisc 
         out_data[self.jet_prefix + "pt"] = ak4_pt 
         out_data[self.jet_prefix + "eta"] = ak4_eta 
         out_data[self.jet_prefix + "phi"] = ak4_phi 

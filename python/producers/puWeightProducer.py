@@ -16,9 +16,10 @@ key_dict = {"2022":     'Collisions2022_355100_357900_eraBCD_GoldenJson',
 
 
 class PileupWeightProducer(Module, object):
-    def __init__(self, year, dataset_type, **kwargs):
+    def __init__(self, year, dataset_type, doSysVar=False, **kwargs):
         self.year = year
         self.dataset_type = dataset_type
+        self.doSysVar = doSysVar
         self.nvtxVar = 'Pileup_nTrueInt'
         self.era = era_dict[self.year]
         correction_file = f"/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/{self.era}/puWeights.json.gz"
@@ -30,6 +31,9 @@ class PileupWeightProducer(Module, object):
             self.out = wrappedOutputTree
 
             self.out.branch('puWeight', "F")
+            if self.doSysVar:
+                self.out.branch('puWeightUp', "F")
+                self.out.branch('puWeightDn', "F")
 
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
@@ -39,5 +43,12 @@ class PileupWeightProducer(Module, object):
         puWeight = self.corr.evaluate(getattr(event, self.nvtxVar), "nominal")
 
         self.out.fillBranch('puWeight', puWeight)
+
+        if self.doSysVar:
+            puWeightUp = self.corr.evaluate(getattr(event, self.nvtxVar), "up")
+            puWeightDn = self.corr.evaluate(getattr(event, self.nvtxVar), "down")
+
+            self.out.fillBranch('puWeightUp', puWeightUp)
+            self.out.fillBranch('puWeightDn', puWeightDn)
 
         return True
