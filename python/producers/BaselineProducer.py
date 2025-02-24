@@ -20,7 +20,6 @@ class Zcandidate:
         self.phi = sumP4(self.lep1, self.lep2).Phi()
         self.mass = sumP4(self.lep1, self.lep2).M()
 
-
 class ZZcandidate:
 
     def __init__(self,Z1,Z2):
@@ -32,25 +31,28 @@ class ZZcandidate:
         self.mass = sumP4(self.Z1, self.Z2).M()
         self.mass2 = sumP4(self.Z1, self.Z2).M()
 
-
 class BaselineProducer(Module):
     
     def __init__(self, year, dataset_type, sample):
         self.year = year
         self.sample = sample
         self.dataset_type = dataset_type
+
+        # Define the variables you want to fill
         self.lep_vars = ["pt","eta","phi", "pdgId"]
         self.jet_vars = ["pt","eta","phi","mass","bdisc","cvbdisc","cvldisc","gvudsdisc"]
         self.jet_vars_mc = ["hadronFlavour"]
         self.Z_vars = ["pt","eta","phi","mass","onshell_mass","offshell_mass"]
-        self.ZZ_vars = ["pt","eta","phi","mass", "mass_4mu", "mass_4e", "mass_2e2mu"] 
-        self.H_vars = ["pt","eta","phi","mass", "mass_4mu", "mass_4e", "mass_2e2mu"]  
-        self.H4e_vars=["mass"]
-        self.H4mu_vars=["mass"]
-        self.H2e2mu_vars=["mass"]  
-        self.ZZ4e_vars=["mass"]
-        self.ZZ4mu_vars=["mass"]
-        self.ZZ2e2mu_vars=["mass"]     
+        self.ZZ_vars = ["pt","eta","phi","mass"] 
+        self.H_vars = ["pt","eta","phi","mass"]  
+        self.H4e_vars=["pt","eta","phi","mass"]
+        self.H4mu_vars=["pt","eta","phi","mass"]
+        self.H2e2mu_vars=["pt","eta","phi","mass"]  
+        self.ZZ4e_vars=["pt","eta","phi","mass"]
+        self.ZZ4mu_vars=["pt","eta","phi","mass"]
+        self.ZZ2e2mu_vars=["pt","eta","phi","mass"]
+
+        # Define the prefixes 
         self.mu_prefix = "mu_"
         self.el_prefix = "el_"
         self.lep_prefix = "lep_"
@@ -76,33 +78,33 @@ class BaselineProducer(Module):
         
         self.out = wrappedOutputTree
         
-        ## define lepton branches
+        # Define lepton branches
         for lep_var in self.lep_vars:
             self.out.branch(self.mu_prefix + lep_var, "F", 20, lenVar="nMu")
             self.out.branch(self.el_prefix + lep_var, "F", 20, lenVar="nEl")
             self.out.branch(self.lep_prefix + lep_var, "F", 20, lenVar="nLep")
         
-        ## define jet branches
+        # Define jet branches
         for jet_var in self.jet_vars:
             self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
         if self.isMC: 
             for jet_var in self.jet_vars_mc:
                 self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
         
-        ## define trigger branches
-        self.out.branch("passTriggers", "O")
+        # Define trigger branches
         self.out.branch("HLT_passZZ4lEle", "O")   # pass Ele triggers
         self.out.branch("HLT_passZZ4lMu", "O")    # pass Muon triggers
         self.out.branch("HLT_passZZ4lMuEle", "O") # pass MuEle triggers
         self.out.branch("HLT_passZZ4l", "O")      # pass trigger requirements for the given sample (including sample precedence vetos) 
 
+        # Define luminosity branch
         self.out.branch("lumiwgt", "F")
         
-        ## Zcandidates
+        # Define branches for the Zcandidates
         for Z_var in self.Z_vars:
             self.out.branch(self.Z_prefix + Z_var, "F", 20, lenVar="nZ")
 
-        ## Zcandidates
+        # Define branches for the ZZcandidates
         for ZZ_var in self.ZZ_vars:
             self.out.branch(self.ZZ_prefix + ZZ_var, "F", 20, lenVar="nZZ")
 
@@ -115,7 +117,7 @@ class BaselineProducer(Module):
         for ZZ2e2mu_var in self.ZZ2e2mu_vars:
             self.out.branch(self.ZZ2e2mu_prefix + ZZ2e2mu_var, "F", 20, lenVar="nZZ2e2mu")    
   
-        ## Hcandidates
+        # Define branches for the Hcandidates
         for H_var in self.H_vars:
             self.out.branch(self.H_prefix + H_var, "F", 20, lenVar="nH")
 
@@ -127,8 +129,6 @@ class BaselineProducer(Module):
 
         for H2e2mu_var in self.H2e2mu_vars:
             self.out.branch(self.H2e2mu_prefix + H2e2mu_var, "F", 20, lenVar="nH2e2mu")                    
-        # if self.isMC:
-        #     self.out.branch("l1PreFiringWeight", "F", limitedPrecision=10)
         
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
