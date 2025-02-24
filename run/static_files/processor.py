@@ -55,7 +55,7 @@ p = PostProcessor(
             muonScaleRes(year,dataset_type),
             BaselineProducer(year, dataset_type, sample),
             PileupWeightProducer(year, dataset_type),
-            ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 (keep it out for now)
+            ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 -- For 2022 manually fixed, for 2023 it passes as 1. 
             MuonSFProducer(year, dataset_type),
             ],
     branchsel=keep_and_drop_input_branches,
