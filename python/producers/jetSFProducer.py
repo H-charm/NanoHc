@@ -70,132 +70,45 @@ class JetVMAPProducer(Module, object):
 
 # year: L1Key, L2Key, L3Key, L2L3Key, JERKey. JERsfKey
 keyMC_dict = {
-    "2022": [
-        "Summer22_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi",
-        "Summer22_22Sep2023_V2_MC_L2Relative_AK4PFPuppi",
-        "Summer22_22Sep2023_V2_MC_L3Absolute_AK4PFPuppi",
-        "Summer22_22Sep2023_V2_MC_L2L3Residual_AK4PFPuppi",
-        "Summer22_22Sep2023_JRV1_MC_PtResolution_AK4PFPuppi",
-        "Summer22_22Sep2023_JRV1_MC_ScaleFactor_AK4PFPuppi"
+    "2016APV": [
+
     ],
-    "2022EE": [
-        "Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi",
-        "Summer22EE_22Sep2023_V2_MC_L2Relative_AK4PFPuppi",
-        "Summer22EE_22Sep2023_V2_MC_L3Absolute_AK4PFPuppi",
-        "Summer22EE_22Sep2023_V2_MC_L2L3Residual_AK4PFPuppi",
-        "Summer22EE_22Sep2023_JRV1_MC_PtResolution_AK4PFPuppi",
-        "Summer22EE_22Sep2023_JRV1_MC_ScaleFactor_AK4PFPuppi"
+    "2016": [
+
     ],
-    "2023": [
-        "Summer23Prompt23_V1_MC_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_V1_MC_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_V1_MC_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_V1_MC_L2L3Residual_AK4PFPuppi",
-        "Summer23Prompt23_RunCv1234_JRV1_MC_PtResolution_AK4PFPuppi",
-        "Summer23Prompt23_RunCv1234_JRV1_MC_ScaleFactor_AK4PFPuppi"
+    "2017": [
+
     ],
-    "2023BPix": [
-        "Summer23BPixPrompt23_V1_MC_L1FastJet_AK4PFPuppi",
-        "Summer23BPixPrompt23_V1_MC_L2Relative_AK4PFPuppi",
-        "Summer23BPixPrompt23_V1_MC_L3Absolute_AK4PFPuppi",
-        "Summer23BPixPrompt23_V1_MC_L2L3Residual_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_JRV1_MC_PtResolution_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_JRV1_MC_ScaleFactor_AK4PFPuppi"
+    "2018": [
+        "Summer19UL18_V5_MC_L1FastJet_AK4PFchs",
+        "Summer19UL18_V5_MC_L2Relative_AK4PFchs",
+        "Summer19UL18_V5_MC_L3Absolute_AK4PFchs",
+        "Summer19UL18_V5_MC_L2L3Residual_AK4PFchs",
+        "Summer19UL18_V5_MC_AbsoluteStat_AK4PFchs", 
+        "Summer19UL18_V5_MC_AbsoluteScale_AK4PFchs",
+        "Summer19UL18_V5_MC_AbsoluteSample_AK4PFchs",
+        # "Summer19UL18_V5_MC_AbsoluteFlavMap_AK4PFchs",
+        # "Summer19UL18_V5_MC_AbsoluteMPFBias_AK4PFchs",
+        # "Summer19UL18_V5_MC_Fragmentation_AK4PFchs"
     ]
 }
 
 # year: L1Key, L2Key, L3Key, L2L3Key
 keyData_dict={
-    # 2022
-    "Run2022C-22Sep2023-v1": [
-        "Summer22_22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi",
-        "Summer22_22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi",
-        "Summer22_22Sep2023_RunCD_V2_DATA_L3Absolute_AK4PFPuppi",
-        "Summer22_22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi"
+    "2016APV": [
+
     ],
-    "Run2022D-22Sep2023-v1": [
-        "Summer22_22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi",
-        "Summer22_22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi",
-        "Summer22_22Sep2023_RunCD_V2_DATA_L3Absolute_AK4PFPuppi",
-        "Summer22_22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi"
+    "2016": [
+
     ],
-    # 2022EE
-    #eraE
-    "Run2022E-22Sep2023-v1": [
-        "Summer22EE_22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunE_V2_DATA_L2Relative_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunE_V2_DATA_L3Absolute_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunE_V2_DATA_L2L3Residual_AK4PFPuppi"
+    "2017": [
+
     ],
-    #eraF
-    "Run2022F-22Sep2023-v1": [
-        "Summer22EE_22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunF_V2_DATA_L3Absolute_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi"
-    ],
-    "Run2022F-22Sep2023-v2":[
-        "Summer22EE_22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunF_V2_DATA_L3Absolute_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi"
-    ],
-    #eraG
-    "Run2022G-22Sep2023-v1": [
-        "Summer22EE_22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunG_V2_DATA_L3Absolute_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi"
-    ],
-    "Run2022G-22Sep2023-v2": [
-        "Summer22EE_22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunG_V2_DATA_L3Absolute_AK4PFPuppi",
-        "Summer22EE_22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi"
-    ],
-    # 2023
-    "Run2023C-22Sep2023_v1-v1": [
-        "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi"
-    ],
-    "Run2023C-22Sep2023_v2-v1": [
-        "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi"
-    ],
-    "Run2023C-22Sep2023_v3-v1": [
-        "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi"
-    ],
-    "Run2023C-22Sep2023_v4-v1": [
-        "Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi"
-    ],
-    "Run2023C-22Sep2023_v4-v2": [
-        "Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi"
-    ],
-    #2023BPix
-    "Run2023D-22Sep2023_v1-v1": [
-        "Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi"
-    ],
-    "Run2023D-22Sep2023_v2-v1": [
-        "Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi"
+    "2018": [
+        "Summer19UL18_RunA_V5_DATA_L1FastJet_AK4PFchs",
+        "Summer19UL18_RunA_V5_DATA_L2Relative_AK4PFchs",
+        "Summer19UL18_RunA_V5_DATA_L3Absolute_AK4PFchs",
+        "Summer19UL18_RunA_V5_DATA_L2L3Residual_AK4PFchs",
     ]
 }
 class jetJERCProducer(Module):
