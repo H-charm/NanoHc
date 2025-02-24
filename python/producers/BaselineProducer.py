@@ -8,18 +8,7 @@ from functools import cmp_to_key
 from ..helpers.utils import sumP4
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
-#lumi_dict = {2015: 19.52, 2016: 16.81, 2017: 41.48, 2018: 59.83}
-#lumi_dict = {"2022": 9.6, "2022EE": 27.7, "2023": 17.794, "2023BPix": 9.451}
-lumi_dict = {
-    "2016APV": 19.52,
-    "2016": 16.81,
-    "2017": 41.53,
-    "2018": 59.74,
-    "2022": 7.98, 
-    "2022EE": 26.67, 
-    "2023": 17.794, 
-    "2023BPix": 9.451
-}
+lumi_dict = {"2016APV": 19.52, "2016": 16.81, "2017": 41.53, "2018": 59.74}
 
 class Zcandidate:
     
@@ -205,22 +194,6 @@ class BaselineProducer(Module):
             passDiEle = event.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_DoubleEle25_CaloIdL_MW
             passDiMu = event.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
             passMuEle = event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ or event.HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ
-            passTriEle = False
-            passTriMu = event.HLT_TripleMu_10_5_5_DZ or event.HLT_TripleMu_12_10_5
-        elif self.year == "2022" or self.year == "2022EE" : # Checked that these are unprescaled in run 359751
-            passSingleEle = event.HLT_Ele30_WPTight_Gsf #Note: we used Ele32 in 2018! 
-            passSingleMu = event.HLT_IsoMu24
-            passDiEle = event.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_DoubleEle25_CaloIdL_MW
-            passDiMu = event.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
-            passMuEle = event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ or event.HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ
-            passTriEle = False
-            passTriMu = event.HLT_TripleMu_10_5_5_DZ or event.HLT_TripleMu_12_10_5
-        elif self.year == "2023" or self.year == "2023BPix" : # Checked that these are unprescaled, reference twikis for 2023 Eg & Muon Triggers https://twiki.cern.ch/twiki/bin/view/CMS/EgHLTRunIIISummary & https://twiki.cern.ch/twiki/bin/view/CMS/MuonHLT2023
-            passSingleEle = event.HLT_Ele30_WPTight_Gsf
-            passSingleMu = event.HLT_IsoMu24
-            passDiEle = event.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL
-            passDiMu = event.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
-            passMuEle = event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL
             passTriEle = False
             passTriMu = event.HLT_TripleMu_10_5_5_DZ or event.HLT_TripleMu_12_10_5
         else:
@@ -439,57 +412,29 @@ class BaselineProducer(Module):
 
         electrons = Collection(event, "Electron")
 
-        if self.year in {"2016", "2016APV", "2017", "2018"}:
-            for el in electrons:
-                el.etaSC = el.eta + el.deltaEtaSC
-                if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
-                    el._wp_ID = 'wp90iso'
-                    
-                    ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
-                    if abs(el.etaSC) < 0.8:
-                        if el.pt < 10:
-                            if el.mvaFall17V2Iso < 0.9128577458: continue
-                        else:
-                            if el.mvaFall17V2Iso < 0.1559788054: continue
-                    elif 0.8 < abs(el.etaSC) < 1.479:
-                        if el.pt < 10:
-                            if el.mvaFall17V2Iso < 0.9056792368: continue
-                        else:
-                            if el.mvaFall17V2Iso < 0.0273863727: continue                    
-                    else: # |el.etaSC| > 1.479
-                        if el.pt < 10:
-                            if el.mvaFall17V2Iso < 0.9439440575: continue
-                        else:
-                            if el.mvaFall17V2Iso < -0.5532483665: continue                        
-                                        
-                    event.selectedElectrons.append(el)
-
-        elif self.year in {"2022", "2022EE", "2023", "2023BPix"}:
-            for el in electrons:
-                el.etaSC = el.eta + el.deltaEtaSC
-                if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
-                    el._wp_ID = 'wp90iso'
-                    
-                    ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
-                    if abs(el.etaSC) < 0.8:
-                        if el.pt < 10:
-                            if el.mvaIso < 0.9044286167: continue
-                        else:
-                            if el.mvaIso < 0.1968600840: continue
-                    elif 0.8 < abs(el.etaSC) < 1.479:
-                        if el.pt < 10:
-                            if el.mvaIso < 0.9094166886: continue
-                        else:
-                            if el.mvaIso < 0.0759172100: continue                  
-                    else: # |el.etaSC| > 1.479
-                        if el.pt < 10:
-                            if el.mvaIso < 0.9443653660: continue
-                        else:
-                            if el.mvaIso < -0.5169136775: continue                      
-                                        
-                    event.selectedElectrons.append(el)
-        else:
-            print(f"Year {self.year} not found")
+        for el in electrons:
+            el.etaSC = el.eta + el.deltaEtaSC
+            if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
+                el._wp_ID = 'wp90iso'
+                
+                ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
+                if abs(el.etaSC) < 0.8:
+                    if el.pt < 10:
+                        if el.mvaFall17V2Iso < 0.9128577458: continue
+                    else:
+                        if el.mvaFall17V2Iso < 0.1559788054: continue
+                elif 0.8 < abs(el.etaSC) < 1.479:
+                    if el.pt < 10:
+                        if el.mvaFall17V2Iso < 0.9056792368: continue
+                    else:
+                        if el.mvaFall17V2Iso < 0.0273863727: continue                    
+                else: # |el.etaSC| > 1.479
+                    if el.pt < 10:
+                        if el.mvaFall17V2Iso < 0.9439440575: continue
+                    else:
+                        if el.mvaFall17V2Iso < -0.5532483665: continue                        
+                                    
+                event.selectedElectrons.append(el)
 
     def _select_jets(self, event):
 
