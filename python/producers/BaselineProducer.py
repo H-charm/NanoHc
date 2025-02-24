@@ -1,6 +1,6 @@
 from PhysicsTools.NanoAODTools.postprocessing.framework.datamodel import Collection
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
-from ..helpers.triggerHelper import passTrigger
+# from ..helpers.triggerHelper import passTrigger
 import ROOT
 import math
 import itertools
@@ -8,7 +8,18 @@ from functools import cmp_to_key
 from ..helpers.utils import sumP4
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
-lumi_dict = {"2022": 9.6, "2022EE": 27.7, "2023": 17.794, "2023BPix": 9.451}
+#lumi_dict = {2015: 19.52, 2016: 16.81, 2017: 41.48, 2018: 59.83}
+#lumi_dict = {"2022": 9.6, "2022EE": 27.7, "2023": 17.794, "2023BPix": 9.451}
+lumi_dict = {
+    "2016APV": 19.52,
+    "2016": 16.81,
+    "2017": 41.53,
+    "2018": 59.74,
+    "2022": 7.98, 
+    "2022EE": 26.67, 
+    "2023": 17.794, 
+    "2023BPix": 9.451
+}
 
 class Zcandidate:
     
@@ -30,6 +41,7 @@ class ZZcandidate:
         self.eta = sumP4(self.Z1, self.Z2).Eta()
         self.phi = sumP4(self.Z1, self.Z2).Phi()
         self.mass = sumP4(self.Z1, self.Z2).M()
+        self.mass2 = sumP4(self.Z1, self.Z2).M()
 
 
 class BaselineProducer(Module):
@@ -38,19 +50,31 @@ class BaselineProducer(Module):
         self.year = year
         self.sample = sample
         self.dataset_type = dataset_type
-        self.lep_vars = ["pt","eta","phi"]
+        self.lep_vars = ["pt","eta","phi", "pdgId"]
         self.jet_vars = ["pt","eta","phi","mass","bdisc","cvbdisc","cvldisc","gvudsdisc"]
         self.jet_vars_mc = ["hadronFlavour"]
         self.Z_vars = ["pt","eta","phi","mass","onshell_mass","offshell_mass"]
-        self.ZZ_vars = ["pt","eta","phi","mass"] 
-        self.H_vars = ["pt","eta","phi","mass"]        
+        self.ZZ_vars = ["pt","eta","phi","mass", "mass_4mu", "mass_4e", "mass_2e2mu"] 
+        self.H_vars = ["pt","eta","phi","mass", "mass_4mu", "mass_4e", "mass_2e2mu"]  
+        self.H4e_vars=["mass"]
+        self.H4mu_vars=["mass"]
+        self.H2e2mu_vars=["mass"]  
+        self.ZZ4e_vars=["mass"]
+        self.ZZ4mu_vars=["mass"]
+        self.ZZ2e2mu_vars=["mass"]     
         self.mu_prefix = "mu_"
         self.el_prefix = "el_"
         self.lep_prefix = "lep_"
         self.jet_prefix = "jet_"
         self.Z_prefix = "Z_"
         self.ZZ_prefix = "ZZ_"
+        self.ZZ4e_prefix = "ZZ4e_"
+        self.ZZ4mu_prefix = "ZZ4mu_"
+        self.ZZ2e2mu_prefix = "ZZ2e2mu_"
         self.H_prefix = "H_"
+        self.H4e_prefix = "H4e_"
+        self.H4mu_prefix = "H4mu_"
+        self.H2e2mu_prefix = "H2e2mu_"
 
     def beginJob(self):
         pass
@@ -92,11 +116,28 @@ class BaselineProducer(Module):
         ## Zcandidates
         for ZZ_var in self.ZZ_vars:
             self.out.branch(self.ZZ_prefix + ZZ_var, "F", 20, lenVar="nZZ")
+
+        for ZZ4e_var in self.ZZ4e_vars:
+            self.out.branch(self.ZZ4e_prefix + ZZ4e_var, "F", 20, lenVar="nZZ4e")
+        
+        for ZZ4mu_var in self.ZZ4mu_vars:
+            self.out.branch(self.ZZ4mu_prefix + ZZ4mu_var, "F", 20, lenVar="nZZ4mu")
+
+        for ZZ2e2mu_var in self.ZZ2e2mu_vars:
+            self.out.branch(self.ZZ2e2mu_prefix + ZZ2e2mu_var, "F", 20, lenVar="nZZ2e2mu")    
   
         ## Hcandidates
         for H_var in self.H_vars:
             self.out.branch(self.H_prefix + H_var, "F", 20, lenVar="nH")
-                    
+
+        for H4e_var in self.H4e_vars:
+            self.out.branch(self.H4e_prefix + H4e_var, "F", 20, lenVar="nH4e")
+        
+        for H4mu_var in self.H4mu_vars:
+            self.out.branch(self.H4mu_prefix + H4mu_var, "F", 20, lenVar="nH4mu")
+
+        for H2e2mu_var in self.H2e2mu_vars:
+            self.out.branch(self.H2e2mu_prefix + H2e2mu_var, "F", 20, lenVar="nH2e2mu")                    
         # if self.isMC:
         #     self.out.branch("l1PreFiringWeight", "F", limitedPrecision=10)
         
@@ -131,7 +172,6 @@ class BaselineProducer(Module):
             return False
         
         self._select_ZZ_candidates(event)
-        # if len(event.ZZcandidates) > 1: return False # for now keep only events with 1 ZZ candidate (we need MELA if we have more)
         
         self._select_H_candidates(event)
         
@@ -141,12 +181,33 @@ class BaselineProducer(Module):
         
     def _select_triggers(self, event):
 
-        # ### Good PV filter
-        # if not event.Flag_goodVertices : return False
-
         passTrigger = False 
         out_data = {}
-        if self.year == "2022" or self.year == "2022EE" : # Checked that these are unprescaled in run 359751
+        if self.year == "2016" or self.year == "2016APV":
+            passSingleEle = event.HLT_Ele25_eta2p1_WPTight or event.HLT_Ele27_WPTight or event.HLT_Ele27_eta2p1_WPLoose_Gsf
+            passSingleMu = event.HLT_IsoMu20 or event.HLT_IsoMu22 # or event.HLT_IsoTkMu20 or event.HLT_IsoTkMu22
+            passDiEle = event.HLT_Ele17_Ele12_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_DoubleEle33_CaloIdL_GsfTrkIdVL
+            passDiMu = event.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL or event.HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL
+            passMuEle = event.HLT_Mu8_TrkIsoVVL_Ele17_CaloIdL_TrackIdL_IsoVL or event.HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL or event.HLT_Mu17_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_Mu23_TrkIsoVVL_Ele8_CaloIdL_TrackIdL_IsoVL or event.HLT_Mu8_DiEle12_CaloIdL_TrackIdL or event.HLT_DiMu9_Ele9_CaloIdL_TrackIdL
+            passTriEle = event.HLT_Ele16_Ele12_Ele8_CaloIdL_TrackIdL
+            passTriMu = event.HLT_TripleMu_12_10_5
+        elif self.year == "2017":
+            passSingleEle = event.HLT_Ele35_WPTight_Gsf or event.HLT_Ele38_WPTight_Gsf or event.HLT_Ele40_WPTight_Gsf
+            passSingleMu = event.HLT_IsoMu27
+            passDiEle = event.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_DoubleEle33_CaloIdL_MW
+            passDiMu = event.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8 or event.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8
+            passMuEle = event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ or event.HLT_Mu8_DiEle12_CaloIdL_TrackIdL or event.HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ
+            passTriEle = event.HLT_Ele16_Ele12_Ele8_CaloIdL_TrackIdL
+            passTriMu = event.HLT_TripleMu_10_5_5_DZ or event.HLT_TripleMu_12_10_5
+        elif self.year == "2018":
+            passSingleEle = event.HLT_Ele32_WPTight_Gsf
+            passSingleMu = event.HLT_IsoMu24
+            passDiEle = event.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_DoubleEle25_CaloIdL_MW
+            passDiMu = event.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
+            passMuEle = event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ or event.HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ
+            passTriEle = False
+            passTriMu = event.HLT_TripleMu_10_5_5_DZ or event.HLT_TripleMu_12_10_5
+        elif self.year == "2022" or self.year == "2022EE" : # Checked that these are unprescaled in run 359751
             passSingleEle = event.HLT_Ele30_WPTight_Gsf #Note: we used Ele32 in 2018! 
             passSingleMu = event.HLT_IsoMu24
             passDiEle = event.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_DoubleEle25_CaloIdL_MW
@@ -170,12 +231,12 @@ class BaselineProducer(Module):
             passTrigger = passDiEle or passDiMu or passMuEle or passTriEle or passTriMu or passSingleEle or passSingleMu
         else: # Data: ensure each event is taken only from a single sample
             if self.sample == "" : sys.exit("ERROR: sample must be set in data") # we may want to merge triggers for test runs 
-            if ((self.sample=="DoubleEle" or self.sample=="DoubleEG"  or self.sample=="EGamma" ) and (passDiEle or passTriEle)) or \
-               ((self.sample=="Muon" or self.sample=="DoubleMu"  or self.sample=="DoubleMuon") and (passDiMu or passTriMu) and not passDiEle and not passTriEle) or \
-               ((self.sample=="MuEG" or self.sample=="MuonEG") and passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle) or \
-               ((self.sample=="SingleElectron" or self.sample=="EGamma") and passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle) or \
-               ((self.sample=="SingleMuon" or self.sample=="Muon") and passSingleMu and not passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle) :
-                   passTrigger = True
+            if (self.sample in ["DoubleEle", "DoubleEG", "EGamma"] and (passDiEle or passTriEle)) or \
+            (self.sample in ["Muon", "DoubleMu", "DoubleMuon"] and (passDiMu or passTriMu) and not passDiEle and not passTriEle) or \
+            (self.sample in ["MuEG", "MuonEG"] and passMuEle and not passDiEle and not passTriEle and not passDiMu and not passTriMu) or \
+            (self.sample in ["SingleElectron", "EGamma"] and passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle) or \
+            (self.sample in ["SingleMuon", "Muon"] and passSingleMu and not passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle):
+                passTrigger = True
 
         # if not out_data['passTriggers']:
         #     return False
@@ -188,8 +249,7 @@ class BaselineProducer(Module):
         self.out.fillBranch("HLT_passZZ4lMuEle", passMuEle)
         self.out.fillBranch("HLT_passZZ4l", passTrigger)
 
-        # return passTrigger
-        return True # pass Everything
+        return passTrigger
 
     def _select_Z_candidates(self, event):
 
@@ -378,35 +438,58 @@ class BaselineProducer(Module):
         event.selectedElectrons = []
 
         electrons = Collection(event, "Electron")
-        for el in electrons:
-            el.etaSC = el.eta + el.deltaEtaSC
-            if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
-                el._wp_ID = 'wp90iso'
-                
-                ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
-                if abs(el.etaSC) < 0.8:
-                    if el.pt < 10:
-                        if el.mvaIso < 0.9044286167: continue
-                        # if el.mvaIso < 1.6339: continue
-                    else:
-                        if el.mvaIso < 0.1968600840: continue
-                        # if el.mvaIso < 0.3685: continue
-                elif 0.8 < abs(el.etaSC) < 1.479:
-                    if el.pt < 10:
-                        if el.mvaIso < 0.9094166886: continue
-                        # if el.mvaIso < 1.5499: continue
-                    else:
-                        if el.mvaIso < 0.0759172100: continue
-                        # if el.mvaIso < 0.2662: continue                    
-                else: # |el.etaSC| > 1.479
-                    if el.pt < 10:
-                        if el.mvaIso < 0.9443653660: continue
-                        # if el.mvaIso < 2.0629: continue
-                    else:
-                        if el.mvaIso < -0.5169136775: continue
-                        # if el.mvaIso < -0.5444: continue                         
-                                    
-                event.selectedElectrons.append(el)
+
+        if self.year in {"2016", "2016APV", "2017", "2018"}:
+            for el in electrons:
+                el.etaSC = el.eta + el.deltaEtaSC
+                if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
+                    el._wp_ID = 'wp90iso'
+                    
+                    ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
+                    if abs(el.etaSC) < 0.8:
+                        if el.pt < 10:
+                            if el.mvaFall17V2Iso < 0.9128577458: continue
+                        else:
+                            if el.mvaFall17V2Iso < 0.1559788054: continue
+                    elif 0.8 < abs(el.etaSC) < 1.479:
+                        if el.pt < 10:
+                            if el.mvaFall17V2Iso < 0.9056792368: continue
+                        else:
+                            if el.mvaFall17V2Iso < 0.0273863727: continue                    
+                    else: # |el.etaSC| > 1.479
+                        if el.pt < 10:
+                            if el.mvaFall17V2Iso < 0.9439440575: continue
+                        else:
+                            if el.mvaFall17V2Iso < -0.5532483665: continue                        
+                                        
+                    event.selectedElectrons.append(el)
+
+        elif self.year in {"2022", "2022EE", "2023", "2023BPix"}:
+            for el in electrons:
+                el.etaSC = el.eta + el.deltaEtaSC
+                if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
+                    el._wp_ID = 'wp90iso'
+                    
+                    ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
+                    if abs(el.etaSC) < 0.8:
+                        if el.pt < 10:
+                            if el.mvaIso < 0.9044286167: continue
+                        else:
+                            if el.mvaIso < 0.1968600840: continue
+                    elif 0.8 < abs(el.etaSC) < 1.479:
+                        if el.pt < 10:
+                            if el.mvaIso < 0.9094166886: continue
+                        else:
+                            if el.mvaIso < 0.0759172100: continue                  
+                    else: # |el.etaSC| > 1.479
+                        if el.pt < 10:
+                            if el.mvaIso < 0.9443653660: continue
+                        else:
+                            if el.mvaIso < -0.5169136775: continue                      
+                                        
+                    event.selectedElectrons.append(el)
+        else:
+            print(f"Year {self.year} not found")
 
     def _select_jets(self, event):
 
@@ -418,8 +501,6 @@ class BaselineProducer(Module):
         for jet in jets:
             if jet.pt <= 20 or abs(jet.eta) >= 2.5:
                 continue
-            # if abs(jet.phi) > math.pi: # Introduced due to jetvetomaps corrections
-            #     continue
             
             jet_isolated = True
             for lep in event.selectedLeptons:
@@ -450,34 +531,43 @@ class BaselineProducer(Module):
         lep_pt = []
         lep_eta = []
         lep_phi = []
+        lep_pdgId=[]
         el_pt = []
         el_eta = []
         el_phi = []
+        el_pdgId =[]
         mu_pt = []
         mu_eta = []
         mu_phi = []
+        mu_pdgId = []
         for lep in leptons_pt_sorted:
             lep_pt.append(lep.pt)
             lep_eta.append(lep.eta)
             lep_phi.append(lep.phi)
+            lep_pdgId.append(lep.pdgId)
             if abs(lep.pdgId) == 11: # el
                 el_pt.append(lep.pt)
                 el_eta.append(lep.eta)
                 el_phi.append(lep.phi)
+                el_pdgId.append(lep.pdgId)
             if abs(lep.pdgId) == 13: # mu
                 mu_pt.append(lep.pt)
                 mu_eta.append(lep.eta)
-                mu_phi.append(lep.phi)            
+                mu_phi.append(lep.phi)
+                mu_pdgId.append(lep.pdgId)            
             
         out_data[self.lep_prefix + "pt"] = lep_pt
         out_data[self.lep_prefix + "eta"] = lep_eta
         out_data[self.lep_prefix + "phi"] = lep_phi
+        out_data[self.lep_prefix + "pdgId"] = lep_pdgId
         out_data[self.el_prefix + "pt"] = el_pt
         out_data[self.el_prefix + "eta"] = el_eta
-        out_data[self.el_prefix + "phi"] = el_phi       
+        out_data[self.el_prefix + "phi"] = el_phi 
+        out_data[self.el_prefix + "pdgId"] = el_pdgId     
         out_data[self.mu_prefix + "pt"] = mu_pt
         out_data[self.mu_prefix + "eta"] = mu_eta
         out_data[self.mu_prefix + "phi"] = mu_phi
+        out_data[self.mu_prefix + "pdgId"] = mu_pdgId
                     
         ## jets  
         ak4_bdisc = []
@@ -491,20 +581,20 @@ class BaselineProducer(Module):
         ak4_hadronFlavour = []
         
         for jet in event.selectedJets:
-            ak4_bdisc.append(jet.btagDeepFlavB)
-            ak4_cvbdisc.append(jet.btagDeepFlavCvB)
-            ak4_cvldisc.append(jet.btagDeepFlavCvL)
-            ak4_gvudsdisc.append(jet.btagDeepFlavQG)
+            # ak4_bdisc.append(jet.btagDeepFlavB)
+            # ak4_cvbdisc.append(jet.btagDeepFlavCvB)
+            # ak4_cvldisc.append(jet.btagDeepFlavCvL)
+            # ak4_gvudsdisc.append(jet.btagDeepFlavQG)
             ak4_pt.append(jet.pt)
             ak4_eta.append(jet.eta)
             ak4_phi.append(jet.phi)
             ak4_mass.append(jet.mass)
             if self.isMC: ak4_hadronFlavour.append(jet.hadronFlavour)
         
-        out_data[self.jet_prefix + "bdisc"] = ak4_bdisc
-        out_data[self.jet_prefix + "cvbdisc"] = ak4_cvbdisc
-        out_data[self.jet_prefix + "cvldisc"] = ak4_cvldisc 
-        out_data[self.jet_prefix + "gvudsdisc"] = ak4_gvudsdisc 
+        # out_data[self.jet_prefix + "bdisc"] = ak4_bdisc
+        # out_data[self.jet_prefix + "cvbdisc"] = ak4_cvbdisc
+        # out_data[self.jet_prefix + "cvldisc"] = ak4_cvldisc 
+        # out_data[self.jet_prefix + "gvudsdisc"] = ak4_gvudsdisc 
         out_data[self.jet_prefix + "pt"] = ak4_pt 
         out_data[self.jet_prefix + "eta"] = ak4_eta 
         out_data[self.jet_prefix + "phi"] = ak4_phi 
@@ -525,6 +615,7 @@ class BaselineProducer(Module):
             Zcandidate_phi.append(Zcandidate.phi)
             if Zcandidate.is_onshell: Zcandidate_onshell_mass.append(Zcandidate.mass)
             else: Zcandidate_offshell_mass.append(Zcandidate.mass)
+
                 
         out_data[self.Z_prefix + "mass"] = Zcandidate_mass
         out_data[self.Z_prefix + "pt"] = Zcandidate_pt
@@ -534,35 +625,81 @@ class BaselineProducer(Module):
         out_data[self.Z_prefix + "offshell_mass"] = Zcandidate_offshell_mass
 
         ## ZZ candidates
+        # Initialize output lists
         ZZcandidate_mass = []
+        ZZcandidate_mass_4e=[]
+        ZZcandidate_mass_4mu=[]
+        ZZcandidate_mass_2e2mu=[]
         ZZcandidate_pt = []
         ZZcandidate_eta = []
         ZZcandidate_phi = []
-        ZZcandidate_onshell_mass = []
-        ZZcandidate_offshell_mass = []
+
         for ZZcandidate in event.ZZcandidates:
             ZZcandidate_mass.append(ZZcandidate.mass)
             ZZcandidate_pt.append(ZZcandidate.pt)
             ZZcandidate_eta.append(ZZcandidate.eta)
             ZZcandidate_phi.append(ZZcandidate.phi)
-                
-        out_data[self.ZZ_prefix + "mass"] = ZZcandidate_mass
-        out_data[self.ZZ_prefix + "pt"] = ZZcandidate_pt
-        out_data[self.ZZ_prefix + "eta"] = ZZcandidate_eta 
-        out_data[self.ZZ_prefix + "phi"] = ZZcandidate_phi 
 
-        ## H candidates
+            # Extract PDG IDs
+            lep_ids = {
+                abs(ZZcandidate.Z1.lep1.pdgId),
+                abs(ZZcandidate.Z1.lep2.pdgId),
+                abs(ZZcandidate.Z2.lep1.pdgId),
+                abs(ZZcandidate.Z2.lep2.pdgId)
+            }
+
+            # Classify by decay channel
+            if lep_ids == {11}:  
+                ZZcandidate_mass_4e.append(ZZcandidate.mass)
+            elif lep_ids == {13}:  
+                ZZcandidate_mass_4mu.append(ZZcandidate.mass)
+            elif lep_ids == {11, 13}:  
+                ZZcandidate_mass_2e2mu.append(ZZcandidate.mass)
+
+        # Store in output dictionary
+        out_data[self.ZZ_prefix + "mass"] = ZZcandidate_mass
+        out_data[self.ZZ4e_prefix + "mass"] = ZZcandidate_mass_4e
+        out_data[self.ZZ4mu_prefix + "mass"] = ZZcandidate_mass_4mu
+        out_data[self.ZZ2e2mu_prefix + "mass"] = ZZcandidate_mass_2e2mu
+        out_data[self.ZZ_prefix + "pt"] = ZZcandidate_pt
+        out_data[self.ZZ_prefix + "eta"] = ZZcandidate_eta
+        out_data[self.ZZ_prefix + "phi"] = ZZcandidate_phi
+
+        # Similar structure for Higgs candidates
         Hcandidate_mass = []
+        Hcandidate_mass_4e=[]
+        Hcandidate_mass_4mu=[]
+        Hcandidate_mass_2e2mu=[]
         Hcandidate_pt = []
         Hcandidate_eta = []
         Hcandidate_phi = []
+
         for Hcandidate in event.Hcandidates:
             Hcandidate_mass.append(Hcandidate.mass)
             Hcandidate_pt.append(Hcandidate.pt)
             Hcandidate_eta.append(Hcandidate.eta)
             Hcandidate_phi.append(Hcandidate.phi)
-            
+
+            # Extract PDG IDs
+            lep_ids = {
+                abs(Hcandidate.Z1.lep1.pdgId),
+                abs(Hcandidate.Z1.lep2.pdgId),
+                abs(Hcandidate.Z2.lep1.pdgId),
+                abs(Hcandidate.Z2.lep2.pdgId)
+            }
+
+            # Classify by decay channel
+            if lep_ids == {11}:  
+                Hcandidate_mass_4e.append(Hcandidate.mass)
+            elif lep_ids == {13}:  
+                Hcandidate_mass_4mu.append(Hcandidate.mass)
+            elif lep_ids == {11, 13}:  
+                Hcandidate_mass_2e2mu.append(Hcandidate.mass)
+                
         out_data[self.H_prefix + "mass"] = Hcandidate_mass
+        out_data[self.H4e_prefix + "mass"] = Hcandidate_mass_4e
+        out_data[self.H4mu_prefix + "mass"] = Hcandidate_mass_4mu
+        out_data[self.H2e2mu_prefix + "mass"] =  Hcandidate_mass_2e2mu
         out_data[self.H_prefix + "pt"] = Hcandidate_pt
         out_data[self.H_prefix + "eta"] = Hcandidate_eta 
         out_data[self.H_prefix + "phi"] = Hcandidate_phi 
