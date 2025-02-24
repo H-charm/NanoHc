@@ -200,7 +200,7 @@ keyData_dict={
     ]
 }
 class jetJERCProducer(Module):
-    def __init__(self, year, era_data, dataset_type, overwritePt=False, usePhiDependentJEC=False, **kwargs):
+    def __init__(self, year, era_data, dataset_type, overwritePt=True, usePhiDependentJEC=False, **kwargs):
         """Correct jets following recommendations of JME POG.
         Parameters:
             json_JERC: full path of json file with JERC corrections
