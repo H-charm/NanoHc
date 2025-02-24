@@ -7,13 +7,12 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
 from PhysicsTools.NanoAODTools.postprocessing.framework.datamodel import Collection
 
-era_dict = {"2022": '2022_Summer22', "2022EE": '2022_Summer22EE', "2023": '2023_Summer23', "2023BPix": '2023_Summer23BPix'}
-key_dict = {
-    "2022":     'Summer22_23Sep2023_RunCD_V1',
-    "2022EE":   'Summer22EE_23Sep2023_RunEFG_V1',
-    "2023":     'Summer23Prompt23_RunC_V1',
-    "2023BPix": 'Summer23BPixPrompt23_RunD_V1'
-}
+era_dict = {"2016APV": '2016preVFP_UL', "2016": '2016postVFP_UL', "2017": '2017_UL', "2018": '2018_UL'}
+key_dict = {"2016APV": 'Summer19UL16_V1',
+            "2016":    'Summer19UL16_V1',
+            "2017":    'Summer19UL17_V1',
+            "2018":    'Summer19UL18_V1'
+            }
     
 class JetVMAPProducer(Module, object):
     def __init__(self, year, dataset_type, **kwargs):
