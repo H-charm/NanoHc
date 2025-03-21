@@ -1,6 +1,5 @@
 from PhysicsTools.NanoAODTools.postprocessing.framework.datamodel import Collection
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
-# from ..helpers.triggerHelper import passTrigger
 import ROOT
 import math
 import itertools
@@ -8,7 +7,7 @@ from functools import cmp_to_key
 from ..helpers.utils import sumP4
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
-lumi_dict = {"2022": 7.98, "2022EE": 26.67, "2023": 17.794, "2023BPix": 9.451}
+lumi_dict = {"2022": 7.9804, "2022EE": 26.6717, "2023": 17.794, "2023BPix": 9.451}
 
 class Zcandidate:
     
@@ -21,6 +20,17 @@ class Zcandidate:
         self.mass = sumP4(self.lep1, self.lep2).M()
 
 class ZZcandidate:
+
+    def __init__(self,Z1,Z2):
+        self.Z1 = Z1
+        self.Z2 = Z2
+        self.pt = sumP4(self.Z1, self.Z2).Pt()
+        self.eta = sumP4(self.Z1, self.Z2).Eta()
+        self.phi = sumP4(self.Z1, self.Z2).Phi()
+        self.mass = sumP4(self.Z1, self.Z2).M()
+        self.mass2 = sumP4(self.Z1, self.Z2).M()
+
+class ZLLcandidate:
 
     def __init__(self,Z1,Z2):
         self.Z1 = Z1
@@ -51,6 +61,8 @@ class BaselineProducer(Module):
         self.ZZ4e_vars=["pt","eta","phi","mass"]
         self.ZZ4mu_vars=["pt","eta","phi","mass"]
         self.ZZ2e2mu_vars=["pt","eta","phi","mass"]
+
+        self.ZLL_vars=["pt","eta","phi","mass"]
 
         # Define the prefixes
         self.mu_prefix = "mu_"
@@ -138,12 +150,7 @@ class BaselineProducer(Module):
 
         if event.PV_npvsGood < 1: return False
 
-        # # apply trigger selections on data
-        # if not self.isMC: 
-        #     if self._select_triggers(event) is False:
-        #         return False
-
-        # Apply trigger selections on trigger and data
+        # Apply trigger selections 
         if self._select_triggers(event) is False:
             return False
 
@@ -270,14 +277,6 @@ class BaselineProducer(Module):
             
             leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2] 
             
-            ## two DISTINCT leptons must pass pt > 10 and pt > 20
-            # at_least_one_passed_pt20 = False
-            # at_least_one_passed_pt10 = False
-            # for lep in leptons:
-            #     if lep.pt > 20: at_least_one_passed_pt20 = True
-            #     elif lep.pt > 10: at_least_one_passed_pt10 = True
-            # if not (at_least_one_passed_pt10 and at_least_one_passed_pt20): continue
-
             # Two DISTINCT leptons must pass pt > 10 and pt > 20
             num_passed_pt20 = 0
             num_passed_pt10 = 0
@@ -325,11 +324,6 @@ class BaselineProducer(Module):
             ## reject if inv mass of 4-lepton system < 70            
             m_4l = sumP4(Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2).M()
             if m_4l < 70: continue
-             # ## reject if inv mass of 4-lepton system < 105             
-            # if m_4l < 105: continue
-
-            # ## reject if inv mass of 4-lepton system > 140
-            # if m_4l > 140: continue
                 
             ZZcand = ZZcandidate(Z1,Z2)
             event.ZZcandidates.append(ZZcand)      
@@ -355,31 +349,7 @@ class BaselineProducer(Module):
         ##---------------------
         ## Comparator
         best_candidate = min(event.ZZcandidates, key=cmp_to_key(best_candidate_comparator))
-        event.Hcandidates.append(best_candidate)
-
-
-        # mZ = 91.1876
-    
-        # # Filter ZZ candidates within Higgs mass window
-        # valid_ZZ_candidates = []
-        # for ZZcand in event.ZZcandidates:
-        #     # if 105 <= ZZcand.mass <= 140:
-        #     valid_ZZ_candidates.append(ZZcand)
-        
-        # if not valid_ZZ_candidates:
-        #     return  # No valid Higgs candidate found
-        # else:
-        #     if 
-        #     best_candidate = min(
-        #         valid_ZZ_candidates,
-        #         key=lambda ZZcand: abs(ZZcand.Z1.mass - mZ) 
-        #     )
-
-        # event.Hcandidates.append(best_candidate)
-
-    
-
-            
+        event.Hcandidates.append(best_candidate)    
         
     ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py    
     def _select_muons(self, event):
@@ -507,10 +477,10 @@ class BaselineProducer(Module):
         out_data[self.mu_prefix + "pdgId"] = mu_pdgId
                     
         ## jets  
-        ak4_bdisc = []
-        ak4_cvbdisc = []
-        ak4_cvldisc = []
-        ak4_gvudsdisc = []
+        # ak4_bdisc = []
+        # ak4_cvbdisc = []
+        # ak4_cvldisc = []
+        # ak4_gvudsdisc = []
         ak4_pt = []
         ak4_eta = []
         ak4_phi = []
@@ -552,7 +522,6 @@ class BaselineProducer(Module):
             Zcandidate_phi.append(Zcandidate.phi)
             if Zcandidate.is_onshell: Zcandidate_onshell_mass.append(Zcandidate.mass)
             else: Zcandidate_offshell_mass.append(Zcandidate.mass)
-
                 
         out_data[self.Z_prefix + "mass"] = Zcandidate_mass
         out_data[self.Z_prefix + "pt"] = Zcandidate_pt
@@ -564,12 +533,21 @@ class BaselineProducer(Module):
         ## ZZ candidates
         # Initialize output lists
         ZZcandidate_mass = []
-        ZZcandidate_mass_4e=[]
-        ZZcandidate_mass_4mu=[]
-        ZZcandidate_mass_2e2mu=[]
         ZZcandidate_pt = []
         ZZcandidate_eta = []
         ZZcandidate_phi = []
+        ZZcandidate_mass_4e=[]
+        ZZcandidate_pt_4e = []
+        ZZcandidate_eta_4e = []
+        ZZcandidate_phi_4e = []
+        ZZcandidate_mass_4mu=[]
+        ZZcandidate_pt_4mu = []
+        ZZcandidate_eta_4mu = []
+        ZZcandidate_phi_4mu = []
+        ZZcandidate_mass_2e2mu=[]
+        ZZcandidate_pt_2e2mu = []
+        ZZcandidate_eta_2e2mu = []
+        ZZcandidate_phi_2e2mu = []
 
         for ZZcandidate in event.ZZcandidates:
             ZZcandidate_mass.append(ZZcandidate.mass)
@@ -588,28 +566,58 @@ class BaselineProducer(Module):
             # Classify by decay channel
             if lep_ids == {11}:  
                 ZZcandidate_mass_4e.append(ZZcandidate.mass)
+                ZZcandidate_pt_4e.append(ZZcandidate.pt)
+                ZZcandidate_eta_4e.append(ZZcandidate.eta)
+                ZZcandidate_phi_4e.append(ZZcandidate.phi)
             elif lep_ids == {13}:  
                 ZZcandidate_mass_4mu.append(ZZcandidate.mass)
+                ZZcandidate_pt_4mu.append(ZZcandidate.pt)
+                ZZcandidate_eta_4mu.append(ZZcandidate.eta)
+                ZZcandidate_phi_4mu.append(ZZcandidate.phi)
             elif lep_ids == {11, 13}:  
                 ZZcandidate_mass_2e2mu.append(ZZcandidate.mass)
+                ZZcandidate_pt_2e2mu.append(ZZcandidate.pt)
+                ZZcandidate_eta_2e2mu.append(ZZcandidate.eta)
+                ZZcandidate_phi_2e2mu.append(ZZcandidate.phi)
 
         # Store in output dictionary
         out_data[self.ZZ_prefix + "mass"] = ZZcandidate_mass
-        out_data[self.ZZ4e_prefix + "mass"] = ZZcandidate_mass_4e
-        out_data[self.ZZ4mu_prefix + "mass"] = ZZcandidate_mass_4mu
-        out_data[self.ZZ2e2mu_prefix + "mass"] = ZZcandidate_mass_2e2mu
         out_data[self.ZZ_prefix + "pt"] = ZZcandidate_pt
-        out_data[self.ZZ_prefix + "eta"] = ZZcandidate_eta
+        out_data[self.ZZ_prefix + "eta"] = ZZcandidate_eta 
         out_data[self.ZZ_prefix + "phi"] = ZZcandidate_phi
+
+        out_data[self.ZZ4e_prefix + "mass"] = ZZcandidate_mass_4e
+        out_data[self.ZZ4e_prefix + "pt"] = ZZcandidate_pt_4e
+        out_data[self.ZZ4e_prefix + "eta"] = ZZcandidate_eta_4e
+        out_data[self.ZZ4e_prefix + "phi"] = ZZcandidate_phi_4e
+
+        out_data[self.ZZ4mu_prefix + "mass"] = ZZcandidate_mass_4mu
+        out_data[self.ZZ4mu_prefix + "pt"] = ZZcandidate_pt_4mu
+        out_data[self.ZZ4mu_prefix + "eta"] = ZZcandidate_eta_4mu
+        out_data[self.ZZ4mu_prefix + "phi"] = ZZcandidate_phi_4mu
+
+        out_data[self.ZZ2e2mu_prefix + "mass"] =  ZZcandidate_mass_2e2mu
+        out_data[self.ZZ2e2mu_prefix + "pt"] = ZZcandidate_pt_2e2mu
+        out_data[self.ZZ2e2mu_prefix + "eta"] = ZZcandidate_eta_2e2mu
+        out_data[self.ZZ2e2mu_prefix + "phi"] = ZZcandidate_phi_2e2mu
 
         # Similar structure for Higgs candidates
         Hcandidate_mass = []
-        Hcandidate_mass_4e=[]
-        Hcandidate_mass_4mu=[]
-        Hcandidate_mass_2e2mu=[]
         Hcandidate_pt = []
         Hcandidate_eta = []
         Hcandidate_phi = []
+        Hcandidate_mass_4e=[]
+        Hcandidate_pt_4e = []
+        Hcandidate_eta_4e = []
+        Hcandidate_phi_4e = []
+        Hcandidate_mass_4mu=[]
+        Hcandidate_pt_4mu = []
+        Hcandidate_eta_4mu = []
+        Hcandidate_phi_4mu = []
+        Hcandidate_mass_2e2mu=[]
+        Hcandidate_pt_2e2mu = []
+        Hcandidate_eta_2e2mu = []
+        Hcandidate_phi_2e2mu = []
 
         for Hcandidate in event.Hcandidates:
             Hcandidate_mass.append(Hcandidate.mass)
@@ -628,21 +636,39 @@ class BaselineProducer(Module):
             # Classify by decay channel
             if lep_ids == {11}:  
                 Hcandidate_mass_4e.append(Hcandidate.mass)
+                Hcandidate_pt_4e.append(Hcandidate.pt)
+                Hcandidate_eta_4e.append(Hcandidate.eta)
+                Hcandidate_phi_4e.append(Hcandidate.phi)
             elif lep_ids == {13}:  
                 Hcandidate_mass_4mu.append(Hcandidate.mass)
+                Hcandidate_pt_4mu.append(Hcandidate.pt)
+                Hcandidate_eta_4mu.append(Hcandidate.eta)
+                Hcandidate_phi_4mu.append(Hcandidate.phi)
             elif lep_ids == {11, 13}:  
                 Hcandidate_mass_2e2mu.append(Hcandidate.mass)
+                Hcandidate_pt_2e2mu.append(Hcandidate.pt)
+                Hcandidate_eta_2e2mu.append(Hcandidate.eta)
+                Hcandidate_phi_2e2mu.append(Hcandidate.phi)
                 
         out_data[self.H_prefix + "mass"] = Hcandidate_mass
-        out_data[self.H4e_prefix + "mass"] = Hcandidate_mass_4e
-        out_data[self.H4mu_prefix + "mass"] = Hcandidate_mass_4mu
-        out_data[self.H2e2mu_prefix + "mass"] =  Hcandidate_mass_2e2mu
         out_data[self.H_prefix + "pt"] = Hcandidate_pt
         out_data[self.H_prefix + "eta"] = Hcandidate_eta 
-        out_data[self.H_prefix + "phi"] = Hcandidate_phi 
-                
-        # if self.isMC:
-        #     out_data["l1PreFiringWeight"] = event.L1PreFiringWeight_Nom                
+        out_data[self.H_prefix + "phi"] = Hcandidate_phi
+
+        out_data[self.H4e_prefix + "mass"] = Hcandidate_mass_4e
+        out_data[self.H4e_prefix + "pt"] = Hcandidate_pt_4e
+        out_data[self.H4e_prefix + "eta"] = Hcandidate_eta_4e
+        out_data[self.H4e_prefix + "phi"] = Hcandidate_phi_4e
+
+        out_data[self.H4mu_prefix + "mass"] = Hcandidate_mass_4mu
+        out_data[self.H4mu_prefix + "pt"] = Hcandidate_pt_4mu
+        out_data[self.H4mu_prefix + "eta"] = Hcandidate_eta_4mu
+        out_data[self.H4mu_prefix + "phi"] = Hcandidate_phi_4mu
+
+        out_data[self.H2e2mu_prefix + "mass"] =  Hcandidate_mass_2e2mu
+        out_data[self.H2e2mu_prefix + "pt"] = Hcandidate_pt_2e2mu
+        out_data[self.H2e2mu_prefix + "eta"] = Hcandidate_eta_2e2mu
+        out_data[self.H2e2mu_prefix + "phi"] = Hcandidate_phi_2e2mu
                 
         ## fill all branches
         for key in out_data:
