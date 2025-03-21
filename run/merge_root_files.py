@@ -28,7 +28,7 @@ def merge_root_files(dir1, dir2, output_dir):
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print("Usage: python merge_root_files.py <dir1> <dir2> <output_dir>")
+        print("Usage: python3 merge_root_files.py <dir1> <dir2> <output_dir>")
         sys.exit(1)
     
     directory1 = sys.argv[1]
