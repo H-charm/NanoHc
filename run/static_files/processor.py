@@ -49,12 +49,12 @@ p = PostProcessor(
     modules=[
             # LeptonVariablesModule(),
             # TopLeptonMvaModule(year, 'ULv2'),     
-            BaselineProducer(year, dataset_type, sample),
-            # JetVMAPProducer(year,dataset_type),
+            JetVMAPProducer(year,dataset_type),
             # jetJERCProducer(year, era_data, dataset_type),
-            # PileupWeightProducer(year, dataset_type),
-            # ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 (keep it out for now)
-            # MuonSFProducer(year, dataset_type),
+            PileupWeightProducer(year, dataset_type), 
+            BaselineProducer(year, dataset_type, sample),
+            ElectronSFProducer(year, dataset_type),  #pt binning starts at 10, our selections at 7 (keep it out for now)
+            MuonSFProducer(year, dataset_type),
             # eleScaleRes(year,dataset_type),
             # muonScaleRes(year,dataset_type),
             ],

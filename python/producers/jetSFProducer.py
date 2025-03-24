@@ -84,12 +84,8 @@ keyMC_dict = {
         "Summer19UL18_V5_MC_L2Relative_AK4PFchs",
         "Summer19UL18_V5_MC_L3Absolute_AK4PFchs",
         "Summer19UL18_V5_MC_L2L3Residual_AK4PFchs",
-        "Summer19UL18_V5_MC_AbsoluteStat_AK4PFchs", 
-        "Summer19UL18_V5_MC_AbsoluteScale_AK4PFchs",
-        "Summer19UL18_V5_MC_AbsoluteSample_AK4PFchs",
-        # "Summer19UL18_V5_MC_AbsoluteFlavMap_AK4PFchs",
-        # "Summer19UL18_V5_MC_AbsoluteMPFBias_AK4PFchs",
-        # "Summer19UL18_V5_MC_Fragmentation_AK4PFchs"
+        "Summer19UL18_JRV2_MC_PtResolution_AK4PFchs", 
+        "Summer19UL18_JRV2_MC_ScaleFactor_AK4PFchs",
     ]
 }
 
@@ -214,8 +210,7 @@ class jetJERCProducer(Module):
             pt_raw = jet.pt * (1 - jet.rawFactor)
             mass_raw = jet.mass * (1 - jet.rawFactor)
             ## The three steps of JEC corrections are provided separately
-            pt_L1 = pt_raw * self.evaluator_L1.evaluate(jet.area, jet.eta, pt_raw, event.Rho_fixedGridRhoFastjetAll)
-
+            pt_L1 = pt_raw * self.evaluator_L1.evaluate(jet.area, jet.eta, pt_raw, event.fixedGridRhoFastjetAll)
             if self.usePhiDependentJEC:
                 pt_L2 = pt_L1 * self.evaluator_L2.evaluate(jet.eta, jet.phi, pt_L1)
             else:
@@ -229,19 +224,19 @@ class jetJERCProducer(Module):
             if self.isMC:
                 #### JER ####
                 ## Hybrid method is implemented [https://cms-jerc.web.cern.ch/JER/#smearing-procedures]
-                JER = self.evaluator_JER.evaluate(jet.eta, pt_JEC, event.Rho_fixedGridRhoFastjetAll)
+                JER = self.evaluator_JER.evaluate(jet.eta, pt_JEC,event.fixedGridRhoFastjetAll)
                 ## GenMatching with genJet
                 delta_eta = jet.eta - gen_jets_eta
                 fixPhi = np.vectorize(self.fixPhi, otypes=[float])
                 delta_phi = fixPhi(jet.phi - gen_jets_phi)
                 pt_gen = np.where((np.abs(pt_JEC - gen_jets_pt) < 3 * pt_JEC * JER) & (np.sqrt(delta_eta**2 + delta_phi**2)<0.2), gen_jets_pt, -1.0)
                 pt_gen = pt_gen[pt_gen > 0][0] if np.any(pt_gen > 0) else -1. ## If no gen-matching, simply -1
-                JERsf = self.evaluator_JERsf.evaluate(jet.eta, jet.pt, "nom")
-                JERsf_up = self.evaluator_JERsf.evaluate(jet.eta, jet.pt, "up")
-                JERsf_dn = self.evaluator_JERsf.evaluate(jet.eta, jet.pt, "down")
-                JERsmear = self.evaluator_JERsmear.evaluate(pt_JEC, jet.eta, pt_gen, event.Rho_fixedGridRhoFastjetAll, event.event, JER, JERsf)
-                JERsmear_up = self.evaluator_JERsmear.evaluate(pt_JEC, jet.eta, pt_gen, event.Rho_fixedGridRhoFastjetAll, event.event, JER, JERsf_up)
-                JERsmear_dn = self.evaluator_JERsmear.evaluate(pt_JEC, jet.eta, pt_gen, event.Rho_fixedGridRhoFastjetAll, event.event, JER, JERsf_dn)
+                JERsf = self.evaluator_JERsf.evaluate(jet.eta, "nom")
+                JERsf_up = self.evaluator_JERsf.evaluate(jet.eta, "up")
+                JERsf_dn = self.evaluator_JERsf.evaluate(jet.eta, "down")
+                JERsmear = self.evaluator_JERsmear.evaluate(pt_JEC, jet.eta, pt_gen, event.fixedGridRhoFastjetAll, event.event, JER, JERsf)
+                JERsmear_up = self.evaluator_JERsmear.evaluate(pt_JEC, jet.eta, pt_gen, event.fixedGridRhoFastjetAll, event.event, JER, JERsf_up)
+                JERsmear_dn = self.evaluator_JERsmear.evaluate(pt_JEC, jet.eta, pt_gen, event.fixedGridRhoFastjetAll, event.event, JER, JERsf_dn)
                 pt_JEC_JER = pt_JEC * JERsmear
                 pt_JEC_JER_up = pt_JEC * JERsmear_up
                 pt_JEC_JER_dn = pt_JEC * JERsmear_dn
