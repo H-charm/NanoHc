@@ -79,6 +79,8 @@ class BaselineProducer(Module):
         self.H4mu_prefix = "H4mu_"
         self.H2e2mu_prefix = "H2e2mu_"
 
+        self.ZLL_prefix = "ZLL_"
+
     def beginJob(self):
         pass
 
@@ -129,6 +131,10 @@ class BaselineProducer(Module):
         for ZZ2e2mu_var in self.ZZ2e2mu_vars:
             self.out.branch(self.ZZ2e2mu_prefix + ZZ2e2mu_var, "F", 20, lenVar="nZZ2e2mu")
 
+        # Define branches for the ZLLcandidates
+        for ZLL_var in self.ZLL_vars:
+            self.out.branch(self.ZLL_prefix + ZLL_var, "F", 20, lenVar="nZLL" )
+
         # Define branches for the Hcandidates
         for H_var in self.H_vars:
             self.out.branch(self.H_prefix + H_var, "F", 20, lenVar="nH")
@@ -155,15 +161,21 @@ class BaselineProducer(Module):
             return False
 
         self._select_muons(event)
-        self._select_electrons(event)  
+        self._select_electrons(event)
         event.selectedLeptons = event.selectedMuons + event.selectedElectrons
-        if len(event.selectedLeptons) < 4: return False
+        if len(event.selectedLeptons) < 4: return False # For Z+L CR we need to change this to 3 
+
 
         self._select_jets(event)
         # if len(event.selectedJets) == 0:
         #     return False
         
         self._select_Z_candidates(event)
+
+        # Select control regions
+        self._select_ZLL_candidates(event)
+        self._select_ZL_candidate(event)
+
         if len(event.Zcandidates) < 2:
             return False
         
@@ -209,12 +221,6 @@ class BaselineProducer(Module):
             (self.sample in ["SingleElectron", "EGamma"] and passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle) or \
             (self.sample in ["SingleMuon", "Muon"] and passSingleMu and not passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle):
                 passTrigger = True
-
-        # if not out_data['passTriggers']:
-        #     return False
-
-        # for key in out_data:
-        #     self.out.fillBranch(key, out_data[key])
 
         self.out.fillBranch("HLT_passZZ4lEle", passSingleEle or passDiEle or passTriEle)
         self.out.fillBranch("HLT_passZZ4lMu", passSingleMu or passDiMu or passTriMu)
@@ -326,7 +332,7 @@ class BaselineProducer(Module):
             if m_4l < 70: continue
                 
             ZZcand = ZZcandidate(Z1,Z2)
-            event.ZZcandidates.append(ZZcand)      
+            event.ZZcandidates.append(ZZcand)
             
     def _select_H_candidates(self, event):
         
@@ -340,7 +346,7 @@ class BaselineProducer(Module):
                 if abs(a.Z1.mass - 91.1876) < abs(b.Z1.mass - 91.1876):
                     return -1  # a is better
                 else:
-                    return 1   # b is better
+                    return 1   # b is better days ago
 
         event.Hcandidates = []
 
@@ -351,6 +357,51 @@ class BaselineProducer(Module):
         best_candidate = min(event.ZZcandidates, key=cmp_to_key(best_candidate_comparator))
         event.Hcandidates.append(best_candidate)    
         
+    # Control Region
+
+    def _select_ZLL_candidates(self, event):
+        
+        event.ZLLcandidates = []
+
+        # Ensure that we have only one Z candidate (2 prompt leptons)
+        if len(event.Zcandidates) > 1:
+            continue
+        Z1 = event.Zcandidates
+    
+        #FIXME  # Select leptons that pass the loose criteria but not the tight 
+        lepton_pairs = list(itertools.combinations(event.NOTselectedLeptons, 2))
+        
+        for lepton_pair in lepton_pairs:
+            
+            # we need same flavor and opposite charge (2P2F)
+            if (lepton_pair[0].pdgId + lepton_pair[1].pdgId) == 0:
+                is_OSSF = True
+            # we need same flavor and opposite charge 
+            elif (abs(lepton_pair[0].pdgId + lepton_pair[1].pdgId)) == 26 or (abs(lepton_pair[0].pdgId + lepton_pair[1].pdgId)) == 22:
+                is_SSSF = True
+            else:
+                continue
+            
+            # Select the two 
+            # let's put negative charged lepton always as lep1 (useful later)
+            lep1, lep2 = (lepton_pair[0], lepton_pair[1]) if lepton_pair[0].pdgId < 0 else (lepton_pair[1], lepton_pair[0])
+            
+            Z2 = Zcandidate(lep1,lep2)
+            
+        # ZLL selection
+        ZLLcand = ZLLcandidate(Z1,Z2)
+        event.ZLLcandidates.append(ZLLcand)
+
+    def _select_ZL_candidates(self, event):
+        
+        event.ZLLcandidates = []
+
+
+
+        # ZLL selection
+        event.ZLLcandidates.append(ZLLcand)
+
+
     ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py    
     def _select_muons(self, event):
 
