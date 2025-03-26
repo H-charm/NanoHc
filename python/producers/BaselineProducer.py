@@ -162,8 +162,8 @@ class BaselineProducer(Module):
 
         self._select_muons(event)
         self._select_electrons(event)
-        event.selectedLeptons = event.selectedMuons + event.selectedElectrons
-        if len(event.selectedLeptons) < 4: return False # For Z+L CR we need to change this to 3 
+        event.selectedLeptons = event.relaxedMuons + event.relaxedElectrons
+        if len(event.selectedLeptons) < 3: return False # For Z+L CR we need to change this to 3 
 
 
         self._select_jets(event)
@@ -176,7 +176,7 @@ class BaselineProducer(Module):
         self._select_ZLL_candidates(event)
         self._select_ZL_candidate(event)
 
-        if len(event.Zcandidates) < 2:
+        if len(event.Zcandidates) < 1:
             return False
         
         self._select_ZZ_candidates(event)
@@ -232,26 +232,204 @@ class BaselineProducer(Module):
     def _select_Z_candidates(self, event):
 
         event.Zcandidates = []
-        
-        # mva_leptons = [lepton for lepton in event.selectedLeptons if lepton.mvaTOP > 0.9]
-        # lepton_pairs = list(itertools.combinations(mva_leptons, 2))
+        event.bestZIdx = -1
+        bestMassDiff = 9999
+
+        ZmassNominal = 91.1876  # Z mass in GeV
         lepton_pairs = list(itertools.combinations(event.selectedLeptons, 2))
-        
-        for lepton_pair in lepton_pairs:
-            
-            # we need same flavor and opposite charge
-            if (lepton_pair[0].pdgId + lepton_pair[1].pdgId) != 0:
-                continue
-            
-            # let's put negative charged lepton always as lep1 (useful later)
-            lep1, lep2 = (lepton_pair[0], lepton_pair[1]) if lepton_pair[0].pdgId < 0 else (lepton_pair[1], lepton_pair[0])
-                        
-            Zcand = Zcandidate(lep1,lep2)
-            
+
+        for lep1, lep2 in lepton_pairs:
+
+            # Ensure consistent ordering (lep1 = negative charge)
+            lep1, lep2 = (lep1, lep2) if lep1.pdgId < 0 else (lep2, lep1)
+
+            Zcand = Zcandidate(lep1, lep2)
+
+            # Apply Z mass window
             if Zcand.mass < 12 or Zcand.mass > 120:
                 continue
-        
+
+            # Initialize flags
+            Zcand.isOSSF = False
+            Zcand.isSR = False
+            Zcand.is1FCR = False
+            Zcand.is2FCR = False
+            Zcand.isSSCR = False
+
+            # Lepton ID checks
+            relaxed1 = lep1.ZZRelaxedId
+            relaxed2 = lep2.ZZRelaxedId
+            full1 = lep1.ZZFullSel
+            full2 = lep2.ZZFullSel
+
+            if (lep1.pdgId + lep2.pdgId) == 0:
+                Zcand.isOSSF = True
+                if relaxed1 and relaxed2:
+                    nFull = int(full1) + int(full2)
+                    if nFull == 2:
+                        Zcand.isSR = True
+                    elif nFull == 1:
+                        Zcand.is1FCR = True
+                    elif nFull == 0:
+                        Zcand.is2FCR = True
+
+            # Same-sign control regions (if you decide to support them)
+            elif lep1.pdgId == lep2.pdgId:
+                if relaxed1 and relaxed2:
+                    Zcand.isSSCR = True
+
+            elif abs(lep1.pdgId) != abs(lep2.pdgId):
+                continue
+
+            # Save Z candidate
             event.Zcandidates.append(Zcand)
+
+            # Track best SR Z candidate
+            if Zcand.isSR:
+                massDiff = abs(Zcand.mass - ZmassNominal)
+                if massDiff < bestMassDiff:
+                    event.bestZIdx = len(event.Zcandidates) - 1
+                    bestMassDiff = massDiff
+
+
+    def _build_SR_and_CR_combinations(self, event):
+        def bestCandCmp(a, b):
+            if abs(a.Z1.mass - b.Z1.mass) < 1e-4 : # If Z1 masses are similar, compare Z2 sum of transverse momenta
+                if a.Z2.lep1.pt + a.Z2.lep2.pt > b.Z2.lep1.pt + b.Z2.lep2.pt:
+                    return -1  # a is better
+                else:
+                    return 1   # b is better
+            else:
+                if abs(a.Z1.mass - 91.1876) < abs(b.Z1.mass - 91.1876):
+                    return -1  # a is better
+                else:
+                    return 1   # b is better days ago
+        event.ZZcandidates = []
+        event.ZLLcandidates = []
+        event.ZLcandidate = None
+        event.bestZZIdx = -1
+
+        Zs = event.Zcandidates
+        ZZs = []
+        ZLLs = []
+        ZLLsTemp = []
+
+        best2P2FCRIdx = -1
+        best3P1FCRIdx = -1
+        bestSSCRIdx = -1
+        bestCandIdx = -1
+
+        # ---------- Build ZZ candidates (SR) ----------
+        for i, Z1 in enumerate(Zs):
+            for j in range(i + 1, len(Zs)):
+                Z2 = Zs[j]
+
+                # Require both Zs are OSSF
+                if not (Z1.isOSSF and Z2.isOSSF):
+                    continue
+
+                # Reject overlapping leptons
+                leps_Z1 = [Z1.lep1, Z1.lep2]
+                leps_Z2 = [Z2.lep1, Z2.lep2]
+                if any(l in leps_Z1 for l in leps_Z2):
+                    continue
+
+                # Check both Zs for SR quality
+                isGoodZZ = Z1.isSR and Z2.isSR
+                ZZ = ZZcandidate(Z1, Z2)
+
+                if isGoodZZ:
+                    ZZ.isSR = True
+                    ZZs.append(ZZ)
+                    if bestCandIdx < 0 or self.bestCandCmp(ZZ, ZZs[bestCandIdx]) < 0:
+                        bestCandIdx = len(ZZs) - 1
+
+                else:
+                    ZZ.isSR = False
+                    ZZs.append(ZZ)  # optional: store all
+
+        event.ZZcandidates = ZZs
+        if bestCandIdx >= 0:
+            event.bestZZIdx = bestCandIdx
+
+        # ---------- Control Region: ZLL (only if no good SR ZZ) ----------
+        if bestCandIdx < 0 and len(Zs) >= 2:
+            for Z1 in Zs:
+                if not Z1.isSR:
+                    continue
+                for Z2 in Zs:
+                    if Z1 == Z2:
+                        continue
+                    if Z2.is1FCR or Z2.is2FCR or Z2.isSSCR :
+                        if any(l in [Z1.lep1, Z1.lep2] for l in [Z2.lep1, Z2.lep2]):
+                            continue
+
+                        ZLL = ZLLcandidate(Z1, Z2)
+                        ZLL.Z2 = Z2  # to keep access to ID info
+                        ZLLsTemp.append(ZLL)
+
+                        if Z2.is2FCR and (best2P2FCRIdx < 0 or self.bestCandCmp(ZLL, ZLLsTemp[best2P2FCRIdx]) < 0):
+                            best2P2FCRIdx = len(ZLLsTemp) - 1
+                        if Z2.is1FCR and (best3P1FCRIdx < 0 or self.bestCandCmp(ZLL, ZLLsTemp[best3P1FCRIdx]) < 0):
+                            best3P1FCRIdx = len(ZLLsTemp) - 1
+                        if Z2.isSSCR and (bestSSCRIdx < 0 or self.bestCandCmp(ZLL, ZLLsTemp[bestSSCRIdx]) < 0):
+                            bestSSCRIdx = len(ZLLsTemp) - 1
+
+            # Keep only best per CR
+            for iZLL, ZLL in enumerate(ZLLsTemp):
+                if iZLL in [best2P2FCRIdx, best3P1FCRIdx, bestSSCRIdx]:
+                    ZLLs.append(ZLL)
+
+        event.ZLLcandidates = ZLLs
+
+        # ---------- Control Region: Z + L ----------
+        if hasattr(event, "bestZIdx") and event.bestZIdx >= 0:
+            bestZ = event.Zcandidates[event.bestZIdx]
+            if 40 < bestZ.mass < 120:
+                extra_leptons = [
+                    lep for lep in event.selectedLeptons
+                    if lep not in [bestZ.lep1, bestZ.lep2] and lep.ZZRelaxedId
+                ]
+                if len(extra_leptons) == 1:
+                    aL = extra_leptons[0]
+
+                    def deltaR(eta1, phi1, eta2, phi2):
+                        return math.sqrt((eta1 - eta2) ** 2 + (phi1 - phi2) ** 2)
+
+                    if deltaR(aL.eta, aL.phi, bestZ.lep1.eta, bestZ.lep1.phi) > 0.02 and \
+                        deltaR(aL.eta, aL.phi, bestZ.lep2.eta, bestZ.lep2.phi) > 0.02:
+
+                        # QCD suppression (m_ll > 4 GeV if OS)
+                        if (aL.charge != bestZ.lep1.charge and sumP4(aL, bestZ.lep1).M() <= 4) or \
+                            (aL.charge != bestZ.lep2.charge and sumP4(aL, bestZ.lep2).M() <= 4):
+                            pass
+                        else:
+                             event.ZLcandidate = aL
+
+
+    # def _select_Z_candidates(self, event):
+
+    #     event.Zcandidates = []
+        
+    #     # mva_leptons = [lepton for lepton in event.selectedLeptons if lepton.mvaTOP > 0.9]
+    #     # lepton_pairs = list(itertools.combinations(mva_leptons, 2))
+    #     lepton_pairs = list(itertools.combinations(event.selectedLeptons, 2))
+        
+    #     for lepton_pair in lepton_pairs:
+            
+    #         # we need same flavor and opposite charge
+    #         if (lepton_pair[0].pdgId + lepton_pair[1].pdgId) != 0:
+    #             continue
+            
+    #         # let's put negative charged lepton always as lep1 (useful later)
+    #         lep1, lep2 = (lepton_pair[0], lepton_pair[1]) if lepton_pair[0].pdgId < 0 else (lepton_pair[1], lepton_pair[0])
+                        
+    #         Zcand = Zcandidate(lep1,lep2)
+            
+    #         if Zcand.mass < 12 or Zcand.mass > 120:
+    #             continue
+        
+    #         event.Zcandidates.append(Zcand)
 
     def _flag_onshell_and_offshell_Z(self, Zcand_pair):
                     
@@ -356,81 +534,40 @@ class BaselineProducer(Module):
         ## Comparator
         best_candidate = min(event.ZZcandidates, key=cmp_to_key(best_candidate_comparator))
         event.Hcandidates.append(best_candidate)    
-        
-    # Control Region
-
-    def _select_ZLL_candidates(self, event):
-        
-        event.ZLLcandidates = []
-
-        # Ensure that we have only one Z candidate (2 prompt leptons)
-        if len(event.Zcandidates) > 1:
-            continue
-        Z1 = event.Zcandidates
-    
-        #FIXME  # Select leptons that pass the loose criteria but not the tight 
-        lepton_pairs = list(itertools.combinations(event.NOTselectedLeptons, 2))
-        
-        for lepton_pair in lepton_pairs:
-            
-            # we need same flavor and opposite charge (2P2F)
-            if (lepton_pair[0].pdgId + lepton_pair[1].pdgId) == 0:
-                is_OSSF = True
-            # we need same flavor and opposite charge 
-            elif (abs(lepton_pair[0].pdgId + lepton_pair[1].pdgId)) == 26 or (abs(lepton_pair[0].pdgId + lepton_pair[1].pdgId)) == 22:
-                is_SSSF = True
-            else:
-                continue
-            
-            # Select the two 
-            # let's put negative charged lepton always as lep1 (useful later)
-            lep1, lep2 = (lepton_pair[0], lepton_pair[1]) if lepton_pair[0].pdgId < 0 else (lepton_pair[1], lepton_pair[0])
-            
-            Z2 = Zcandidate(lep1,lep2)
-            
-        # ZLL selection
-        ZLLcand = ZLLcandidate(Z1,Z2)
-        event.ZLLcandidates.append(ZLLcand)
-
-    def _select_ZL_candidates(self, event):
-        
-        event.ZLLcandidates = []
-
-
-
-        # ZLL selection
-        event.ZLLcandidates.append(ZLLcand)
-
 
     ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py    
     def _select_muons(self, event):
-
-        event.selectedMuons = []
+        event.relaxedMuons = []
+        event.fullIDMuons = []
 
         muons = Collection(event, "Muon")
-        
-        for mu in muons:
-            
-            passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
-            
-            if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and passMuID and (mu.isGlobal or (mu.isTracker and mu.nStations>0)):
-                mu._wp_ID = 'TightID'
-                mu._wp_Iso = 'LoosePFIso'
-                event.selectedMuons.append(mu)
-            
-    ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py       
-    def _select_electrons(self, event):
 
-        event.selectedElectrons = []
+        for mu in muons:
+            # Kinematic & baseline cuts (Relaxed ID)
+            if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and (mu.isGlobal or (mu.isTracker and mu.nStations > 0)):
+                mu._wp_Iso = 'LoosePFIso'
+                event.relaxedMuons.append(mu)
+
+                # Full ID = Relaxed + muon ID (isPFcand or highPtId > 0)
+                passMuID = mu.isPFcand or (mu.highPtId > 0 and mu.pt > 200)
+                if passMuID:
+                    mu._wp_ID = 'TightID'
+                    event.fullIDMuons.append(mu)
+
+
+    def _select_electrons(self, event):
+        event.relaxedElectrons = []
+        event.fullIDElectrons = []
 
         electrons = Collection(event, "Electron")
-        
+
         for el in electrons:
             el.etaSC = el.eta + el.deltaEtaSC
             if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
                 el._wp_ID = 'wp90iso'
-                
-                ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
+                event.relaxedElectrons.append(el)
+
+                # Full ID: add mvaIso BDT cut
                 if abs(el.etaSC) < 0.8:
                     if el.pt < 10:
                         if el.mvaIso < 0.9044286167: continue
@@ -440,14 +577,16 @@ class BaselineProducer(Module):
                     if el.pt < 10:
                         if el.mvaIso < 0.9094166886: continue
                     else:
-                        if el.mvaIso < 0.0759172100: continue                  
-                else: # |el.etaSC| > 1.479
+                        if el.mvaIso < 0.0759172100: continue
+                else:  # |etaSC| > 1.479
                     if el.pt < 10:
                         if el.mvaIso < 0.9443653660: continue
                     else:
-                        if el.mvaIso < -0.5169136775: continue                      
-                                    
-                event.selectedElectrons.append(el)
+                        if el.mvaIso < -0.5169136775: continue
+
+                # Passed BDT → full ID
+                event.fullIDElectrons.append(el)
+
 
     def _select_jets(self, event):
 
