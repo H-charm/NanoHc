@@ -172,15 +172,16 @@ class BaselineProducer(Module):
         
         self._select_Z_candidates(event)
 
-        # Select control regions
-        self._select_ZLL_candidates(event)
-        self._select_ZL_candidate(event)
+        # # Select control regions
+        # self._select_ZLL_candidates(event)
+        # self._select_ZL_candidate(event)
 
-        if len(event.Zcandidates) < 1:
+        self._build_SR_and_CR_combinations(event)
+
+        if len(event.Zcandidates) < 2:
             return False
-        
+
         self._select_ZZ_candidates(event)
-        
         self._select_H_candidates(event)
         
         self._fill_event_info(event)
@@ -236,7 +237,7 @@ class BaselineProducer(Module):
         bestMassDiff = 9999
 
         ZmassNominal = 91.1876  # Z mass in GeV
-        lepton_pairs = list(itertools.combinations(event.selectedLeptons, 2))
+        lepton_pairs = list(itertools.combinations(event.relaxedElectrons, 2))
 
         for lep1, lep2 in lepton_pairs:
 
@@ -256,11 +257,12 @@ class BaselineProducer(Module):
             Zcand.is2FCR = False
             Zcand.isSSCR = False
 
+
             # Lepton ID checks
-            relaxed1 = lep1.ZZRelaxedId
-            relaxed2 = lep2.ZZRelaxedId
-            full1 = lep1.ZZFullSel
-            full2 = lep2.ZZFullSel
+            relaxed1 = lep1.isRelaxed
+            relaxed2 = lep2.isRelaxed
+            full1 = lep1.isFullID
+            full2 = lep2.isFullID
 
             if (lep1.pdgId + lep2.pdgId) == 0:
                 Zcand.isOSSF = True
@@ -293,17 +295,6 @@ class BaselineProducer(Module):
 
 
     def _build_SR_and_CR_combinations(self, event):
-        def bestCandCmp(a, b):
-            if abs(a.Z1.mass - b.Z1.mass) < 1e-4 : # If Z1 masses are similar, compare Z2 sum of transverse momenta
-                if a.Z2.lep1.pt + a.Z2.lep2.pt > b.Z2.lep1.pt + b.Z2.lep2.pt:
-                    return -1  # a is better
-                else:
-                    return 1   # b is better
-            else:
-                if abs(a.Z1.mass - 91.1876) < abs(b.Z1.mass - 91.1876):
-                    return -1  # a is better
-                else:
-                    return 1   # b is better days ago
         event.ZZcandidates = []
         event.ZLLcandidates = []
         event.ZLcandidate = None
@@ -318,6 +309,19 @@ class BaselineProducer(Module):
         best3P1FCRIdx = -1
         bestSSCRIdx = -1
         bestCandIdx = -1
+
+        def bestCandCmp(a, b):
+
+            if abs(a.Z1.mass - b.Z1.mass) < 1e-4 : # If Z1 masses are similar, compare Z2 sum of transverse momenta
+                if a.Z2.lep1.pt + a.Z2.lep2.pt > b.Z2.lep1.pt + b.Z2.lep2.pt:
+                    return -1  # a is better
+                else:
+                    return 1   # b is better
+            else:
+                if abs(a.Z1.mass - 91.1876) < abs(b.Z1.mass - 91.1876):
+                    return -1  # a is better
+                else:
+                    return 1   # b is better days ago
 
         # ---------- Build ZZ candidates (SR) ----------
         for i, Z1 in enumerate(Zs):
@@ -341,7 +345,7 @@ class BaselineProducer(Module):
                 if isGoodZZ:
                     ZZ.isSR = True
                     ZZs.append(ZZ)
-                    if bestCandIdx < 0 or self.bestCandCmp(ZZ, ZZs[bestCandIdx]) < 0:
+                    if bestCandIdx < 0 or bestCandCmp(ZZ, ZZs[bestCandIdx]) < 0:
                         bestCandIdx = len(ZZs) - 1
 
                 else:
@@ -368,11 +372,11 @@ class BaselineProducer(Module):
                         ZLL.Z2 = Z2  # to keep access to ID info
                         ZLLsTemp.append(ZLL)
 
-                        if Z2.is2FCR and (best2P2FCRIdx < 0 or self.bestCandCmp(ZLL, ZLLsTemp[best2P2FCRIdx]) < 0):
+                        if Z2.is2FCR and (best2P2FCRIdx < 0 or bestCandCmp(ZLL, ZLLsTemp[best2P2FCRIdx]) < 0):
                             best2P2FCRIdx = len(ZLLsTemp) - 1
-                        if Z2.is1FCR and (best3P1FCRIdx < 0 or self.bestCandCmp(ZLL, ZLLsTemp[best3P1FCRIdx]) < 0):
+                        if Z2.is1FCR and (best3P1FCRIdx < 0 or bestCandCmp(ZLL, ZLLsTemp[best3P1FCRIdx]) < 0):
                             best3P1FCRIdx = len(ZLLsTemp) - 1
-                        if Z2.isSSCR and (bestSSCRIdx < 0 or self.bestCandCmp(ZLL, ZLLsTemp[bestSSCRIdx]) < 0):
+                        if Z2.isSSCR and (bestSSCRIdx < 0 or bestCandCmp(ZLL, ZLLsTemp[bestSSCRIdx]) < 0):
                             bestSSCRIdx = len(ZLLsTemp) - 1
 
             # Keep only best per CR
@@ -388,7 +392,7 @@ class BaselineProducer(Module):
             if 40 < bestZ.mass < 120:
                 extra_leptons = [
                     lep for lep in event.selectedLeptons
-                    if lep not in [bestZ.lep1, bestZ.lep2] and lep.ZZRelaxedId
+                    if lep not in [bestZ.lep1, bestZ.lep2] and lep.isRelaxed
                 ]
                 if len(extra_leptons) == 1:
                     aL = extra_leptons[0]
@@ -543,15 +547,19 @@ class BaselineProducer(Module):
         muons = Collection(event, "Muon")
 
         for mu in muons:
+            mu.isRelaxed = False
+            mu.isFullID = False
             # Kinematic & baseline cuts (Relaxed ID)
             if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and (mu.isGlobal or (mu.isTracker and mu.nStations > 0)):
                 mu._wp_Iso = 'LoosePFIso'
+                mu.isRelaxed = True
                 event.relaxedMuons.append(mu)
 
                 # Full ID = Relaxed + muon ID (isPFcand or highPtId > 0)
                 passMuID = mu.isPFcand or (mu.highPtId > 0 and mu.pt > 200)
                 if passMuID:
                     mu._wp_ID = 'TightID'
+                    mu.isFullID = True
                     event.fullIDMuons.append(mu)
 
 
@@ -563,8 +571,11 @@ class BaselineProducer(Module):
 
         for el in electrons:
             el.etaSC = el.eta + el.deltaEtaSC
+            el.isRelaxed = False
+            el.isFullID = False
             if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
                 el._wp_ID = 'wp90iso'
+                el.isRelaxed = True
                 event.relaxedElectrons.append(el)
 
                 # Full ID: add mvaIso BDT cut
@@ -585,6 +596,7 @@ class BaselineProducer(Module):
                         if el.mvaIso < -0.5169136775: continue
 
                 # Passed BDT → full ID
+                el.isFullID = True
                 event.fullIDElectrons.append(el)
 
 
