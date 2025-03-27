@@ -22,7 +22,7 @@ class ElectronSFProducer(Module, object):
         self.era = era_dict[self.year]
         #self.path=f'{self.year}Re-recoBCD'
         # correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electron.json.gz'
-        correction_file = f'/afs/cern.ch/user/p/pkatris/Run3_Hc/CMSSW_13_3_0/src/PhysicsTools/NanoHc/data/ElectronSF/{self.year}/electron.json.gz'
+        correction_file = f'../../data/ElectronSF/{self.year}/electron.json.gz'
         self.corr = correctionlib.CorrectionSet.from_file(correction_file)['Electron-ID-SF']
 
     def get_sf(self, sf_type, lep):
