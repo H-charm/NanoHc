@@ -49,7 +49,7 @@ class ZLcandidate:
         self.phi = sumP4(self.Z1, self.lep).Phi()
         self.mass = sumP4(self.Z1, self.lep).M()
         self.pt2 = self.lep.Pt()
-        self.pt2 = self.lep.Eta()
+        self.eta2 = self.lep.Eta()
 
 
 class BaselineProducer(Module):
@@ -74,7 +74,7 @@ class BaselineProducer(Module):
         self.ZZ2e2mu_vars=["pt","eta","phi","mass"]
 
         self.ZLL_vars=["pt","eta","phi","mass"]
-        self.ZL_vars=["pt","eta","phi","mass"]
+        self.ZL_vars=["pt","eta","phi","mass", "pt2", "eta2"]
 
         # Define the prefixes
         self.mu_prefix = "mu_"
@@ -92,7 +92,11 @@ class BaselineProducer(Module):
         self.H2e2mu_prefix = "H2e2mu_"
 
         self.ZLall_prefix = "ZLall_"
+        self.ZLalle_prefix = "ZLalle_"
+        self.ZLallmu_prefix = "ZLallmu_"
         self.ZLpass_prefix = "ZLpass_"
+        self.ZLpasse_prefix = "ZLpasse_"
+        self.ZLpassmu_prefix = "ZLpassmu_"
 
         self.ZLL_prefix = "ZLL_"
         self.ZLL4e_prefix = "ZLL4e_"
@@ -164,7 +168,11 @@ class BaselineProducer(Module):
             self.out.branch(self.ZLL2e2mu_prefix + ZLL_var, "F", 20, lenVar="nZLL2e2mu" )
         for ZL_var in self.ZL_vars:
             self.out.branch(self.ZLall_prefix + ZL_var, "F", 20, lenVar="nZLall" )
+            self.out.branch(self.ZLalle_prefix + ZL_var, "F", 20, lenVar="nZLalle" )
+            self.out.branch(self.ZLallmu_prefix + ZL_var, "F", 20, lenVar="nZLallmu" )
             self.out.branch(self.ZLpass_prefix + ZL_var, "F", 20, lenVar="nZLpass" )
+            self.out.branch(self.ZLpasse_prefix + ZL_var, "F", 20, lenVar="nZLpasse" )
+            self.out.branch(self.ZLpassmu_prefix + ZL_var, "F", 20, lenVar="nZLpassmu" )
         # self.out.branch(self.ZL_prefix + "index", "I", 20, lenVar="nZL")
 
         for ZZ_var in self.ZZ_vars:
@@ -335,7 +343,12 @@ class BaselineProducer(Module):
         event.ZLLcandidates = []
         event.ZLcandidates = None
         event.ZLcandidates_all = []
+        event.ZLcandidates_alle = []
+        event.ZLcandidates_allmu = []
         event.ZLcandidates_pass = []
+        event.ZLcandidates_passe = []
+        event.ZLcandidates_passmu = []
+        
         event.bestZZIdx = -1
 
         Zs = event.Zcandidates
@@ -343,7 +356,11 @@ class BaselineProducer(Module):
         ZLLs = []
         ZLLsTemp = []
         ZLs_all = []
+        ZLs_alle = []
+        ZLs_allmu = []
         ZLs_pass = []
+        ZLs_passe = []
+        ZLs_passmu = []
 
         best2P2FCRIdx = -1
         best3P1FCRIdx = -1
@@ -448,19 +465,27 @@ class BaselineProducer(Module):
                             (aL.charge != bestZ.lep2.charge and sumP4(aL, bestZ.lep2).M() <= 4):
                             pass
                         else:
-                             event.ZLcandidates = aL
-                             ZL = ZLcandidate(bestZ, aL)                 
-                             ZLs_all.append(ZL)
+                            event.ZLcandidates = aL
+                            ZL = ZLcandidate(bestZ, aL)                 
+                            ZLs_all.append(ZL)
                             if aL.pdgId = abs(11):
-                            
+                                ZLs_alle.append(ZL)
                             elif aL.pdgId = abd(13):
+                                ZLs_allmu.append(ZL)
 
-
-                             if aL.isFullID:
+                            if aL.isFullID:
                                 ZLs_pass.append(ZL)
+                                if aL.pdgId = abs(11):
+                                    ZLs_passe.append(ZL)
+                                elif aL.pdgId = abd(13):
+                                    ZLs_passmu.append(ZL)
         
         event.ZLcandidates_all = ZLs_all
+        event.ZLcandidates_alle = ZLs_alle
+        event.ZLcandidates_allmu = ZLs_allmu
         event.ZLcandidates_pass = ZLs_pass
+        event.ZLcandidates_passe = ZLs_passe
+        event.ZLcandidates_passmu = ZLs_passmu
 
 
     # def _select_Z_candidates(self, event):
@@ -1072,38 +1097,133 @@ class BaselineProducer(Module):
         ZLcandidate_all_pt = []
         ZLcandidate_all_eta = []
         ZLcandidate_all_phi = []
+        ZLcandidate_all_pt2 = []
+        ZLcandidate_all_eta2 = []
 
-        ZLcandidate_all_mass = []
-        ZLcandidate_all_pt = []
-        ZLcandidate_all_eta = []
-        ZLcandidate_all_phi = []
+        ZLcandidate_alle_mass = []
+        ZLcandidate_alle_pt = []
+        ZLcandidate_alle_eta = []
+        ZLcandidate_alle_phi = []
+        ZLcandidate_alle_pt2 = []
+        ZLcandidate_alle_eta2 = []
+
+        ZLcandidate_allmu_mass = []
+        ZLcandidate_allmu_pt = []
+        ZLcandidate_allmu_eta = []
+        ZLcandidate_allmu_phi = []
+        ZLcandidate_allmu_pt2 = []
+        ZLcandidate_allmu_eta2 = []
 
         for ZLcandidate_all in event.ZLcandidates_all:
             ZLcandidate_all_mass.append(ZLcandidate_all.mass)
             ZLcandidate_all_pt.append(ZLcandidate_all.pt)
             ZLcandidate_all_eta.append(ZLcandidate_all.eta)
             ZLcandidate_all_phi.append(ZLcandidate_all.phi)
+            ZLcandidate_all_pt2.append(ZLcandidate_all.pt2)
+            ZLcandidate_all_eta2.append(ZLcandidate_all.eta2)
+        
+        for ZLcandidate_alle in event.ZLcandidates_alle:
+            ZLcandidate_alle_mass.append(ZLcandidate_alle.mass)
+            ZLcandidate_alle_pt.append(ZLcandidate_alle.pt)
+            ZLcandidate_alle_eta.append(ZLcandidate_alle.eta)
+            ZLcandidate_alle_phi.append(ZLcandidate_alle.phi)
+            ZLcandidate_alle_pt2.append(ZLcandidate_alle.pt2)
+            ZLcandidate_alle_eta2.append(ZLcandidate_alle.eta2)
+        
+        for ZLcandidate_allmu in event.ZLcandidates_allmu:
+            ZLcandidate_allmu_mass.append(ZLcandidate_allmu.mass)
+            ZLcandidate_allmu_pt.append(ZLcandidate_allmu.pt)
+            ZLcandidate_allmu_eta.append(ZLcandidate_allmu.eta)
+            ZLcandidate_allmu_phi.append(ZLcandidate_allmu.phi)
+            ZLcandidate_allmu_pt2.append(ZLcandidate_allmu.pt2)
+            ZLcandidate_allmu_eta2.append(ZLcandidate_allmu.eta2)
+
+        out_data[self.ZLall_prefix + "mass"] = ZLcandidate_all_mass
+        out_data[self.ZLall_prefix + "pt"] = ZLcandidate_all_pt
+        out_data[self.ZLall_prefix + "eta"] = ZLcandidate_all_eta 
+        out_data[self.ZLall_prefix + "phi"] = ZLcandidate_all_phi
+        out_data[self.ZLall_prefix + "pt2"] = ZLcandidate_all_pt2
+        out_data[self.ZLall_prefix + "eta2"] = ZLcandidate_all_eta2
+
+        out_data[self.ZLalle_prefix + "mass"] = ZLcandidate_alle_mass
+        out_data[self.ZLalle_prefix + "pt"] = ZLcandidate_alle_pt
+        out_data[self.ZLalle_prefix + "eta"] = ZLcandidate_alle_eta 
+        out_data[self.ZLalle_prefix + "phi"] = ZLcandidate_alle_phi
+        out_data[self.ZLalle_prefix + "pt2"] = ZLcandidate_alle_pt2
+        out_data[self.ZLalle_prefix + "eta2"] = ZLcandidate_alle_eta2
+
+        out_data[self.ZLallmu_prefix + "mass"] = ZLcandidate_allmu_mass
+        out_data[self.ZLallmu_prefix + "pt"] = ZLcandidate_allmu_pt
+        out_data[self.ZLallmu_prefix + "eta"] = ZLcandidate_allmu_eta 
+        out_data[self.ZLallmu_prefix + "phi"] = ZLcandidate_allmu_phi
+        out_data[self.ZLallmu_prefix + "pt2"] = ZLcandidate_allmu_pt2
+        out_data[self.ZLallmu_prefix + "eta2"] = ZLcandidate_allmu_eta2
         
         ZLcandidate_pass_mass = []
         ZLcandidate_pass_pt = []
         ZLcandidate_pass_eta = []
         ZLcandidate_pass_phi = []
+        ZLcandidate_pass_pt2 = []
+        ZLcandidate_pass_eta2 = []
+
+        ZLcandidate_passe_mass = []
+        ZLcandidate_passe_pt = []
+        ZLcandidate_passe_eta = []
+        ZLcandidate_passe_phi = []
+        ZLcandidate_passe_pt2 = []
+        ZLcandidate_passe_eta2 = []
+
+        ZLcandidate_passmu_mass = []
+        ZLcandidate_passmu_pt = []
+        ZLcandidate_passmu_eta = []
+        ZLcandidate_passmu_phi = []
+        ZLcandidate_passmu_pt2 = []
+        ZLcandidate_passmu_eta2 = []
 
         for ZLcandidate_pass in event.ZLcandidates_pass:
             ZLcandidate_pass_mass.append(ZLcandidate_pass.mass)
             ZLcandidate_pass_pt.append(ZLcandidate_pass.pt)
             ZLcandidate_pass_eta.append(ZLcandidate_pass.eta)
             ZLcandidate_pass_phi.append(ZLcandidate_pass.phi)
-
-        out_data[self.ZLall_prefix + "mass"] = ZLcandidate_all_mass
-        out_data[self.ZLall_prefix + "pt"] = ZLcandidate_all_pt
-        out_data[self.ZLall_prefix + "eta"] = ZLcandidate_all_eta 
-        out_data[self.ZLall_prefix + "phi"] = ZLcandidate_all_phi
+            ZLcandidate_pass_pt2.append(ZLcandidate_pass.pt2)
+            ZLcandidate_pass_eta2.append(ZLcandidate_pass.eta2)
+        
+        for ZLcandidate_passe in event.ZLcandidates_passe:
+            ZLcandidate_passe_mass.append(ZLcandidate_passe.mass)
+            ZLcandidate_passe_pt.append(ZLcandidate_passe.pt)
+            ZLcandidate_passe_eta.append(ZLcandidate_passe.eta)
+            ZLcandidate_passe_phi.append(ZLcandidate_passe.phi)
+            ZLcandidate_passe_pt2.append(ZLcandidate_passe.pt2)
+            ZLcandidate_passe_eta2.append(ZLcandidate_passe.eta2)
+        
+        for ZLcandidate_passmu in event.ZLcandidates_passmu:
+            ZLcandidate_passmu_mass.append(ZLcandidate_passmu.mass)
+            ZLcandidate_passmu_pt.append(ZLcandidate_passmu.pt)
+            ZLcandidate_passmu_eta.append(ZLcandidate_passmu.eta)
+            ZLcandidate_passmu_phi.append(ZLcandidate_passmu.phi)
+            ZLcandidate_passmu_pt2.append(ZLcandidate_passmu.pt2)
+            ZLcandidate_passmu_eta2.append(ZLcandidate_passmu.eta2)
 
         out_data[self.ZLpass_prefix + "mass"] = ZLcandidate_pass_mass
         out_data[self.ZLpass_prefix + "pt"] = ZLcandidate_pass_pt
         out_data[self.ZLpass_prefix + "eta"] = ZLcandidate_pass_eta 
         out_data[self.ZLpass_prefix + "phi"] = ZLcandidate_pass_phi
+        out_data[self.ZLpass_prefix + "pt2"] = ZLcandidate_pass_pt2
+        out_data[self.ZLpass_prefix + "eta2"] = ZLcandidate_pass_eta2
+
+        out_data[self.ZLpasse_prefix + "mass"] = ZLcandidate_passe_mass
+        out_data[self.ZLpasse_prefix + "pt"] = ZLcandidate_passe_pt
+        out_data[self.ZLpasse_prefix + "eta"] = ZLcandidate_passe_eta 
+        out_data[self.ZLpasse_prefix + "phi"] = ZLcandidate_passe_phi
+        out_data[self.ZLpasse_prefix + "pt2"] = ZLcandidate_passe_pt2
+        out_data[self.ZLpasse_prefix + "eta2"] = ZLcandidate_passe_eta2
+
+        out_data[self.ZLpassmu_prefix + "mass"] = ZLcandidate_passmu_mass
+        out_data[self.ZLpassmu_prefix + "pt"] = ZLcandidate_passmu_pt
+        out_data[self.ZLpassmu_prefix + "eta"] = ZLcandidate_passmu_eta 
+        out_data[self.ZLpassmu_prefix + "phi"] = ZLcandidate_passmu_phi
+        out_data[self.ZLpassmu_prefix + "pt2"] = ZLcandidate_passmu_pt2
+        out_data[self.ZLpassmu_prefix + "eta2"] = ZLcandidate_passmu_eta2
 
 
         ## fill all branches
