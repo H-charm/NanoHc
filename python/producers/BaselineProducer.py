@@ -28,7 +28,6 @@ class ZZcandidate:
         self.eta = sumP4(self.Z1, self.Z2).Eta()
         self.phi = sumP4(self.Z1, self.Z2).Phi()
         self.mass = sumP4(self.Z1, self.Z2).M()
-        self.mass2 = sumP4(self.Z1, self.Z2).M()
 
 class ZLLcandidate:
 
@@ -39,7 +38,16 @@ class ZLLcandidate:
         self.eta = sumP4(self.Z1, self.Z2).Eta()
         self.phi = sumP4(self.Z1, self.Z2).Phi()
         self.mass = sumP4(self.Z1, self.Z2).M()
-        self.mass2 = sumP4(self.Z1, self.Z2).M()
+
+class ZLcandidate:
+
+    def __init__(self,Z1,lep):
+        self.Z1 = Z1
+        self.lep = lep
+        self.pt = sumP4(self.Z1, self.lep).Pt()
+        self.eta = sumP4(self.Z1, self.lep).Eta()
+        self.phi = sumP4(self.Z1, self.lep).Phi()
+        self.mass = sumP4(self.Z1, self.lep).M()
 
 class BaselineProducer(Module):
     
@@ -63,6 +71,7 @@ class BaselineProducer(Module):
         self.ZZ2e2mu_vars=["pt","eta","phi","mass"]
 
         self.ZLL_vars=["pt","eta","phi","mass"]
+        self.ZL_vars=["pt","eta","phi","mass"]
 
         # Define the prefixes
         self.mu_prefix = "mu_"
@@ -79,7 +88,20 @@ class BaselineProducer(Module):
         self.H4mu_prefix = "H4mu_"
         self.H2e2mu_prefix = "H2e2mu_"
 
+        self.ZLall_prefix = "ZLall_"
+        self.ZLpass_prefix = "ZLpass_"
+
         self.ZLL_prefix = "ZLL_"
+        self.ZLL4e_prefix = "ZLL4e_"
+        self.ZLL4mu_prefix = "ZLL4mu_"
+        self.ZLL2e2mu_prefix = "ZLL2e2mu_"
+        self.ZLL2mu2e_prefix = "ZLL2mu2e_"
+
+
+        self.ZZSR_prefix = "ZZSR_"
+        self.ZZSR4e_prefix = "ZZSR4e_"
+        self.ZZSR4mu_prefix = "ZZSR4mu_"
+        self.ZZSR2e2mu_prefix = "ZZSR2e2mu_"
 
     def beginJob(self):
         pass
@@ -134,6 +156,19 @@ class BaselineProducer(Module):
         # Define branches for the ZLLcandidates
         for ZLL_var in self.ZLL_vars:
             self.out.branch(self.ZLL_prefix + ZLL_var, "F", 20, lenVar="nZLL" )
+            self.out.branch(self.ZLL4e_prefix + ZLL_var, "F", 20, lenVar="nZLL4e" )
+            self.out.branch(self.ZLL4mu_prefix + ZLL_var, "F", 20, lenVar="nZLL4mu" )
+            self.out.branch(self.ZLL2e2mu_prefix + ZLL_var, "F", 20, lenVar="nZLL2e2mu" )
+        for ZL_var in self.ZL_vars:
+            self.out.branch(self.ZLall_prefix + ZL_var, "F", 20, lenVar="nZLall" )
+            self.out.branch(self.ZLpass_prefix + ZL_var, "F", 20, lenVar="nZLpass" )
+        # self.out.branch(self.ZL_prefix + "index", "I", 20, lenVar="nZL")
+
+        for ZZ_var in self.ZZ_vars:
+            self.out.branch(self.ZZSR_prefix + ZLL_var, "F", 20, lenVar="nZZSR")
+            self.out.branch(self.ZZSR4e_prefix + ZLL_var, "F", 20, lenVar="nZZSR4e")
+            self.out.branch(self.ZZSR4mu_prefix + ZLL_var, "F", 20, lenVar="nZZSR4mu")
+            self.out.branch(self.ZZSR2e2mu_prefix + ZLL_var, "F", 20, lenVar="nZZSR2e2mu")
 
         # Define branches for the Hcandidates
         for H_var in self.H_vars:
@@ -211,7 +246,6 @@ class BaselineProducer(Module):
         else:
             print(f"Year {self.year} not found")
 
-
         if self.isMC or self.sample == "any" :
             passTrigger = passDiEle or passDiMu or passMuEle or passTriEle or passTriMu or passSingleEle or passSingleMu
         else: # Data: ensure each event is taken only from a single sample
@@ -257,7 +291,6 @@ class BaselineProducer(Module):
             Zcand.is2FCR = False
             Zcand.isSSCR = False
 
-
             # Lepton ID checks
             relaxed1 = lep1.isRelaxed
             relaxed2 = lep2.isRelaxed
@@ -275,7 +308,7 @@ class BaselineProducer(Module):
                     elif nFull == 0:
                         Zcand.is2FCR = True
 
-            # Same-sign control regions (if you decide to support them)
+            # Same-sign control region
             elif lep1.pdgId == lep2.pdgId:
                 if relaxed1 and relaxed2:
                     Zcand.isSSCR = True
@@ -295,15 +328,19 @@ class BaselineProducer(Module):
 
 
     def _build_SR_and_CR_combinations(self, event):
-        event.ZZcandidates = []
+        event.ZZSRcandidates = []
         event.ZLLcandidates = []
-        event.ZLcandidate = None
+        event.ZLcandidates = None
+        event.ZLcandidates_all = []
+        event.ZLcandidates_pass = []
         event.bestZZIdx = -1
 
         Zs = event.Zcandidates
         ZZs = []
         ZLLs = []
         ZLLsTemp = []
+        ZLs_all = []
+        ZLs_pass = []
 
         best2P2FCRIdx = -1
         best3P1FCRIdx = -1
@@ -350,9 +387,9 @@ class BaselineProducer(Module):
 
                 else:
                     ZZ.isSR = False
-                    ZZs.append(ZZ)  # optional: store all
+                    # ZZs.append(ZZ)  # optional: store all
 
-        event.ZZcandidates = ZZs
+        event.ZZSRcandidates = ZZs
         if bestCandIdx >= 0:
             event.bestZZIdx = bestCandIdx
 
@@ -389,7 +426,7 @@ class BaselineProducer(Module):
         # ---------- Control Region: Z + L ----------
         if hasattr(event, "bestZIdx") and event.bestZIdx >= 0:
             bestZ = event.Zcandidates[event.bestZIdx]
-            if 40 < bestZ.mass < 120:
+            if 40 < bestZ.mass < 120: # Only for the SS 
                 extra_leptons = [
                     lep for lep in event.selectedLeptons
                     if lep not in [bestZ.lep1, bestZ.lep2] and lep.isRelaxed
@@ -408,7 +445,14 @@ class BaselineProducer(Module):
                             (aL.charge != bestZ.lep2.charge and sumP4(aL, bestZ.lep2).M() <= 4):
                             pass
                         else:
-                             event.ZLcandidate = aL
+                             event.ZLcandidates = aL
+                             ZL = ZLcandidate(bestZ, aL)
+                             ZLs_all.append(ZL)
+                             if aL.isFullID:
+                                ZLs_pass.append(ZL)
+        
+        event.ZLcandidates_all = ZLs_all
+        event.ZLcandidates_pass = ZLs_pass
 
 
     # def _select_Z_candidates(self, event):
@@ -803,6 +847,77 @@ class BaselineProducer(Module):
         out_data[self.ZZ2e2mu_prefix + "eta"] = ZZcandidate_eta_2e2mu
         out_data[self.ZZ2e2mu_prefix + "phi"] = ZZcandidate_phi_2e2mu
 
+
+        # Sanity check 
+        ZZSRcandidate_mass = []
+        ZZSRcandidate_pt = []
+        ZZSRcandidate_eta = []
+        ZZSRcandidate_phi = []
+        ZZSRcandidate_mass_4e=[]
+        ZZSRcandidate_pt_4e = []
+        ZZSRcandidate_eta_4e = []
+        ZZSRcandidate_phi_4e = []
+        ZZSRcandidate_mass_4mu=[]
+        ZZSRcandidate_pt_4mu = []
+        ZZSRcandidate_eta_4mu = []
+        ZZSRcandidate_phi_4mu = []
+        ZZSRcandidate_mass_2e2mu=[]
+        ZZSRcandidate_pt_2e2mu = []
+        ZZSRcandidate_eta_2e2mu = []
+        ZZSRcandidate_phi_2e2mu = []
+
+        for ZZSRcandidate in event.ZZSRcandidates:
+            ZZSRcandidate_mass.append(ZZSRcandidate.mass)
+            ZZSRcandidate_pt.append(ZZSRcandidate.pt)
+            ZZSRcandidate_eta.append(ZZSRcandidate.eta)
+            ZZSRcandidate_phi.append(ZZSRcandidate.phi)
+
+            # Extract PDG IDs
+            lep_ids = {
+                abs(ZZSRcandidate.Z1.lep1.pdgId),
+                abs(ZZSRcandidate.Z1.lep2.pdgId),
+                abs(ZZSRcandidate.Z2.lep1.pdgId),
+                abs(ZZSRcandidate.Z2.lep2.pdgId)
+            }
+
+            # Classify by decay channel
+            if lep_ids == {11}:  
+                ZZSRcandidate_mass_4e.append(ZZSRcandidate.mass)
+                ZZSRcandidate_pt_4e.append(ZZSRcandidate.pt)
+                ZZSRcandidate_eta_4e.append(ZZSRcandidate.eta)
+                ZZSRcandidate_phi_4e.append(ZZSRcandidate.phi)
+            elif lep_ids == {13}:  
+                ZZSRcandidate_mass_4mu.append(ZZSRcandidate.mass)
+                ZZSRcandidate_pt_4mu.append(ZZSRcandidate.pt)
+                ZZSRcandidate_eta_4mu.append(ZZSRcandidate.eta)
+                ZZSRcandidate_phi_4mu.append(ZZSRcandidate.phi)
+            elif lep_ids == {11, 13}:  
+                ZZSRcandidate_mass_2e2mu.append(ZZSRcandidate.mass)
+                ZZSRcandidate_pt_2e2mu.append(ZZSRcandidate.pt)
+                ZZSRcandidate_eta_2e2mu.append(ZZSRcandidate.eta)
+                ZZSRcandidate_phi_2e2mu.append(ZZSRcandidate.phi)
+
+        # Store in output dictionary
+        out_data[self.ZZ_prefix + "mass"] = ZZSRcandidate_mass
+        out_data[self.ZZ_prefix + "pt"] = ZZSRcandidate_pt
+        out_data[self.ZZ_prefix + "eta"] = ZZSRcandidate_eta 
+        out_data[self.ZZ_prefix + "phi"] = ZZSRcandidate_phi
+
+        out_data[self.ZZ4e_prefix + "mass"] = ZZSRcandidate_mass_4e
+        out_data[self.ZZ4e_prefix + "pt"] = ZZSRcandidate_pt_4e
+        out_data[self.ZZ4e_prefix + "eta"] = ZZSRcandidate_eta_4e
+        out_data[self.ZZ4e_prefix + "phi"] = ZZSRcandidate_phi_4e
+
+        out_data[self.ZZ4mu_prefix + "mass"] = ZZSRcandidate_mass_4mu
+        out_data[self.ZZ4mu_prefix + "pt"] = ZZSRcandidate_pt_4mu
+        out_data[self.ZZ4mu_prefix + "eta"] = ZZSRcandidate_eta_4mu
+        out_data[self.ZZ4mu_prefix + "phi"] = ZZSRcandidate_phi_4mu
+
+        out_data[self.ZZ2e2mu_prefix + "mass"] =  ZZSRcandidate_mass_2e2mu
+        out_data[self.ZZ2e2mu_prefix + "pt"] = ZZSRcandidate_pt_2e2mu
+        out_data[self.ZZ2e2mu_prefix + "eta"] = ZZSRcandidate_eta_2e2mu
+        out_data[self.ZZ2e2mu_prefix + "phi"] = ZZSRcandidate_phi_2e2mu
+
         # Similar structure for Higgs candidates
         Hcandidate_mass = []
         Hcandidate_pt = []
@@ -872,6 +987,112 @@ class BaselineProducer(Module):
         out_data[self.H2e2mu_prefix + "eta"] = Hcandidate_eta_2e2mu
         out_data[self.H2e2mu_prefix + "phi"] = Hcandidate_phi_2e2mu
                 
+         ## ZLL candidates
+        # Initialize output lists
+        ZLLcandidate_mass = []
+        ZLLcandidate_pt = []
+        ZLLcandidate_eta = []
+        ZLLcandidate_phi = []
+        ZLLcandidate_mass_4e=[]
+        ZLLcandidate_pt_4e = []
+        ZLLcandidate_eta_4e = []
+        ZLLcandidate_phi_4e = []
+        ZLLcandidate_mass_4mu=[]
+        ZLLcandidate_pt_4mu = []
+        ZLLcandidate_eta_4mu = []
+        ZLLcandidate_phi_4mu = []
+        ZLLcandidate_mass_2e2mu=[]
+        ZLLcandidate_pt_2e2mu = []
+        ZLLcandidate_eta_2e2mu = []
+        ZLLcandidate_phi_2e2mu = []
+
+        for ZLLcandidate in event.ZLLcandidates:
+            ZLLcandidate_mass.append(ZLLcandidate.mass)
+            ZLLcandidate_pt.append(ZLLcandidate.pt)
+            ZLLcandidate_eta.append(ZLLcandidate.eta)
+            ZLLcandidate_phi.append(ZLLcandidate.phi)
+
+            # Extract PDG IDs
+            lep_ids = {
+                abs(ZLLcandidate.Z1.lep1.pdgId),
+                abs(ZLLcandidate.Z1.lep2.pdgId),
+                abs(ZLLcandidate.Z2.lep1.pdgId),
+                abs(ZLLcandidate.Z2.lep2.pdgId)
+            }
+
+            # Classify by decay channel
+            if lep_ids == {11}:  
+                ZLLcandidate_mass_4e.append(ZLLcandidate.mass)
+                ZLLcandidate_pt_4e.append(ZLLcandidate.pt)
+                ZLLcandidate_eta_4e.append(ZLLcandidate.eta)
+                ZLLcandidate_phi_4e.append(ZLLcandidate.phi)
+            elif lep_ids == {13}:  
+                ZLLcandidate_mass_4mu.append(ZLLcandidate.mass)
+                ZLLcandidate_pt_4mu.append(ZLLcandidate.pt)
+                ZLLcandidate_eta_4mu.append(ZLLcandidate.eta)
+                ZLLcandidate_phi_4mu.append(ZLLcandidate.phi)
+            elif lep_ids == {11, 13}:  
+                ZLLcandidate_mass_2e2mu.append(ZLLcandidate.mass)
+                ZLLcandidate_pt_2e2mu.append(ZLLcandidate.pt)
+                ZLLcandidate_eta_2e2mu.append(ZLLcandidate.eta)
+                ZLLcandidate_phi_2e2mu.append(ZLLcandidate.phi)
+
+        # Store in output dictionary
+        out_data[self.ZLL_prefix + "mass"] = ZLLcandidate_mass
+        out_data[self.ZLL_prefix + "pt"] = ZLLcandidate_pt
+        out_data[self.ZLL_prefix + "eta"] = ZLLcandidate_eta 
+        out_data[self.ZLL_prefix + "phi"] = ZLLcandidate_phi
+
+        out_data[self.ZLL4e_prefix + "mass"] = ZLLcandidate_mass_4e
+        out_data[self.ZLL4e_prefix + "pt"] = ZLLcandidate_pt_4e
+        out_data[self.ZLL4e_prefix + "eta"] = ZLLcandidate_eta_4e
+        out_data[self.ZLL4e_prefix + "phi"] = ZLLcandidate_phi_4e
+
+        out_data[self.ZLL4mu_prefix + "mass"] = ZLLcandidate_mass_4mu
+        out_data[self.ZLL4mu_prefix + "pt"] = ZLLcandidate_pt_4mu
+        out_data[self.ZLL4mu_prefix + "eta"] = ZLLcandidate_eta_4mu
+        out_data[self.ZLL4mu_prefix + "phi"] = ZLLcandidate_phi_4mu
+
+        out_data[self.ZLL2e2mu_prefix + "mass"] =  ZLLcandidate_mass_2e2mu
+        out_data[self.ZLL2e2mu_prefix + "pt"] = ZLLcandidate_pt_2e2mu
+        out_data[self.ZLL2e2mu_prefix + "eta"] = ZLLcandidate_eta_2e2mu
+        out_data[self.ZLL2e2mu_prefix + "phi"] = ZLLcandidate_phi_2e2mu
+
+
+        # Z + L
+        ZLcandidate_all_mass = []
+        ZLcandidate_all_pt = []
+        ZLcandidate_all_eta = []
+        ZLcandidate_all_phi = []
+
+        for ZLcandidate_all in event.ZLcandidates_all:
+            ZLcandidate_all_mass.append(ZLcandidate_all.mass)
+            ZLcandidate_all_pt.append(ZLcandidate_all.pt)
+            ZLcandidate_all_eta.append(ZLcandidate_all.eta)
+            ZLcandidate_all_phi.append(ZLcandidate_all.phi)
+        
+        ZLcandidate_pass_mass = []
+        ZLcandidate_pass_pt = []
+        ZLcandidate_pass_eta = []
+        ZLcandidate_pass_phi = []
+
+        for ZLcandidate_pass in event.ZLcandidates_pass:
+            ZLcandidate_pass_mass.append(ZLcandidate_pass.mass)
+            ZLcandidate_pass_pt.append(ZLcandidate_pass.pt)
+            ZLcandidate_pass_eta.append(ZLcandidate_pass.eta)
+            ZLcandidate_pass_phi.append(ZLcandidate_pass.phi)
+
+        out_data[self.ZLall_prefix + "mass"] = ZLcandidate_all_mass
+        out_data[self.ZLall_prefix + "pt"] = ZLcandidate_all_pt
+        out_data[self.ZLall_prefix + "eta"] = ZLcandidate_all_eta 
+        out_data[self.ZLall_prefix + "phi"] = ZLcandidate_all_phi
+
+        out_data[self.ZLpass_prefix + "mass"] = ZLcandidate_pass_mass
+        out_data[self.ZLpass_prefix + "pt"] = ZLcandidate_pass_pt
+        out_data[self.ZLpass_prefix + "eta"] = ZLcandidate_pass_eta 
+        out_data[self.ZLpass_prefix + "phi"] = ZLcandidate_pass_phi
+
+
         ## fill all branches
         for key in out_data:
             self.out.fillBranch(key, out_data[key])
