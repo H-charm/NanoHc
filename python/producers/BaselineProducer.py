@@ -176,10 +176,10 @@ class BaselineProducer(Module):
         # self.out.branch(self.ZL_prefix + "index", "I", 20, lenVar="nZL")
 
         for ZZ_var in self.ZZ_vars:
-            self.out.branch(self.ZZSR_prefix + ZLL_var, "F", 20, lenVar="nZZSR")
-            self.out.branch(self.ZZSR4e_prefix + ZLL_var, "F", 20, lenVar="nZZSR4e")
-            self.out.branch(self.ZZSR4mu_prefix + ZLL_var, "F", 20, lenVar="nZZSR4mu")
-            self.out.branch(self.ZZSR2e2mu_prefix + ZLL_var, "F", 20, lenVar="nZZSR2e2mu")
+            self.out.branch(self.ZZSR_prefix + ZZ_var, "F", 20, lenVar="nZZSR")
+            self.out.branch(self.ZZSR4e_prefix + ZZ_var, "F", 20, lenVar="nZZSR4e")
+            self.out.branch(self.ZZSR4mu_prefix + ZZ_var, "F", 20, lenVar="nZZSR4mu")
+            self.out.branch(self.ZZSR2e2mu_prefix + ZZ_var, "F", 20, lenVar="nZZSR2e2mu")
 
         # Define branches for the Hcandidates
         for H_var in self.H_vars:
