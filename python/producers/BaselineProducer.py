@@ -48,8 +48,8 @@ class ZLcandidate:
         self.eta = sumP4(self.Z1, self.lep).Eta()
         self.phi = sumP4(self.Z1, self.lep).Phi()
         self.mass = sumP4(self.Z1, self.lep).M()
-        self.pt2 = self.lep.Pt()
-        self.eta2 = self.lep.Eta()
+        self.pt2 = self.lep.pt()
+        self.eta2 = self.lep.eta()
 
 
 class BaselineProducer(Module):
