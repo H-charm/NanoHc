@@ -468,16 +468,16 @@ class BaselineProducer(Module):
                             event.ZLcandidates = aL
                             ZL = ZLcandidate(bestZ, aL)                 
                             ZLs_all.append(ZL)
-                            if aL.pdgId = abs(11):
+                            if aL.pdgId == abs(11):
                                 ZLs_alle.append(ZL)
-                            elif aL.pdgId = abd(13):
+                            elif aL.pdgId == abs(13):
                                 ZLs_allmu.append(ZL)
 
                             if aL.isFullID:
                                 ZLs_pass.append(ZL)
-                                if aL.pdgId = abs(11):
+                                if aL.pdgId == abs(11):
                                     ZLs_passe.append(ZL)
-                                elif aL.pdgId = abd(13):
+                                elif aL.pdgId == abs(13):
                                     ZLs_passmu.append(ZL)
         
         event.ZLcandidates_all = ZLs_all
@@ -931,25 +931,25 @@ class BaselineProducer(Module):
                 ZZSRcandidate_phi_2e2mu.append(ZZSRcandidate.phi)
 
         # Store in output dictionary
-        out_data[self.ZZ_prefix + "mass"] = ZZSRcandidate_mass
-        out_data[self.ZZ_prefix + "pt"] = ZZSRcandidate_pt
-        out_data[self.ZZ_prefix + "eta"] = ZZSRcandidate_eta 
-        out_data[self.ZZ_prefix + "phi"] = ZZSRcandidate_phi
+        out_data[self.ZZSR_prefix + "mass"] = ZZSRcandidate_mass
+        out_data[self.ZZSR_prefix + "pt"] = ZZSRcandidate_pt
+        out_data[self.ZZSR_prefix + "eta"] = ZZSRcandidate_eta 
+        out_data[self.ZZSR_prefix + "phi"] = ZZSRcandidate_phi
 
-        out_data[self.ZZ4e_prefix + "mass"] = ZZSRcandidate_mass_4e
-        out_data[self.ZZ4e_prefix + "pt"] = ZZSRcandidate_pt_4e
-        out_data[self.ZZ4e_prefix + "eta"] = ZZSRcandidate_eta_4e
-        out_data[self.ZZ4e_prefix + "phi"] = ZZSRcandidate_phi_4e
+        out_data[self.ZZSR4e_prefix + "mass"] = ZZSRcandidate_mass_4e
+        out_data[self.ZZSR4e_prefix + "pt"] = ZZSRcandidate_pt_4e
+        out_data[self.ZZSR4e_prefix + "eta"] = ZZSRcandidate_eta_4e
+        out_data[self.ZZSR4e_prefix + "phi"] = ZZSRcandidate_phi_4e
 
-        out_data[self.ZZ4mu_prefix + "mass"] = ZZSRcandidate_mass_4mu
-        out_data[self.ZZ4mu_prefix + "pt"] = ZZSRcandidate_pt_4mu
-        out_data[self.ZZ4mu_prefix + "eta"] = ZZSRcandidate_eta_4mu
-        out_data[self.ZZ4mu_prefix + "phi"] = ZZSRcandidate_phi_4mu
+        out_data[self.ZZSR4mu_prefix + "mass"] = ZZSRcandidate_mass_4mu
+        out_data[self.ZZSR4mu_prefix + "pt"] = ZZSRcandidate_pt_4mu
+        out_data[self.ZZSR4mu_prefix + "eta"] = ZZSRcandidate_eta_4mu
+        out_data[self.ZZSR4mu_prefix + "phi"] = ZZSRcandidate_phi_4mu
 
-        out_data[self.ZZ2e2mu_prefix + "mass"] =  ZZSRcandidate_mass_2e2mu
-        out_data[self.ZZ2e2mu_prefix + "pt"] = ZZSRcandidate_pt_2e2mu
-        out_data[self.ZZ2e2mu_prefix + "eta"] = ZZSRcandidate_eta_2e2mu
-        out_data[self.ZZ2e2mu_prefix + "phi"] = ZZSRcandidate_phi_2e2mu
+        out_data[self.ZZSR2e2mu_prefix + "mass"] =  ZZSRcandidate_mass_2e2mu
+        out_data[self.ZZSR2e2mu_prefix + "pt"] = ZZSRcandidate_pt_2e2mu
+        out_data[self.ZZSR2e2mu_prefix + "eta"] = ZZSRcandidate_eta_2e2mu
+        out_data[self.ZZSR2e2mu_prefix + "phi"] = ZZSRcandidate_phi_2e2mu
 
         # Similar structure for Higgs candidates
         Hcandidate_mass = []
