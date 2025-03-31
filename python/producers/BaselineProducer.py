@@ -48,6 +48,9 @@ class ZLcandidate:
         self.eta = sumP4(self.Z1, self.lep).Eta()
         self.phi = sumP4(self.Z1, self.lep).Phi()
         self.mass = sumP4(self.Z1, self.lep).M()
+        self.pt2 = self.lep.Pt()
+        self.pt2 = self.lep.Eta()
+
 
 class BaselineProducer(Module):
     
@@ -446,8 +449,13 @@ class BaselineProducer(Module):
                             pass
                         else:
                              event.ZLcandidates = aL
-                             ZL = ZLcandidate(bestZ, aL)
+                             ZL = ZLcandidate(bestZ, aL)                 
                              ZLs_all.append(ZL)
+                            if aL.pdgId = abs(11):
+                            
+                            elif aL.pdgId = abd(13):
+
+
                              if aL.isFullID:
                                 ZLs_pass.append(ZL)
         
@@ -1060,6 +1068,11 @@ class BaselineProducer(Module):
 
 
         # Z + L
+        ZLcandidate_all_mass = []
+        ZLcandidate_all_pt = []
+        ZLcandidate_all_eta = []
+        ZLcandidate_all_phi = []
+
         ZLcandidate_all_mass = []
         ZLcandidate_all_pt = []
         ZLcandidate_all_eta = []
