@@ -531,8 +531,6 @@ class BaselineProducer(Module):
         Zcand_pair[offshell_idx].is_onshell = False
                 
     def _select_ZZ_candidates(self, event):
-        
-        if len(event.fullIDLeptons) < 4: return False
 
         event.ZZcandidates = []
                 
@@ -544,7 +542,13 @@ class BaselineProducer(Module):
    
             if Z1.mass < 40: continue  
             
-            leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2] 
+            leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2]
+
+            # Reject overlapping leptons
+                leps_Z1 = [Z1.lep1, Z1.lep2]
+                leps_Z2 = [Z2.lep1, Z2.lep2]
+                if any(l in leps_Z1 for l in leps_Z2):
+                    continue
             
             # Two DISTINCT leptons must pass pt > 10 and pt > 20
             num_passed_pt20 = 0
