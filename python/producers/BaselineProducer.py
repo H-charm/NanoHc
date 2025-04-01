@@ -227,6 +227,8 @@ class BaselineProducer(Module):
         if len(event.Zcandidates) < 2:
             return False
 
+        event.fullIDLeptons = event.fullIDMuons + event.fullIDElectrons
+        
         self._select_ZZ_candidates(event)
         self._select_H_candidates(event)
         
@@ -530,6 +532,8 @@ class BaselineProducer(Module):
                 
     def _select_ZZ_candidates(self, event):
         
+        if len(event.fullIDLeptons) < 4: continue
+
         event.ZZcandidates = []
                 
         Zcand_pairs = list(itertools.combinations(event.Zcandidates, 2))
@@ -754,6 +758,51 @@ class BaselineProducer(Module):
         out_data[self.mu_prefix + "eta"] = mu_eta
         out_data[self.mu_prefix + "phi"] = mu_phi
         out_data[self.mu_prefix + "pdgId"] = mu_pdgId
+
+
+        ## Full ID leptons
+        fullleptons_pt_sorted = sorted(event.fullIDLeptons, key=lambda particle: particle.pt, reverse=True)
+
+        full_lep_pt = []
+        full_lep_eta = []
+        full_lep_phi = []
+        full_lep_pdgId=[]
+        full_el_pt = []
+        full_el_eta = []
+        full_el_phi = []
+        full_el_pdgId =[]
+        full_mu_pt = []
+        full_mu_eta = []
+        full_mu_phi = []
+        full_mu_pdgId = []
+        for lep in fullleptons_pt_sorted:
+            full_lep_pt.append(lep.pt)
+            full_lep_eta.append(lep.eta)
+            full_lep_phi.append(lep.phi)
+            full_lep_pdgId.append(lep.pdgId)
+            if abs(lep.pdgId) == 11: # el
+                full_el_pt.append(lep.pt)
+                full_el_eta.append(lep.eta)
+                full_el_phi.append(lep.phi)
+                full_el_pdgId.append(lep.pdgId)
+            if abs(lep.pdgId) == 13: # mu
+                full_mu_pt.append(lep.pt)
+                full_mu_eta.append(lep.eta)
+                full_mu_phi.append(lep.phi)
+                full_mu_pdgId.append(lep.pdgId)            
+            
+        out_data[self.lep_prefix + "full_pt"] = full_lep_pt
+        out_data[self.lep_prefix + "full_eta"] = full_lep_eta
+        out_data[self.lep_prefix + "full_phi"] = full_lep_phi
+        out_data[self.lep_prefix + "full_pdgId"] = full_lep_pdgId
+        out_data[self.el_prefix + "full_pt"] = full_el_pt
+        out_data[self.el_prefix + "full_eta"] = full_el_eta
+        out_data[self.el_prefix + "full_phi"] = full_el_phi 
+        out_data[self.el_prefix + "full_pdgId"] = full_el_pdgId     
+        out_data[self.mu_prefix + "full_pt"] = full_mu_pt
+        out_data[self.mu_prefix + "full_eta"] = full_mu_eta
+        out_data[self.mu_prefix + "full_phi"] = full_mu_phi
+        out_data[self.mu_prefix + "full_pdgId"] = full_mu_pdgId
                     
         ## jets  
         # ak4_bdisc = []
