@@ -282,7 +282,7 @@ class BaselineProducer(Module):
         bestMassDiff = 9999
 
         ZmassNominal = 91.1876  # Z mass in GeV
-        lepton_pairs = list(itertools.combinations(event.relaxedElectrons, 2))
+        lepton_pairs = list(itertools.combinations(event.selectedLeptons, 2))
 
         for lep1, lep2 in lepton_pairs:
 
