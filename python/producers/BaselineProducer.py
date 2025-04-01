@@ -532,7 +532,7 @@ class BaselineProducer(Module):
                 
     def _select_ZZ_candidates(self, event):
         
-        if len(event.fullIDLeptons) < 4: continue
+        if len(event.fullIDLeptons) < 4: return False
 
         event.ZZcandidates = []
                 
