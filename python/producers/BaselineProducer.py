@@ -80,6 +80,9 @@ class BaselineProducer(Module):
         self.mu_prefix = "mu_"
         self.el_prefix = "el_"
         self.lep_prefix = "lep_"
+        self.full_mu_prefix = "full_mu_"
+        self.full_el_prefix = "full_el_"
+        self.full_lep_prefix = "full_lep_"
         self.jet_prefix = "jet_"
         self.Z_prefix = "Z_"
         self.ZZ_prefix = "ZZ_"
@@ -126,6 +129,9 @@ class BaselineProducer(Module):
             self.out.branch(self.mu_prefix + lep_var, "F", 20, lenVar="nMu")
             self.out.branch(self.el_prefix + lep_var, "F", 20, lenVar="nEl")
             self.out.branch(self.lep_prefix + lep_var, "F", 20, lenVar="nLep")
+            self.out.branch(self.full_mu_prefix + lep_var, "F", 20, lenVar="nfullMu")
+            self.out.branch(self.full_el_prefix + lep_var, "F", 20, lenVar="nfullEl")
+            self.out.branch(self.full_lep_prefix + lep_var, "F", 20, lenVar="nfullLep")
         
         # Define jet branches
         for jet_var in self.jet_vars:
@@ -795,18 +801,18 @@ class BaselineProducer(Module):
                 full_mu_phi.append(lep.phi)
                 full_mu_pdgId.append(lep.pdgId)            
             
-        out_data[self.lep_prefix + "full_pt"] = full_lep_pt
-        out_data[self.lep_prefix + "full_eta"] = full_lep_eta
-        out_data[self.lep_prefix + "full_phi"] = full_lep_phi
-        out_data[self.lep_prefix + "full_pdgId"] = full_lep_pdgId
-        out_data[self.el_prefix + "full_pt"] = full_el_pt
-        out_data[self.el_prefix + "full_eta"] = full_el_eta
-        out_data[self.el_prefix + "full_phi"] = full_el_phi 
-        out_data[self.el_prefix + "full_pdgId"] = full_el_pdgId     
-        out_data[self.mu_prefix + "full_pt"] = full_mu_pt
-        out_data[self.mu_prefix + "full_eta"] = full_mu_eta
-        out_data[self.mu_prefix + "full_phi"] = full_mu_phi
-        out_data[self.mu_prefix + "full_pdgId"] = full_mu_pdgId
+        out_data[self.full_lep_prefix + "pt"] = full_lep_pt
+        out_data[self.full_lep_prefix + "eta"] = full_lep_eta
+        out_data[self.full_lep_prefix + "phi"] = full_lep_phi
+        out_data[self.full_lep_prefix + "pdgId"] = full_lep_pdgId
+        out_data[self.full_el_prefix + "pt"] = full_el_pt
+        out_data[self.full_el_prefix + "eta"] = full_el_eta
+        out_data[self.full_el_prefix + "phi"] = full_el_phi 
+        out_data[self.full_el_prefix + "pdgId"] = full_el_pdgId     
+        out_data[self.full_mu_prefix + "pt"] = full_mu_pt
+        out_data[self.full_mu_prefix + "eta"] = full_mu_eta
+        out_data[self.full_mu_prefix + "phi"] = full_mu_phi
+        out_data[self.full_mu_prefix + "pdgId"] = full_mu_pdgId
                     
         ## jets  
         # ak4_bdisc = []
