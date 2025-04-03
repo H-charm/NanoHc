@@ -286,6 +286,7 @@ class BaselineProducer(Module):
     def _select_Z_candidates(self, event):
 
         event.Zcandidates = []
+        event.ZcandidatesSR =[]
         event.bestZIdx = -1
         bestMassDiff = 9999
 
@@ -336,7 +337,10 @@ class BaselineProducer(Module):
                 continue
 
             # Save Z candidate
-            event.Zcandidates.append(Zcand)
+            event.Zcandidates.append(Zcand) 
+
+            if Zcand.isSR:
+                event.ZcandidatesSR.append(Zcand) 
 
             # Track best SR Z candidate
             if Zcand.isSR:
@@ -476,16 +480,16 @@ class BaselineProducer(Module):
                             event.ZLcandidates = aL
                             ZL = ZLcandidate(bestZ, aL)                 
                             ZLs_all.append(ZL)
-                            if aL.pdgId == abs(11):
+                            if abs(aL.pdgId) == 11:
                                 ZLs_alle.append(ZL)
-                            elif aL.pdgId == abs(13):
+                            elif abs(aL.pdgId) == 13:
                                 ZLs_allmu.append(ZL)
 
                             if aL.isFullID:
                                 ZLs_pass.append(ZL)
-                                if aL.pdgId == abs(11):
+                                if abs(aL.pdgId) == 11:
                                     ZLs_passe.append(ZL)
-                                elif aL.pdgId == abs(13):
+                                elif abs(aL.pdgId) == 13:
                                     ZLs_passmu.append(ZL)
         
         event.ZLcandidates_all = ZLs_all
@@ -540,9 +544,8 @@ class BaselineProducer(Module):
 
         event.ZZcandidates = []
                 
-        Zcand_pairs = list(itertools.combinations(event.Zcandidates, 2))
+        Zcand_pairs = list(itertools.combinations(event.ZcandidatesSR, 2))
         for Zcand_pair in Zcand_pairs:
-                        
             self._flag_onshell_and_offshell_Z(Zcand_pair) 
             Z1, Z2 = (Zcand_pair[0], Zcand_pair[1]) if Zcand_pair[0].is_onshell else (Zcand_pair[1], Zcand_pair[0]) # by definition Z1 onshell, Z2 offshell
    
@@ -672,19 +675,19 @@ class BaselineProducer(Module):
                 # Full ID: add mvaIso BDT cut
                 if abs(el.etaSC) < 0.8:
                     if el.pt < 10:
-                        if el.mvaIso < 0.9044286167: continue
+                        if el.mvaHZZIso< 0.9044286167: continue
                     else:
-                        if el.mvaIso < 0.1968600840: continue
+                        if el.mvaHZZIso < 0.1968600840: continue
                 elif 0.8 < abs(el.etaSC) < 1.479:
                     if el.pt < 10:
-                        if el.mvaIso < 0.9094166886: continue
+                        if el.mvaHZZIso < 0.9094166886: continue
                     else:
-                        if el.mvaIso < 0.0759172100: continue
+                        if el.mvaHZZIso < 0.0759172100: continue
                 else:  # |etaSC| > 1.479
                     if el.pt < 10:
-                        if el.mvaIso < 0.9443653660: continue
+                        if el.mvaHZZIso < 0.9443653660: continue
                     else:
-                        if el.mvaIso < -0.5169136775: continue
+                        if el.mvaHZZIso < -0.5169136775: continue
 
                 # Passed BDT → full ID
                 el.isFullID = True
@@ -853,13 +856,14 @@ class BaselineProducer(Module):
         Zcandidate_phi = []
         Zcandidate_onshell_mass = []
         Zcandidate_offshell_mass = []
-        for Zcandidate in event.Zcandidates:
+        for Zcandidate in event.ZcandidatesSR:
             Zcandidate_mass.append(Zcandidate.mass)
             Zcandidate_pt.append(Zcandidate.pt)
             Zcandidate_eta.append(Zcandidate.eta)
             Zcandidate_phi.append(Zcandidate.phi)
-            if Zcandidate.is_onshell: Zcandidate_onshell_mass.append(Zcandidate.mass)
-            else: Zcandidate_offshell_mass.append(Zcandidate.mass)
+            if len(event.ZcandidatesSR)>2:
+                if Zcandidate.is_onshell: Zcandidate_onshell_mass.append(Zcandidate.mass)
+                else: Zcandidate_offshell_mass.append(Zcandidate.mass)
                 
         out_data[self.Z_prefix + "mass"] = Zcandidate_mass
         out_data[self.Z_prefix + "pt"] = Zcandidate_pt
