@@ -302,8 +302,17 @@ class BaselineProducer(Module):
 
             Zcand = Zcandidate(lep1, lep2)
 
-            if not ((lep1.pt > 20 or lep2.pt > 20) and (lep1.pt > 10 or lep2.pt > 10)):
-                continue
+            # Two DISTINCT leptons must pass pt > 10 and pt > 20
+            num_passed_pt20 = 0
+            num_passed_pt10 = 0
+
+            for lep in [lep1,lep2]:
+                if lep.pt > 20:
+                    num_passed_pt20 += 1
+                elif lep.pt > 10:
+                    num_passed_pt10 += 1
+
+            if num_passed_pt20 == 0 or (num_passed_pt10 + num_passed_pt20) < 2: continue 
 
             # Apply Z mass window
             if Zcand.mass < 12 or Zcand.mass > 120:
@@ -465,7 +474,7 @@ class BaselineProducer(Module):
         # ---------- Control Region: Z + L ----------
         if hasattr(event, "bestZIdx") and event.bestZIdx >= 0:
             bestZ = event.Zcandidates[event.bestZIdx]
-            if abs(bestZ.mass-ZmassNominal) < 7: # Only for the SS 
+            if abs(bestZ.mass-ZmassNominal) < 7: 
                 extra_leptons = [
                     lep for lep in event.selectedLeptons
                     if lep not in [bestZ.lep1, bestZ.lep2] and lep.isRelaxed
@@ -651,13 +660,13 @@ class BaselineProducer(Module):
             mu.isRelaxed = False
             mu.isFullID = False
             # Kinematic & baseline cuts (Relaxed ID)
-            if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and (mu.isGlobal or (mu.isTracker and mu.nStations > 0)):
+            if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and (mu.isGlobal or (mu.isTracker and mu.nStations > 0)):
                 mu._wp_Iso = 'LoosePFIso'
                 mu.isRelaxed = True
                 event.relaxedMuons.append(mu)
 
                 # Full ID = Relaxed + muon ID (isPFcand or highPtId > 0)
-                passMuID = mu.isPFcand or (mu.highPtId > 0 and mu.pt > 200)
+                passMuID = (mu.isPFcand or (mu.highPtId > 0 and mu.pt > 200)) and mu.pfRelIso03_all < 0.35 
                 if passMuID:
                     mu._wp_ID = 'TightID'
                     mu.isFullID = True
