@@ -208,6 +208,8 @@ class BaselineProducer(Module):
 
         if event.PV_npvsGood < 1: return False
 
+        if event.MET_pt > 25: return False
+
         # Apply trigger selections 
         if self._select_triggers(event) is False:
             return False
@@ -300,6 +302,9 @@ class BaselineProducer(Module):
 
             Zcand = Zcandidate(lep1, lep2)
 
+            if not ((lep1.pt > 20 or lep2.pt > 20) and (lep1.pt > 10 or lep2.pt > 10)):
+                continue
+
             # Apply Z mass window
             if Zcand.mass < 12 or Zcand.mass > 120:
                 continue
@@ -378,6 +383,8 @@ class BaselineProducer(Module):
         best3P1FCRIdx = -1
         bestSSCRIdx = -1
         bestCandIdx = -1
+
+        ZmassNominal = 91.1876  # Z mass in GeV
 
         def bestCandCmp(a, b):
 
@@ -458,7 +465,7 @@ class BaselineProducer(Module):
         # ---------- Control Region: Z + L ----------
         if hasattr(event, "bestZIdx") and event.bestZIdx >= 0:
             bestZ = event.Zcandidates[event.bestZIdx]
-            if 40 < bestZ.mass < 120: # Only for the SS 
+            if abs(bestZ.mass-ZmassNominal) < 7: # Only for the SS 
                 extra_leptons = [
                     lep for lep in event.selectedLeptons
                     if lep not in [bestZ.lep1, bestZ.lep2] and lep.isRelaxed
