@@ -232,8 +232,8 @@ class BaselineProducer(Module):
 
         self._build_SR_and_CR_combinations(event)
 
-        if len(event.Zcandidates) < 2:
-            return False
+        # if len(event.Zcandidates) < 2:
+        #     return False
 
         event.fullIDLeptons = event.fullIDMuons + event.fullIDElectrons
         
@@ -475,13 +475,25 @@ class BaselineProducer(Module):
         if hasattr(event, "bestZIdx") and event.bestZIdx >= 0:
             bestZ = event.Zcandidates[event.bestZIdx]
             if abs(bestZ.mass-ZmassNominal) < 7: 
-                extra_leptons = [
-                    lep for lep in event.selectedLeptons
+                # extra_leptons = [
+                #     lep for lep in event.selectedLeptons
+                #     if lep not in [bestZ.lep1, bestZ.lep2] and lep.isRelaxed
+                # ]
+                selected_with_idx = list(enumerate(event.selectedLeptons))
+
+                # Find index of bestZ.lep1 and bestZ.lep2
+                idx_lep1 = next((i for i, lep in selected_with_idx if lep is bestZ.lep1), -1)
+                idx_lep2 = next((i for i, lep in selected_with_idx if lep is bestZ.lep2), -1)
+
+                # Filter out Z leptons and keep relaxed leptons
+                extra_leptons_with_idx = [
+                    (i, lep) for i, lep in selected_with_idx
                     if lep not in [bestZ.lep1, bestZ.lep2] and lep.isRelaxed
                 ]
-                if len(extra_leptons) == 1:
-                    aL = extra_leptons[0]
-
+                if len(extra_leptons_with_idx) == 1:
+                    idx_aL, aL = extra_leptons_with_idx[0]
+                    # print("DEBUG: Z+L candidate leptons:")
+                    # print(f" - aL (third lepton): index={idx_aL}, pt={aL.pt}")
                     def deltaR(eta1, phi1, eta2, phi2):
                         return math.sqrt((eta1 - eta2) ** 2 + (phi1 - phi2) ** 2)
 
@@ -498,8 +510,10 @@ class BaselineProducer(Module):
                             ZLs_all.append(ZL)
                             if abs(aL.pdgId) == 11:
                                 ZLs_alle.append(ZL)
+                                print("Passed electron!")
                             elif abs(aL.pdgId) == 13:
                                 ZLs_allmu.append(ZL)
+                                print("Passed Muon!")
 
                             if aL.isFullID:
                                 ZLs_pass.append(ZL)
@@ -559,6 +573,8 @@ class BaselineProducer(Module):
     def _select_ZZ_candidates(self, event):
 
         event.ZZcandidates = []
+
+        if  len(event.ZcandidatesSR) < 2: return False 
                 
         Zcand_pairs = list(itertools.combinations(event.ZcandidatesSR, 2))
         for Zcand_pair in Zcand_pairs:
@@ -1196,9 +1212,11 @@ class BaselineProducer(Module):
         for ZLcandidate_all in event.ZLcandidates_all:
             ZLcandidate_all_mass.append(ZLcandidate_all.mass)
             ZLcandidate_all_pt.append(ZLcandidate_all.pt)
+            # print(ZLcandidate_all.pt)
             ZLcandidate_all_eta.append(ZLcandidate_all.eta)
             ZLcandidate_all_phi.append(ZLcandidate_all.phi)
             ZLcandidate_all_pt2.append(ZLcandidate_all.pt2)
+            # print(ZLcandidate_all.pt2)
             ZLcandidate_all_eta2.append(ZLcandidate_all.eta2)
         
         for ZLcandidate_alle in event.ZLcandidates_alle:
