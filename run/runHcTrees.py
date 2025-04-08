@@ -324,13 +324,13 @@ def merge_output_files():
     year = data["year"]
     
     # Create merged output directory
-    merged_dir = os.path.join(base_output_dir, dataset_type, year, "merged")
+    merged_dir = os.path.join(args.jobs_dir, base_output_dir, dataset_type, year, "merged")
     os.makedirs(merged_dir, exist_ok=True)
 
-    sample_dirs = [d.name for d in Path(os.path.join(base_output_dir, dataset_type, year)).iterdir() if d.is_dir()]
+    sample_dirs = [d.name for d in Path(os.path.join(args.jobs_dir, base_output_dir, dataset_type, year)).iterdir() if d.is_dir()]
 
     for sample in sample_dirs:
-        sample_path = os.path.join(base_output_dir, dataset_type, year, sample)
+        sample_path = os.path.join(args.jobs_dir, base_output_dir, dataset_type, year, sample)
 
         # Skip the merged directory itself
         if sample == "merged":
@@ -338,6 +338,7 @@ def merge_output_files():
 
         weighted_files = []
         physics_process_dirs = [d for d in Path(sample_path).iterdir() if d.is_dir()]
+        #print(physics_process_dirs)
         
         for process_dir in physics_process_dirs:
             weighted_file = os.path.join(process_dir, "weighted_tree.root")
@@ -352,7 +353,7 @@ def merge_output_files():
             print(f"No weighted files found for sample {sample}. Merging raw data files instead.")
             input_files = []
             for process_dir in physics_process_dirs:
-                infiles_dir = os.path.join(base_output_dir, dataset_type, year, sample, process_dir.name)
+                infiles_dir = os.path.join(args.jobs_dir, base_output_dir, dataset_type, year, sample, process_dir.name)
                 for root, _, files in os.walk(infiles_dir):
                     for file in files:
                         if file.endswith(".root"):
