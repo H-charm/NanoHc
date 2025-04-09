@@ -1,5 +1,6 @@
 from PhysicsTools.NanoAODTools.postprocessing.framework.datamodel import Collection
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
+from PhysicsTools.HeppyCore.utils.deltar import deltaR
 import ROOT
 import math
 import itertools
@@ -293,6 +294,7 @@ class BaselineProducer(Module):
         bestMassDiff = 9999
 
         ZmassNominal = 91.1876  # Z mass in GeV
+        print(event.selectedLeptons)
         lepton_pairs = list(itertools.combinations(event.selectedLeptons, 2))
 
         for lep1, lep2 in lepton_pairs:
@@ -510,10 +512,8 @@ class BaselineProducer(Module):
                             ZLs_all.append(ZL)
                             if abs(aL.pdgId) == 11:
                                 ZLs_alle.append(ZL)
-                                print("Passed electron!")
                             elif abs(aL.pdgId) == 13:
                                 ZLs_allmu.append(ZL)
-                                print("Passed Muon!")
 
                             if aL.isFullID:
                                 ZLs_pass.append(ZL)
@@ -584,6 +584,7 @@ class BaselineProducer(Module):
             if Z1.mass < 40: continue  
             
             leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2]
+            print(leptons)
 
             # Reject overlapping leptons
             leps_Z1 = [Z1.lep1, Z1.lep2]
@@ -671,22 +672,48 @@ class BaselineProducer(Module):
         event.fullIDMuons = []
 
         muons = Collection(event, "Muon")
+        fsrPhotons = Collection(event, "FsrPhoton")
 
-        for mu in muons:
+        fsr_dRET2_max = 0.012
+        relIso_cut = 0.35
+
+        # Step 1: Match FSR photons to muons
+        muFsrPhotonIdx = [-1] * len(muons)
+        for ifsr, fsr in enumerate(fsrPhotons):
+            if fsr.pt < 2 or abs(fsr.eta) > 2.4 or fsr.relIso03 > 1.8:
+                continue
+            dRmin = 0.5
+            for imu, mu in enumerate(muons):
+                dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
+                if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
+                    dRmin = dR
+                    muFsrPhotonIdx[imu] = ifsr
+
+        # Step 2: Selection
+        for imu, mu in enumerate(muons):
             mu.isRelaxed = False
             mu.isFullID = False
-            # Kinematic & baseline cuts (Relaxed ID)
-            if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and (mu.isGlobal or (mu.isTracker and mu.nStations > 0)):
+
+            if mu.pt > 5 and abs(mu.eta) < 2.5 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and (mu.isGlobal or (mu.isTracker and mu.nStations > 0)):
                 mu._wp_Iso = 'LoosePFIso'
                 mu.isRelaxed = True
                 event.relaxedMuons.append(mu)
 
-                # Full ID = Relaxed + muon ID (isPFcand or highPtId > 0)
-                passMuID = (mu.isPFcand or (mu.highPtId > 0 and mu.pt > 200)) and mu.pfRelIso03_all < 0.35 
+                # FSR-corrected isolation
+                isoCorr = mu.pfRelIso03_all
+                if muFsrPhotonIdx[imu] >= 0:
+                    fsr = fsrPhotons[muFsrPhotonIdx[imu]]
+                    dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
+                    if 0.01 < dR < 0.3:
+                        isoCorr = max(0.0, mu.pfRelIso03_all - fsr.pt / mu.pt)
+
+                # Full ID with corrected iso
+                passMuID = (mu.isPFcand or (mu.highPtId > 0 and mu.pt > 200)) and isoCorr < relIso_cut
                 if passMuID:
                     mu._wp_ID = 'TightID'
                     mu.isFullID = True
                     event.fullIDMuons.append(mu)
+
 
 
     def _select_electrons(self, event):
@@ -694,8 +721,24 @@ class BaselineProducer(Module):
         event.fullIDElectrons = []
 
         electrons = Collection(event, "Electron")
+        fsrPhotons = Collection(event, "FsrPhoton")
 
-        for el in electrons:
+        fsr_dRET2_max = 0.012
+
+        # Step 1: Match FSR photons to electrons
+        eleFsrPhotonIdx = [-1] * len(electrons)
+        for ifsr, fsr in enumerate(fsrPhotons):
+            if fsr.pt < 2 or abs(fsr.eta) > 2.4 or fsr.relIso03 > 1.8:
+                continue
+            dRmin = 0.5
+            for iel, el in enumerate(electrons):
+                dR = deltaR(el.eta, el.phi, fsr.eta, fsr.phi)
+                if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
+                    dRmin = dR
+                    eleFsrPhotonIdx[iel] = ifsr
+
+        # Step 2: Selection
+        for iel, el in enumerate(electrons):
             el.etaSC = el.eta + el.deltaEtaSC
             el.isRelaxed = False
             el.isFullID = False
@@ -704,22 +747,26 @@ class BaselineProducer(Module):
                 el.isRelaxed = True
                 event.relaxedElectrons.append(el)
 
-                # Full ID: add mvaIso BDT cut
-                if abs(el.etaSC) < 0.8:
-                    if el.pt < 10:
-                        if el.mvaHZZIso< 0.9044286167: continue
-                    else:
-                        if el.mvaHZZIso < 0.1968600840: continue
-                elif 0.8 < abs(el.etaSC) < 1.479:
-                    if el.pt < 10:
-                        if el.mvaHZZIso < 0.9094166886: continue
-                    else:
-                        if el.mvaHZZIso < 0.0759172100: continue
-                else:  # |etaSC| > 1.479
-                    if el.pt < 10:
-                        if el.mvaHZZIso < 0.9443653660: continue
-                    else:
-                        if el.mvaHZZIso < -0.5169136775: continue
+                # FSR-corrected isolation (not applied, but calculated for completeness)
+                isoCorr = el.pfRelIso03_all
+                if eleFsrPhotonIdx[iel] >= 0:
+                    fsr = fsrPhotons[eleFsrPhotonIdx[iel]]
+                    dR = deltaR(el.eta, el.phi, fsr.eta, fsr.phi)
+                    if 0.01 < dR < 0.3:
+                        isoCorr = max(0.0, el.pfRelIso03_all - fsr.pt / el.pt)
+
+                # Full ID BDT cuts
+                etaSC = abs(el.etaSC)
+                mva = el.mvaHZZIso
+                if etaSC < 0.8:
+                    if el.pt < 10 and mva < 0.9044286167: continue
+                    if el.pt >= 10 and mva < 0.1968600840: continue
+                elif 0.8 < etaSC < 1.479:
+                    if el.pt < 10 and mva < 0.9094166886: continue
+                    if el.pt >= 10 and mva < 0.0759172100: continue
+                else:
+                    if el.pt < 10 and mva < 0.9443653660: continue
+                    if el.pt >= 10 and mva < -0.5169136775: continue
 
                 # Passed BDT → full ID
                 el.isFullID = True
@@ -893,7 +940,7 @@ class BaselineProducer(Module):
             Zcandidate_pt.append(Zcandidate.pt)
             Zcandidate_eta.append(Zcandidate.eta)
             Zcandidate_phi.append(Zcandidate.phi)
-            if len(event.ZcandidatesSR)>2:
+            if len(event.ZcandidatesSR)>1:
                 if Zcandidate.is_onshell: Zcandidate_onshell_mass.append(Zcandidate.mass)
                 else: Zcandidate_offshell_mass.append(Zcandidate.mass)
                 
