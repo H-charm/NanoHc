@@ -51,6 +51,11 @@ class ZLcandidate:
         self.mass = sumP4(self.Z1, self.lep).M()
         self.pt2 = lep.pt
         self.eta2 = self.lep.eta
+        self.sip3d=lep.sip3d
+        self.dxy=lep.dxy
+        self.dz=lep.dz
+        self.iso=lep.iso
+        self.pfcand=lep.isPFcand
 
 
 class BaselineProducer(Module):
@@ -61,7 +66,8 @@ class BaselineProducer(Module):
         self.dataset_type = dataset_type
 
         # Define the variables you want to plot
-        self.lep_vars = ["pt","eta","phi", "pdgId"]
+        self.lep_vars = ["pt","eta","phi","pdgId"]
+        self.mu_vars = ["pt","eta","phi", "pdgId"]
         self.jet_vars = ["pt","eta","phi","mass","bdisc","cvbdisc","cvldisc","gvudsdisc"]
         self.jet_vars_mc = ["hadronFlavour"]
         self.Z_vars = ["pt","eta","phi","mass","onshell_mass","offshell_mass"]
@@ -75,7 +81,7 @@ class BaselineProducer(Module):
         self.ZZ2e2mu_vars=["pt","eta","phi","mass"]
 
         self.ZLL_vars=["pt","eta","phi","mass"]
-        self.ZL_vars=["pt","eta","phi","mass", "pt2", "eta2"]
+        self.ZL_vars=["pt","eta","phi","mass", "pt2", "eta2","sip3d","dz","dxy","iso","pfcand"]
 
         # Define the prefixes
         self.mu_prefix = "mu_"
@@ -124,8 +130,7 @@ class BaselineProducer(Module):
         self.isMC = True if self.dataset_type == "mc" else False
         
         self.out = wrappedOutputTree
-        
-        # Define lepton branches
+
         for lep_var in self.lep_vars:
             self.out.branch(self.mu_prefix + lep_var, "F", 20, lenVar="nMu")
             self.out.branch(self.el_prefix + lep_var, "F", 20, lenVar="nEl")
@@ -214,12 +219,14 @@ class BaselineProducer(Module):
         # Apply trigger selections 
         if self._select_triggers(event) is False:
             return False
-
+        self._associate_fsr_photons(event)
         self._select_muons(event)
         self._select_electrons(event)
+        event.fullIDLeptons = event.fullIDMuons + event.fullIDElectrons
+        # if len(event.fullIDLeptons) < 4: return False 
         event.selectedLeptons = event.relaxedMuons + event.relaxedElectrons
-        if len(event.selectedLeptons) < 3: return False # For Z+L CR we need to change this to 3 
 
+        if len(event.selectedLeptons) < 3: return False # For Z+L CR we need to change this to 3 
 
         self._select_jets(event)
         # if len(event.selectedJets) == 0:
@@ -235,8 +242,6 @@ class BaselineProducer(Module):
 
         # if len(event.Zcandidates) < 2:
         #     return False
-
-        event.fullIDLeptons = event.fullIDMuons + event.fullIDElectrons
         
         self._select_ZZ_candidates(event)
         self._select_H_candidates(event)
@@ -294,7 +299,6 @@ class BaselineProducer(Module):
         bestMassDiff = 9999
 
         ZmassNominal = 91.1876  # Z mass in GeV
-        print(event.selectedLeptons)
         lepton_pairs = list(itertools.combinations(event.selectedLeptons, 2))
 
         for lep1, lep2 in lepton_pairs:
@@ -303,6 +307,9 @@ class BaselineProducer(Module):
             lep1, lep2 = (lep1, lep2) if lep1.pdgId < 0 else (lep2, lep1)
 
             Zcand = Zcandidate(lep1, lep2)
+
+            # if not ((lep1.pt > 20 or lep2.pt > 20) and (lep1.pt > 10 or lep2.pt > 10)):
+            #     continue
 
             # Two DISTINCT leptons must pass pt > 10 and pt > 20
             num_passed_pt20 = 0
@@ -584,7 +591,6 @@ class BaselineProducer(Module):
             if Z1.mass < 40: continue  
             
             leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2]
-            print(leptons)
 
             # Reject overlapping leptons
             leps_Z1 = [Z1.lep1, Z1.lep2]
@@ -666,46 +672,93 @@ class BaselineProducer(Module):
         best_candidate = min(event.ZZcandidates, key=cmp_to_key(best_candidate_comparator))
         event.Hcandidates.append(best_candidate)    
 
-    ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py    
+    ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py   
+    def _associate_fsr_photons(self, event):
+        muons = Collection(event, "Muon")
+        electrons = Collection(event, "Electron")
+        fsrPhotons = Collection(event, "FsrPhoton")
+        fsr_dRET2_max = 0.012
+        relIso_cut = 1.8
+
+        # Init index and dREt2 tracking
+        muFsrPhotonIdx = [-1] * len(muons)
+        eleFsrPhotonIdx = [-1] * len(electrons)
+        muPhotondREt2 = [999] * len(muons)
+        elePhotondREt2 = [999] * len(electrons)
+        fsrPhoton_myMuonIdx = [-1] * len(fsrPhotons)
+        fsrPhoton_myElectronIdx = [-1] * len(fsrPhotons)
+        fsrPhoton_mydROverEt2 = [-1] * len(fsrPhotons)
+
+        for ifsr, fsr in enumerate(fsrPhotons):
+            if fsr.pt < 2 or abs(fsr.eta) > 2.4 or fsr.relIso03 > relIso_cut:
+                continue
+
+            dRmin = 0.5
+            closestMu = -1
+            closestEle = -1
+
+            for imu, mu in enumerate(muons):
+                dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
+                if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
+                    dRmin = dR
+                    closestMu = imu
+                    closestEle = -1
+
+            for iel, ele in enumerate(electrons):
+                dR = deltaR(ele.eta, ele.phi, fsr.eta, fsr.phi)
+                if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
+                    dRmin = dR
+                    closestMu = -1
+                    closestEle = iel
+
+            if closestMu >= 0 or closestEle >= 0:
+                dREt2 = dRmin / (fsr.pt ** 2)
+                fsrPhoton_mydROverEt2[ifsr] = dREt2
+
+                if closestMu >= 0:
+                    fsrPhoton_myMuonIdx[ifsr] = closestMu
+                    if dREt2 < muPhotondREt2[closestMu]:
+                        muPhotondREt2[closestMu] = dREt2
+                        muFsrPhotonIdx[closestMu] = ifsr
+
+                if closestEle >= 0:
+                    fsrPhoton_myElectronIdx[ifsr] = closestEle
+                    if dREt2 < elePhotondREt2[closestEle]:
+                        elePhotondREt2[closestEle] = dREt2
+                        eleFsrPhotonIdx[closestEle] = ifsr
+
+        # Store the results back in the event
+        event.muFsrPhotonIdx = muFsrPhotonIdx
+        event.eleFsrPhotonIdx = eleFsrPhotonIdx
+ 
     def _select_muons(self, event):
+        event.allMuons = []
         event.relaxedMuons = []
         event.fullIDMuons = []
 
         muons = Collection(event, "Muon")
         fsrPhotons = Collection(event, "FsrPhoton")
+        muFsrPhotonIdx = getattr(event, "muFsrPhotonIdx", [-1] * len(muons))
 
-        fsr_dRET2_max = 0.012
         relIso_cut = 0.35
 
-        # Step 1: Match FSR photons to muons
-        muFsrPhotonIdx = [-1] * len(muons)
-        for ifsr, fsr in enumerate(fsrPhotons):
-            if fsr.pt < 2 or abs(fsr.eta) > 2.4 or fsr.relIso03 > 1.8:
-                continue
-            dRmin = 0.5
-            for imu, mu in enumerate(muons):
-                dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
-                if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
-                    dRmin = dR
-                    muFsrPhotonIdx[imu] = ifsr
-
-        # Step 2: Selection
         for imu, mu in enumerate(muons):
             mu.isRelaxed = False
             mu.isFullID = False
+            isoCorr = mu.pfRelIso03_all
+            if muFsrPhotonIdx[imu] >= 0:
+                fsr = fsrPhotons[muFsrPhotonIdx[imu]]
+                dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
+                if 0.01 < dR < 0.3:
+                    isoCorr = max(0.0, mu.pfRelIso03_all - fsr.pt / mu.pt)
+            mu.iso=isoCorr
 
-            if mu.pt > 5 and abs(mu.eta) < 2.5 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and (mu.isGlobal or (mu.isTracker and mu.nStations > 0)):
+            event.allMuons.append(mu)
+
+            if mu.pt > 5 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and abs(mu.sip3d) < 4 and (mu.isGlobal or (mu.isTracker and mu.nStations > 0)):
                 mu._wp_Iso = 'LoosePFIso'
                 mu.isRelaxed = True
                 event.relaxedMuons.append(mu)
-
-                # FSR-corrected isolation
-                isoCorr = mu.pfRelIso03_all
-                if muFsrPhotonIdx[imu] >= 0:
-                    fsr = fsrPhotons[muFsrPhotonIdx[imu]]
-                    dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
-                    if 0.01 < dR < 0.3:
-                        isoCorr = max(0.0, mu.pfRelIso03_all - fsr.pt / mu.pt)
 
                 # Full ID with corrected iso
                 passMuID = (mu.isPFcand or (mu.highPtId > 0 and mu.pt > 200)) and isoCorr < relIso_cut
@@ -715,45 +768,32 @@ class BaselineProducer(Module):
                     event.fullIDMuons.append(mu)
 
 
-
     def _select_electrons(self, event):
+        event.allElectrons = []
         event.relaxedElectrons = []
         event.fullIDElectrons = []
 
         electrons = Collection(event, "Electron")
         fsrPhotons = Collection(event, "FsrPhoton")
+        eleFsrPhotonIdx = getattr(event, "eleFsrPhotonIdx", [-1] * len(electrons))
 
-        fsr_dRET2_max = 0.012
-
-        # Step 1: Match FSR photons to electrons
-        eleFsrPhotonIdx = [-1] * len(electrons)
-        for ifsr, fsr in enumerate(fsrPhotons):
-            if fsr.pt < 2 or abs(fsr.eta) > 2.4 or fsr.relIso03 > 1.8:
-                continue
-            dRmin = 0.5
-            for iel, el in enumerate(electrons):
-                dR = deltaR(el.eta, el.phi, fsr.eta, fsr.phi)
-                if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
-                    dRmin = dR
-                    eleFsrPhotonIdx[iel] = ifsr
-
-        # Step 2: Selection
         for iel, el in enumerate(electrons):
             el.etaSC = el.eta + el.deltaEtaSC
             el.isRelaxed = False
             el.isFullID = False
-            if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
+            isoCorr = el.pfRelIso03_all
+            if eleFsrPhotonIdx[iel] >= 0:
+                fsr = fsrPhotons[eleFsrPhotonIdx[iel]]
+                dR = deltaR(el.eta, el.phi, fsr.eta, fsr.phi)
+                if 0.01 < dR < 0.3:
+                    isoCorr = max(0.0, el.pfRelIso03_all - fsr.pt / el.pt)
+            el.iso=isoCorr
+
+
+            if el.pt > 7 and abs(el.eta) < 2.5 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and abs(el.sip3d) < 4:
                 el._wp_ID = 'wp90iso'
                 el.isRelaxed = True
                 event.relaxedElectrons.append(el)
-
-                # FSR-corrected isolation (not applied, but calculated for completeness)
-                isoCorr = el.pfRelIso03_all
-                if eleFsrPhotonIdx[iel] >= 0:
-                    fsr = fsrPhotons[eleFsrPhotonIdx[iel]]
-                    dR = deltaR(el.eta, el.phi, fsr.eta, fsr.phi)
-                    if 0.01 < dR < 0.3:
-                        isoCorr = max(0.0, el.pfRelIso03_all - fsr.pt / el.pt)
 
                 # Full ID BDT cuts
                 etaSC = abs(el.etaSC)
@@ -768,9 +808,9 @@ class BaselineProducer(Module):
                     if el.pt < 10 and mva < 0.9443653660: continue
                     if el.pt >= 10 and mva < -0.5169136775: continue
 
-                # Passed BDT → full ID
                 el.isFullID = True
                 event.fullIDElectrons.append(el)
+
 
 
     def _select_jets(self, event):
@@ -895,12 +935,8 @@ class BaselineProducer(Module):
         out_data[self.full_mu_prefix + "eta"] = full_mu_eta
         out_data[self.full_mu_prefix + "phi"] = full_mu_phi
         out_data[self.full_mu_prefix + "pdgId"] = full_mu_pdgId
-                    
+        
         ## jets  
-        # ak4_bdisc = []
-        # ak4_cvbdisc = []
-        # ak4_cvldisc = []
-        # ak4_gvudsdisc = []
         ak4_pt = []
         ak4_eta = []
         ak4_phi = []
@@ -1241,6 +1277,13 @@ class BaselineProducer(Module):
         ZLcandidate_all_phi = []
         ZLcandidate_all_pt2 = []
         ZLcandidate_all_eta2 = []
+        ZLcandidate_all_sip3d = []
+        ZLcandidate_all_dxy = []
+        ZLcandidate_all_dz = []
+        ZLcandidate_all_iso = []
+        ZLcandidate_all_pfcand=[]
+
+        
 
         ZLcandidate_alle_mass = []
         ZLcandidate_alle_pt = []
@@ -1248,6 +1291,12 @@ class BaselineProducer(Module):
         ZLcandidate_alle_phi = []
         ZLcandidate_alle_pt2 = []
         ZLcandidate_alle_eta2 = []
+        ZLcandidate_alle_sip3d = []
+        ZLcandidate_alle_dxy = []
+        ZLcandidate_alle_dz = []
+        ZLcandidate_alle_iso = []
+        ZLcandidate_alle_pfcand=[]
+
 
         ZLcandidate_allmu_mass = []
         ZLcandidate_allmu_pt = []
@@ -1255,16 +1304,25 @@ class BaselineProducer(Module):
         ZLcandidate_allmu_phi = []
         ZLcandidate_allmu_pt2 = []
         ZLcandidate_allmu_eta2 = []
+        ZLcandidate_allmu_sip3d = []
+        ZLcandidate_allmu_dxy = []
+        ZLcandidate_allmu_dz = []
+        ZLcandidate_allmu_iso = []
+        ZLcandidate_allmu_pfcand=[]
+
 
         for ZLcandidate_all in event.ZLcandidates_all:
             ZLcandidate_all_mass.append(ZLcandidate_all.mass)
             ZLcandidate_all_pt.append(ZLcandidate_all.pt)
-            # print(ZLcandidate_all.pt)
             ZLcandidate_all_eta.append(ZLcandidate_all.eta)
             ZLcandidate_all_phi.append(ZLcandidate_all.phi)
             ZLcandidate_all_pt2.append(ZLcandidate_all.pt2)
-            # print(ZLcandidate_all.pt2)
             ZLcandidate_all_eta2.append(ZLcandidate_all.eta2)
+            ZLcandidate_all_sip3d.append(ZLcandidate_all.sip3d)
+            ZLcandidate_all_dz.append(ZLcandidate_all.dz)
+            ZLcandidate_all_dxy.append(ZLcandidate_all.dxy)
+            ZLcandidate_all_iso.append(ZLcandidate_all.iso)
+            ZLcandidate_all_pfcand.append(ZLcandidate_all.pfcand)
         
         for ZLcandidate_alle in event.ZLcandidates_alle:
             ZLcandidate_alle_mass.append(ZLcandidate_alle.mass)
@@ -1273,6 +1331,11 @@ class BaselineProducer(Module):
             ZLcandidate_alle_phi.append(ZLcandidate_alle.phi)
             ZLcandidate_alle_pt2.append(ZLcandidate_alle.pt2)
             ZLcandidate_alle_eta2.append(ZLcandidate_alle.eta2)
+            ZLcandidate_alle_sip3d.append(ZLcandidate_alle.sip3d)
+            ZLcandidate_alle_dz.append(ZLcandidate_alle.dz)
+            ZLcandidate_alle_dxy.append(ZLcandidate_alle.dxy)
+            ZLcandidate_alle_iso.append(ZLcandidate_alle.iso)
+            ZLcandidate_alle_pfcand.append(ZLcandidate_alle.pfcand)
         
         for ZLcandidate_allmu in event.ZLcandidates_allmu:
             ZLcandidate_allmu_mass.append(ZLcandidate_allmu.mass)
@@ -1281,6 +1344,11 @@ class BaselineProducer(Module):
             ZLcandidate_allmu_phi.append(ZLcandidate_allmu.phi)
             ZLcandidate_allmu_pt2.append(ZLcandidate_allmu.pt2)
             ZLcandidate_allmu_eta2.append(ZLcandidate_allmu.eta2)
+            ZLcandidate_allmu_sip3d.append(ZLcandidate_allmu.sip3d)
+            ZLcandidate_allmu_dz.append(ZLcandidate_allmu.dz)
+            ZLcandidate_allmu_dxy.append(ZLcandidate_allmu.dxy)
+            ZLcandidate_allmu_iso.append(ZLcandidate_allmu.iso)
+            ZLcandidate_allmu_pfcand.append(ZLcandidate_allmu.pfcand)
 
         out_data[self.ZLall_prefix + "mass"] = ZLcandidate_all_mass
         out_data[self.ZLall_prefix + "pt"] = ZLcandidate_all_pt
@@ -1288,6 +1356,12 @@ class BaselineProducer(Module):
         out_data[self.ZLall_prefix + "phi"] = ZLcandidate_all_phi
         out_data[self.ZLall_prefix + "pt2"] = ZLcandidate_all_pt2
         out_data[self.ZLall_prefix + "eta2"] = ZLcandidate_all_eta2
+        out_data[self.ZLall_prefix + "sip3d"] = ZLcandidate_all_sip3d 
+        out_data[self.ZLall_prefix + "dz"] = ZLcandidate_all_dz
+        out_data[self.ZLall_prefix + "dxy"] = ZLcandidate_all_dxy
+        out_data[self.ZLall_prefix + "iso"] = ZLcandidate_all_iso
+        out_data[self.ZLall_prefix + "pfcand"] = ZLcandidate_all_pfcand
+
 
         out_data[self.ZLalle_prefix + "mass"] = ZLcandidate_alle_mass
         out_data[self.ZLalle_prefix + "pt"] = ZLcandidate_alle_pt
@@ -1295,6 +1369,12 @@ class BaselineProducer(Module):
         out_data[self.ZLalle_prefix + "phi"] = ZLcandidate_alle_phi
         out_data[self.ZLalle_prefix + "pt2"] = ZLcandidate_alle_pt2
         out_data[self.ZLalle_prefix + "eta2"] = ZLcandidate_alle_eta2
+        out_data[self.ZLalle_prefix + "sip3d"] = ZLcandidate_alle_sip3d 
+        out_data[self.ZLalle_prefix + "dz"] = ZLcandidate_alle_dz
+        out_data[self.ZLalle_prefix + "dxy"] = ZLcandidate_alle_dxy
+        out_data[self.ZLalle_prefix + "iso"] = ZLcandidate_alle_iso
+        out_data[self.ZLalle_prefix + "pfcand"] = ZLcandidate_alle_pfcand
+
 
         out_data[self.ZLallmu_prefix + "mass"] = ZLcandidate_allmu_mass
         out_data[self.ZLallmu_prefix + "pt"] = ZLcandidate_allmu_pt
@@ -1302,6 +1382,12 @@ class BaselineProducer(Module):
         out_data[self.ZLallmu_prefix + "phi"] = ZLcandidate_allmu_phi
         out_data[self.ZLallmu_prefix + "pt2"] = ZLcandidate_allmu_pt2
         out_data[self.ZLallmu_prefix + "eta2"] = ZLcandidate_allmu_eta2
+        out_data[self.ZLallmu_prefix + "sip3d"] = ZLcandidate_allmu_sip3d 
+        out_data[self.ZLallmu_prefix + "dz"] = ZLcandidate_allmu_dz
+        out_data[self.ZLallmu_prefix + "dxy"] = ZLcandidate_allmu_dxy
+        out_data[self.ZLallmu_prefix + "iso"] = ZLcandidate_allmu_iso
+        out_data[self.ZLallmu_prefix + "pfcand"] = ZLcandidate_allmu_pfcand
+
         
         ZLcandidate_pass_mass = []
         ZLcandidate_pass_pt = []
@@ -1309,6 +1395,11 @@ class BaselineProducer(Module):
         ZLcandidate_pass_phi = []
         ZLcandidate_pass_pt2 = []
         ZLcandidate_pass_eta2 = []
+        ZLcandidate_pass_sip3d = []
+        ZLcandidate_pass_dxy = []
+        ZLcandidate_pass_dz = []
+        ZLcandidate_pass_iso = []
+        ZLcandidate_pass_pfcand=[]
 
         ZLcandidate_passe_mass = []
         ZLcandidate_passe_pt = []
@@ -1316,6 +1407,11 @@ class BaselineProducer(Module):
         ZLcandidate_passe_phi = []
         ZLcandidate_passe_pt2 = []
         ZLcandidate_passe_eta2 = []
+        ZLcandidate_passe_sip3d = []
+        ZLcandidate_passe_dxy = []
+        ZLcandidate_passe_dz = []
+        ZLcandidate_passe_iso = []
+        ZLcandidate_passe_pfcand=[]
 
         ZLcandidate_passmu_mass = []
         ZLcandidate_passmu_pt = []
@@ -1323,6 +1419,11 @@ class BaselineProducer(Module):
         ZLcandidate_passmu_phi = []
         ZLcandidate_passmu_pt2 = []
         ZLcandidate_passmu_eta2 = []
+        ZLcandidate_passmu_sip3d = []
+        ZLcandidate_passmu_dxy = []
+        ZLcandidate_passmu_dz = []
+        ZLcandidate_passmu_iso = []
+        ZLcandidate_passmu_pfcand=[]
 
         for ZLcandidate_pass in event.ZLcandidates_pass:
             ZLcandidate_pass_mass.append(ZLcandidate_pass.mass)
@@ -1331,6 +1432,11 @@ class BaselineProducer(Module):
             ZLcandidate_pass_phi.append(ZLcandidate_pass.phi)
             ZLcandidate_pass_pt2.append(ZLcandidate_pass.pt2)
             ZLcandidate_pass_eta2.append(ZLcandidate_pass.eta2)
+            ZLcandidate_pass_sip3d.append(ZLcandidate_pass.sip3d)
+            ZLcandidate_pass_dz.append(ZLcandidate_pass.dz)
+            ZLcandidate_pass_dxy.append(ZLcandidate_pass.dxy)
+            ZLcandidate_pass_iso.append(ZLcandidate_pass.iso)
+            ZLcandidate_pass_pfcand.append(ZLcandidate_pass.pfcand)
         
         for ZLcandidate_passe in event.ZLcandidates_passe:
             ZLcandidate_passe_mass.append(ZLcandidate_passe.mass)
@@ -1339,6 +1445,11 @@ class BaselineProducer(Module):
             ZLcandidate_passe_phi.append(ZLcandidate_passe.phi)
             ZLcandidate_passe_pt2.append(ZLcandidate_passe.pt2)
             ZLcandidate_passe_eta2.append(ZLcandidate_passe.eta2)
+            ZLcandidate_passe_sip3d.append(ZLcandidate_passe.sip3d)
+            ZLcandidate_passe_dz.append(ZLcandidate_passe.dz)
+            ZLcandidate_passe_dxy.append(ZLcandidate_passe.dxy)
+            ZLcandidate_passe_iso.append(ZLcandidate_passe.iso)
+            ZLcandidate_passe_pfcand.append(ZLcandidate_passe.pfcand)
         
         for ZLcandidate_passmu in event.ZLcandidates_passmu:
             ZLcandidate_passmu_mass.append(ZLcandidate_passmu.mass)
@@ -1347,6 +1458,11 @@ class BaselineProducer(Module):
             ZLcandidate_passmu_phi.append(ZLcandidate_passmu.phi)
             ZLcandidate_passmu_pt2.append(ZLcandidate_passmu.pt2)
             ZLcandidate_passmu_eta2.append(ZLcandidate_passmu.eta2)
+            ZLcandidate_passmu_sip3d.append(ZLcandidate_passmu.sip3d)
+            ZLcandidate_passmu_dz.append(ZLcandidate_passmu.dz)
+            ZLcandidate_passmu_dxy.append(ZLcandidate_passmu.dxy)
+            ZLcandidate_passmu_iso.append(ZLcandidate_passmu.iso)
+            ZLcandidate_passmu_pfcand.append(ZLcandidate_passmu.pfcand)
 
         out_data[self.ZLpass_prefix + "mass"] = ZLcandidate_pass_mass
         out_data[self.ZLpass_prefix + "pt"] = ZLcandidate_pass_pt
@@ -1354,6 +1470,11 @@ class BaselineProducer(Module):
         out_data[self.ZLpass_prefix + "phi"] = ZLcandidate_pass_phi
         out_data[self.ZLpass_prefix + "pt2"] = ZLcandidate_pass_pt2
         out_data[self.ZLpass_prefix + "eta2"] = ZLcandidate_pass_eta2
+        out_data[self.ZLpass_prefix + "sip3d"] = ZLcandidate_pass_sip3d 
+        out_data[self.ZLpass_prefix + "dz"] = ZLcandidate_pass_dz
+        out_data[self.ZLpass_prefix + "dxy"] = ZLcandidate_pass_dxy
+        out_data[self.ZLpass_prefix + "iso"] = ZLcandidate_pass_iso
+        out_data[self.ZLpass_prefix + "pfcand"] = ZLcandidate_pass_pfcand
 
         out_data[self.ZLpasse_prefix + "mass"] = ZLcandidate_passe_mass
         out_data[self.ZLpasse_prefix + "pt"] = ZLcandidate_passe_pt
@@ -1361,6 +1482,11 @@ class BaselineProducer(Module):
         out_data[self.ZLpasse_prefix + "phi"] = ZLcandidate_passe_phi
         out_data[self.ZLpasse_prefix + "pt2"] = ZLcandidate_passe_pt2
         out_data[self.ZLpasse_prefix + "eta2"] = ZLcandidate_passe_eta2
+        out_data[self.ZLpasse_prefix + "sip3d"] = ZLcandidate_passe_sip3d 
+        out_data[self.ZLpasse_prefix + "dz"] = ZLcandidate_passe_dz
+        out_data[self.ZLpasse_prefix + "dxy"] = ZLcandidate_passe_dxy
+        out_data[self.ZLpasse_prefix + "iso"] = ZLcandidate_passe_iso
+        out_data[self.ZLpasse_prefix + "pfcand"] = ZLcandidate_passe_pfcand
 
         out_data[self.ZLpassmu_prefix + "mass"] = ZLcandidate_passmu_mass
         out_data[self.ZLpassmu_prefix + "pt"] = ZLcandidate_passmu_pt
@@ -1368,6 +1494,11 @@ class BaselineProducer(Module):
         out_data[self.ZLpassmu_prefix + "phi"] = ZLcandidate_passmu_phi
         out_data[self.ZLpassmu_prefix + "pt2"] = ZLcandidate_passmu_pt2
         out_data[self.ZLpassmu_prefix + "eta2"] = ZLcandidate_passmu_eta2
+        out_data[self.ZLpassmu_prefix + "sip3d"] = ZLcandidate_passmu_sip3d 
+        out_data[self.ZLpassmu_prefix + "dz"] = ZLcandidate_passmu_dz
+        out_data[self.ZLpassmu_prefix + "dxy"] = ZLcandidate_passmu_dxy
+        out_data[self.ZLpassmu_prefix + "iso"] = ZLcandidate_passmu_iso
+        out_data[self.ZLpassmu_prefix + "pfcand"] = ZLcandidate_passmu_pfcand
 
 
         ## fill all branches
