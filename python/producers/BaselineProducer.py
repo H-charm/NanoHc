@@ -521,11 +521,11 @@ class BaselineProducer(Module):
             for iZLL, ZLL in enumerate(ZLLsTemp):
                 if iZLL in [best2P2FCRIdx, best3P1FCRIdx, bestSSCRIdx]:
                     ZLLs.append(ZLL)
-                if iZLL in best2P2FCRIdx:
+                if iZLL == best2P2FCRIdx:
                     ZLL2P2F.append(ZLL)
-                if iZLL in best3P1FCRIdx:
+                if iZLL == best3P1FCRIdx:
                     ZLL3P1F.append(ZLL)
-                if iZLL in bestSSCRIdx:
+                if iZLL == bestSSCRIdx:
                     ZLLSSCR.append(ZLL)
 
 
