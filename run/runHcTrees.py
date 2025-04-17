@@ -428,13 +428,13 @@ def resubmit():
     # Ensure check_job_status accepts 'args' as an argument
     jobids = check_job_status()[1]['failed']  
     
-    jobids_file = 'resubmit.txt' #os.path.join(args.jobs_dir, 'resubmit.txt')
+    jobids_file = os.path.join(args.jobs_dir, 'resubmit.txt')
 
     with open(jobids_file, 'w') as f:
         f.write('\n'.join(jobids))
 
     # Pass the correct absolute path to write_condor_submit
-    write_condor_submit(jobids_file=jobids_file)
+    write_condor_submit(jobids_file='resubmit.txt')
 def main():
 
     jobs_dir = "jobs_" + args.type + "_" + args.year
