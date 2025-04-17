@@ -14,7 +14,8 @@ import numpy as np
 import correctionlib
 from math import pi
 import ROOT
-# from ROOT import MuonScaRe
+from ROOT import MuonScaRe
+from PhysicsTools.NATModules.modules.muonScaleRes import muonScaleRes 
 
 era_dict = {"2022": '2022_Summer22', "2022EE": '2022_Summer22EE', "2023": '2023_Summer23', "2023BPix": '2023_Summer23BPix'}
 
