@@ -435,6 +435,8 @@ def resubmit():
 
     # Pass the correct absolute path to write_condor_submit
     write_condor_submit(jobids_file='resubmit.txt')
+    print(f"Writing failed jobs in {jobids_file}")
+    print("Submitting....")
 def main():
 
     jobs_dir = "jobs_" + args.type + "_" + args.year
@@ -442,6 +444,14 @@ def main():
 
     if args.resubmit:
         resubmit()
+        original_dir = os.getcwd()
+        try:
+            os.chdir(jobs_dir)
+            query_out = os.popen("condor_submit submit.sh").read()
+            print("Jobs submitted to condor")
+        finally:
+            # Always go back to original directory, even if error happens
+            os.chdir(original_dir)
         sys.exit(0)
     
     if args.check_status:
