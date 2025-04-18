@@ -378,7 +378,7 @@ class BaselineProducer(Module):
         # event.Hcandidates.append(best_candidate)
         
     ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py    
-        def _associate_fsr_photons(self, event):
+    def _associate_fsr_photons(self, event):
         muons = Collection(event, "Muon")
         electrons = Collection(event, "Electron")
         fsrPhotons = Collection(event, "FsrPhoton")
