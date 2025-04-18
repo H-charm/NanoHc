@@ -146,7 +146,8 @@ class BaselineProducer(Module):
         # Apply trigger selections on trigger and data
         if self._select_triggers(event) is False:
             return False
-
+        
+        self._associate_fsr_photons(event)
         self._select_muons(event)
         self._select_electrons(event)  
         event.selectedLeptons = event.selectedMuons + event.selectedElectrons
