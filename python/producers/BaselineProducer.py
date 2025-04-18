@@ -392,7 +392,7 @@ class BaselineProducer(Module):
             
             passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
             
-            if mu.pt > 5 and abs(mu.eta) < 2.4 and mu.dxy < 0.5 and mu.dz < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and passMuID and (mu.isGlobal or (mu.isTracker and mu.nStations>0)):
+            if mu.pt > 5 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and passMuID and (mu.isGlobal or (mu.isTracker and mu.nStations>0)):
                 mu._wp_ID = 'TightID'
                 mu._wp_Iso = 'LoosePFIso'
                 event.selectedMuons.append(mu)
@@ -406,7 +406,7 @@ class BaselineProducer(Module):
         
         for el in electrons:
             el.etaSC = el.eta + el.deltaEtaSC
-            if el.pt > 7 and abs(el.eta) < 2.5 and el.dxy < 0.5 and el.dz < 1 and abs(el.sip3d) < 4:
+            if el.pt > 7 and abs(el.eta) < 2.5 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and abs(el.sip3d) < 4:
                 el._wp_ID = 'wp90iso'
                 
                 ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
