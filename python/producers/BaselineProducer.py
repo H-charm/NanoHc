@@ -1,6 +1,6 @@
 from PhysicsTools.NanoAODTools.postprocessing.framework.datamodel import Collection
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
-# from ..helpers.triggerHelper import passTrigger
+from PhysicsTools.HeppyCore.utils.deltar import deltaR
 import ROOT
 import math
 import itertools
@@ -376,23 +376,87 @@ class BaselineProducer(Module):
         #     )
 
         # event.Hcandidates.append(best_candidate)
-
-    
-
-            
         
     ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py    
+        def _associate_fsr_photons(self, event):
+        muons = Collection(event, "Muon")
+        electrons = Collection(event, "Electron")
+        fsrPhotons = Collection(event, "FsrPhoton")
+        fsr_dRET2_max = 0.012
+        relIso_cut = 1.8
+
+        # Init index and dREt2 tracking
+        muFsrPhotonIdx = [-1] * len(muons)
+        eleFsrPhotonIdx = [-1] * len(electrons)
+        muPhotondREt2 = [999] * len(muons)
+        elePhotondREt2 = [999] * len(electrons)
+        fsrPhoton_myMuonIdx = [-1] * len(fsrPhotons)
+        fsrPhoton_myElectronIdx = [-1] * len(fsrPhotons)
+        fsrPhoton_mydROverEt2 = [-1] * len(fsrPhotons)
+
+        for ifsr, fsr in enumerate(fsrPhotons):
+            if fsr.pt < 2 or abs(fsr.eta) > 2.4 or fsr.relIso03 > relIso_cut:
+                continue
+
+            dRmin = 0.5
+            closestMu = -1
+            closestEle = -1
+
+            for imu, mu in enumerate(muons):
+                dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
+                if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
+                    dRmin = dR
+                    closestMu = imu
+                    closestEle = -1
+
+            for iel, ele in enumerate(electrons):
+                dR = deltaR(ele.eta, ele.phi, fsr.eta, fsr.phi)
+                if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
+                    dRmin = dR
+                    closestMu = -1
+                    closestEle = iel
+
+            if closestMu >= 0 or closestEle >= 0:
+                dREt2 = dRmin / (fsr.pt ** 2)
+                fsrPhoton_mydROverEt2[ifsr] = dREt2
+
+                if closestMu >= 0:
+                    fsrPhoton_myMuonIdx[ifsr] = closestMu
+                    if dREt2 < muPhotondREt2[closestMu]:
+                        muPhotondREt2[closestMu] = dREt2
+                        muFsrPhotonIdx[closestMu] = ifsr
+
+                if closestEle >= 0:
+                    fsrPhoton_myElectronIdx[ifsr] = closestEle
+                    if dREt2 < elePhotondREt2[closestEle]:
+                        elePhotondREt2[closestEle] = dREt2
+                        eleFsrPhotonIdx[closestEle] = ifsr
+
+        # Store the results back in the event
+        event.muFsrPhotonIdx = muFsrPhotonIdx
+        event.eleFsrPhotonIdx = eleFsrPhotonIdx
+
     def _select_muons(self, event):
 
         event.selectedMuons = []
 
         muons = Collection(event, "Muon")
-        
-        for mu in muons:
+        fsrPhotons = Collection(event, "FsrPhoton")
+        muFsrPhotonIdx = getattr(event, "muFsrPhotonIdx", [-1] * len(muons))
+
+        for imu, mu in enumerate(muons):
+
+            isoCorr = mu.pfRelIso03_all
+            if muFsrPhotonIdx[imu] >= 0:
+                fsr = fsrPhotons[muFsrPhotonIdx[imu]]
+                dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
+                if 0.01 < dR < 0.3:
+                    isoCorr = max(0.0, mu.pfRelIso03_all - fsr.pt / mu.pt)
+            mu.iso=isoCorr
             
             passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
             
-            if mu.pt > 5 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and abs(mu.sip3d) < 4 and mu.pfRelIso03_all < 0.35 and passMuID and (mu.isGlobal or (mu.isTracker and mu.nStations>0)):
+            if mu.pt > 5 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and abs(mu.sip3d) < 4 and isoCorr < 0.35 and passMuID and (mu.isGlobal or (mu.isTracker and mu.nStations>0)):
                 mu._wp_ID = 'TightID'
                 mu._wp_Iso = 'LoosePFIso'
                 event.selectedMuons.append(mu)
@@ -403,28 +467,49 @@ class BaselineProducer(Module):
         event.selectedElectrons = []
 
         electrons = Collection(event, "Electron")
+        fsrPhotons = Collection(event, "FsrPhoton")
+        eleFsrPhotonIdx = getattr(event, "eleFsrPhotonIdx", [-1] * len(electrons))
         
-        for el in electrons:
+        for iel, el in enumerate(electrons):
             el.etaSC = el.eta + el.deltaEtaSC
+            isoCorr = el.pfRelIso03_all
+            if eleFsrPhotonIdx[iel] >= 0:
+                fsr = fsrPhotons[eleFsrPhotonIdx[iel]]
+                dR = deltaR(el.eta, el.phi, fsr.eta, fsr.phi)
+                if 0.01 < dR < 0.3:
+                    isoCorr = max(0.0, el.pfRelIso03_all - fsr.pt / el.pt)
+            el.iso=isoCorr
             if el.pt > 7 and abs(el.eta) < 2.5 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and abs(el.sip3d) < 4:
                 el._wp_ID = 'wp90iso'
                 
                 ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
-                if abs(el.etaSC) < 0.8:
-                    if el.pt < 10:
-                        if el.mvaIso < 0.9044286167: continue
-                    else:
-                        if el.mvaIso < 0.1968600840: continue
-                elif 0.8 < abs(el.etaSC) < 1.479:
-                    if el.pt < 10:
-                        if el.mvaIso < 0.9094166886: continue
-                    else:
-                        if el.mvaIso < 0.0759172100: continue                  
-                else: # |el.etaSC| > 1.479
-                    if el.pt < 10:
-                        if el.mvaIso < 0.9443653660: continue
-                    else:
-                        if el.mvaIso < -0.5169136775: continue                      
+                # if abs(el.etaSC) < 0.8:
+                #     if el.pt < 10:
+                #         if el.mvaIso < 0.9044286167: continue
+                #     else:
+                #         if el.mvaIso < 0.1968600840: continue
+                # elif 0.8 < abs(el.etaSC) < 1.479:
+                #     if el.pt < 10:
+                #         if el.mvaIso < 0.9094166886: continue
+                #     else:
+                #         if el.mvaIso < 0.0759172100: continue                  
+                # else: # |el.etaSC| > 1.479
+                #     if el.pt < 10:
+                #         if el.mvaIso < 0.9443653660: continue
+                #     else:
+                #         if el.mvaIso < -0.5169136775: continue
+                # Full ID BDT cuts
+                etaSC = abs(el.etaSC)
+                mva = el.mvaHZZIso
+                if etaSC < 0.8:
+                    if el.pt < 10 and mva < 0.9044286167: continue
+                    if el.pt >= 10 and mva < 0.1968600840: continue
+                elif 0.8 < etaSC < 1.479:
+                    if el.pt < 10 and mva < 0.9094166886: continue
+                    if el.pt >= 10 and mva < 0.0759172100: continue
+                else:
+                    if el.pt < 10 and mva < 0.9443653660: continue
+                    if el.pt >= 10 and mva < -0.5169136775: continue                      
                                     
                 event.selectedElectrons.append(el)
 
