@@ -371,7 +371,7 @@ def merge_output_files():
         # If multiple weighted files exist, merge them
         elif len(weighted_files) > 1:
             final_merged_file = os.path.join(merged_dir, f"{sample}_final_merged.root")
-            merge_cmd = f"haddnano.py {final_merged_file} {' '.join(weighted_files)}"
+            merge_cmd = f"hadd {final_merged_file} {' '.join(weighted_files)}"
             print(f"Merging {len(weighted_files)} weighted files into {final_merged_file}")
             subprocess.run(merge_cmd, shell=True, check=True)
         else:
