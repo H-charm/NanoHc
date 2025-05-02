@@ -41,6 +41,14 @@ class ZLLcandidate:
         self.mass = sumP4(self.Z1, self.Z2).M()
         self.category = None 
 
+        self.lep3_pt = Z2.lep1.pt
+        self.lep3_eta = Z2.lep1.eta
+        self.lep3_pdgId = Z2.lep1.pdgId
+
+        self.lep4_pt = Z2.lep2.pt
+        self.lep4_eta = Z2.lep2.eta
+        self.lep4_pdgId = Z2.lep2.pdgId 
+
 class ZLcandidate:
 
     def __init__(self,Z1,lep):
@@ -81,7 +89,7 @@ class BaselineProducer(Module):
         self.ZZ4mu_vars=["pt","eta","phi","mass"]
         self.ZZ2e2mu_vars=["pt","eta","phi","mass"]
 
-        self.ZLL_vars=["pt","eta","phi","mass"]
+        self.ZLL_vars=["pt","eta","phi","mass","lep3_pt","lep3_eta","lep3_pdgId","lep4_pt","lep4_eta","lep4_pdgId"] 
         self.ZL_vars=["pt","eta","phi","mass", "pt2", "eta2","sip3d","dz","dxy","iso","pfcand"]
 
         # Define the prefixes
@@ -345,21 +353,21 @@ class BaselineProducer(Module):
             # if not ((lep1.pt > 20 or lep2.pt > 20) and (lep1.pt > 10 or lep2.pt > 10)):
             #     continue
 
-            # Two DISTINCT leptons must pass pt > 10 and pt > 20
-            num_passed_pt20 = 0
-            num_passed_pt10 = 0
+            # num_passed_pt20 = 0
+            # num_passed_pt10 = 0
 
-            for lep in [lep1,lep2]:
-                if lep.pt > 20:
-                    num_passed_pt20 += 1
-                elif lep.pt > 10:
-                    num_passed_pt10 += 1
+            # for lep in [lep1,lep2]:
+            #     if lep.pt > 20:
+            #             num_passed_pt20 += 1
+            #     elif lep.pt > 10:
+            #             num_passed_pt10 += 1
 
-            if num_passed_pt20 == 0 or (num_passed_pt10 + num_passed_pt20) < 2: continue 
+            # if num_passed_pt20 == 0 or (num_passed_pt10 + num_passed_pt20) < 2:
+            #     continue
 
-            # Apply Z mass window
-            if Zcand.mass < 12 or Zcand.mass > 120:
-                continue
+            # # Apply Z mass window
+            # if Zcand.mass < 12 or Zcand.mass > 120:
+            #     continue
 
             # Initialize flags
             Zcand.isOSSF = False
@@ -382,6 +390,10 @@ class BaselineProducer(Module):
                         Zcand.isSR = True
                     elif nFull == 1:
                         Zcand.is1FCR = True
+                        if full1 and not full2:
+                            Zcand.leptons = (lep2, lep1)
+                        elif not full1 and full2:
+                            Zcand.leptons = (lep1, lep2)
                     elif nFull == 0:
                         Zcand.is2FCR = True
 
@@ -538,7 +550,20 @@ class BaselineProducer(Module):
         # ---------- Control Region: Z + L ----------
         if hasattr(event, "bestZIdx") and event.bestZIdx >= 0:
             bestZ = event.Zcandidates[event.bestZIdx]
-            if abs(bestZ.mass-ZmassNominal) < 7: 
+            lep1,lep2=[bestZ.lep1, bestZ.lep2]
+
+            num_passed_pt20 = 0
+            num_passed_pt10 = 0
+
+            for lep in [lep1,lep2]:
+                if lep.pt > 20:
+                        num_passed_pt20 += 1
+                elif lep.pt > 10:
+                    num_passed_pt10 += 1
+            if abs(bestZ.mass-ZmassNominal) < 7 and num_passed_pt20 > 0 and (num_passed_pt10 + num_passed_pt20) > 2:
+                
+                lep1,lep2=[bestZ.lep1, bestZ.lep2]
+                    
                 # extra_leptons = [
                 #     lep for lep in event.selectedLeptons
                 #     if lep not in [bestZ.lep1, bestZ.lep2] and lep.isRelaxed
@@ -1328,25 +1353,54 @@ class BaselineProducer(Module):
         ZLL2P2Fcandidate_pt = []
         ZLL2P2Fcandidate_eta = []
         ZLL2P2Fcandidate_phi = []
+        ZLL2P2Fcandidate_lep3_pt = []
+        ZLL2P2Fcandidate_lep3_eta = []
+        ZLL2P2Fcandidate_lep3_pdgId = []
+        ZLL2P2Fcandidate_lep4_pt = []
+        ZLL2P2Fcandidate_lep4_eta = []
+        ZLL2P2Fcandidate_lep4_pdgId = []
         ZLL2P2Fcandidate_mass_4e=[]
         ZLL2P2Fcandidate_pt_4e = []
         ZLL2P2Fcandidate_eta_4e = []
         ZLL2P2Fcandidate_phi_4e = []
+        ZLL2P2Fcandidate_lep3_pt_4e = []
+        ZLL2P2Fcandidate_lep3_eta_4e = []
+        ZLL2P2Fcandidate_lep3_pdgId_4e = []
+        ZLL2P2Fcandidate_lep4_pt_4e = []
+        ZLL2P2Fcandidate_lep4_eta_4e = []
+        ZLL2P2Fcandidate_lep4_pdgId_4e = []
         ZLL2P2Fcandidate_mass_4mu=[]
         ZLL2P2Fcandidate_pt_4mu = []
         ZLL2P2Fcandidate_eta_4mu = []
         ZLL2P2Fcandidate_phi_4mu = []
+        ZLL2P2Fcandidate_lep3_pt_4mu = []
+        ZLL2P2Fcandidate_lep3_eta_4mu = []
+        ZLL2P2Fcandidate_lep3_pdgId_4mu = []
+        ZLL2P2Fcandidate_lep4_pt_4mu = []
+        ZLL2P2Fcandidate_lep4_eta_4mu = []
+        ZLL2P2Fcandidate_lep4_pdgId_4mu = []
         ZLL2P2Fcandidate_mass_2e2mu=[]
         ZLL2P2Fcandidate_pt_2e2mu = []
         ZLL2P2Fcandidate_eta_2e2mu = []
         ZLL2P2Fcandidate_phi_2e2mu = []
+        ZLL2P2Fcandidate_lep3_pt_2e2mu = []
+        ZLL2P2Fcandidate_lep3_eta_2e2mu = []
+        ZLL2P2Fcandidate_lep3_pdgId_2e2mu = []
+        ZLL2P2Fcandidate_lep4_pt_2e2mu = []
+        ZLL2P2Fcandidate_lep4_eta_2e2mu = []
+        ZLL2P2Fcandidate_lep4_pdgId_2e2mu = []
 
         for ZLL2P2Fcandidate in event.ZLL2P2Fcandidates:
             ZLL2P2Fcandidate_mass.append(ZLL2P2Fcandidate.mass)
             ZLL2P2Fcandidate_pt.append(ZLL2P2Fcandidate.pt)
             ZLL2P2Fcandidate_eta.append(ZLL2P2Fcandidate.eta)
             ZLL2P2Fcandidate_phi.append(ZLL2P2Fcandidate.phi)
-
+            ZLL2P2Fcandidate_lep3_pt.append(ZLL2P2Fcandidate.Z2.lep1.pt)
+            ZLL2P2Fcandidate_lep3_eta.append(ZLL2P2Fcandidate.Z2.lep1.eta)
+            ZLL2P2Fcandidate_lep3_pdgId.append(ZLL2P2Fcandidate.Z2.lep1.pdgId)
+            ZLL2P2Fcandidate_lep4_pt.append(ZLL2P2Fcandidate.Z2.lep2.pt)
+            ZLL2P2Fcandidate_lep4_eta.append(ZLL2P2Fcandidate.Z2.lep2.eta)
+            ZLL2P2Fcandidate_lep4_pdgId.append(ZLL2P2Fcandidate.Z2.lep2.pdgId)
             # Extract PDG IDs
             lep_ids = {
                 abs(ZLL2P2Fcandidate.Z1.lep1.pdgId),
@@ -1361,61 +1415,134 @@ class BaselineProducer(Module):
                 ZLL2P2Fcandidate_pt_4e.append(ZLL2P2Fcandidate.pt)
                 ZLL2P2Fcandidate_eta_4e.append(ZLL2P2Fcandidate.eta)
                 ZLL2P2Fcandidate_phi_4e.append(ZLL2P2Fcandidate.phi)
+                ZLL2P2Fcandidate_lep3_pt_4e.append(ZLL2P2Fcandidate.Z2.lep1.pt)
+                ZLL2P2Fcandidate_lep3_eta_4e.append(ZLL2P2Fcandidate.Z2.lep1.eta)
+                ZLL2P2Fcandidate_lep3_pdgId_4e.append(ZLL2P2Fcandidate.Z2.lep1.pdgId)
+                ZLL2P2Fcandidate_lep4_pt_4e.append(ZLL2P2Fcandidate.Z2.lep2.pt)
+                ZLL2P2Fcandidate_lep4_eta_4e.append(ZLL2P2Fcandidate.Z2.lep2.eta)
+                ZLL2P2Fcandidate_lep4_pdgId_4e.append(ZLL2P2Fcandidate.Z2.lep2.pdgId)
             elif lep_ids == {13}:  
                 ZLL2P2Fcandidate_mass_4mu.append(ZLL2P2Fcandidate.mass)
                 ZLL2P2Fcandidate_pt_4mu.append(ZLL2P2Fcandidate.pt)
                 ZLL2P2Fcandidate_eta_4mu.append(ZLL2P2Fcandidate.eta)
                 ZLL2P2Fcandidate_phi_4mu.append(ZLL2P2Fcandidate.phi)
+                ZLL2P2Fcandidate_lep3_pt_4mu.append(ZLL2P2Fcandidate.Z2.lep1.pt)
+                ZLL2P2Fcandidate_lep3_eta_4mu.append(ZLL2P2Fcandidate.Z2.lep1.eta)
+                ZLL2P2Fcandidate_lep3_pdgId_4mu.append(ZLL2P2Fcandidate.Z2.lep1.pdgId)
+                ZLL2P2Fcandidate_lep4_pt_4mu.append(ZLL2P2Fcandidate.Z2.lep2.pt)
+                ZLL2P2Fcandidate_lep4_eta_4mu.append(ZLL2P2Fcandidate.Z2.lep2.eta)
+                ZLL2P2Fcandidate_lep4_pdgId_4mu.append(ZLL2P2Fcandidate.Z2.lep2.pdgId)
             elif lep_ids == {11, 13}:  
                 ZLL2P2Fcandidate_mass_2e2mu.append(ZLL2P2Fcandidate.mass)
                 ZLL2P2Fcandidate_pt_2e2mu.append(ZLL2P2Fcandidate.pt)
                 ZLL2P2Fcandidate_eta_2e2mu.append(ZLL2P2Fcandidate.eta)
                 ZLL2P2Fcandidate_phi_2e2mu.append(ZLL2P2Fcandidate.phi)
+                ZLL2P2Fcandidate_lep3_pt_2e2mu.append(ZLL2P2Fcandidate.Z2.lep1.pt)
+                ZLL2P2Fcandidate_lep3_eta_2e2mu.append(ZLL2P2Fcandidate.Z2.lep1.eta)
+                ZLL2P2Fcandidate_lep3_pdgId_2e2mu.append(ZLL2P2Fcandidate.Z2.lep1.pdgId)
+                ZLL2P2Fcandidate_lep4_pt_2e2mu.append(ZLL2P2Fcandidate.Z2.lep2.pt)
+                ZLL2P2Fcandidate_lep4_eta_2e2mu.append(ZLL2P2Fcandidate.Z2.lep2.eta)
+                ZLL2P2Fcandidate_lep4_pdgId_2e2mu.append(ZLL2P2Fcandidate.Z2.lep2.pdgId)
 
         # Store in output dictionary
         out_data[self.ZLL2P2F_prefix + "mass"] = ZLL2P2Fcandidate_mass
         out_data[self.ZLL2P2F_prefix + "pt"] = ZLL2P2Fcandidate_pt
         out_data[self.ZLL2P2F_prefix + "eta"] = ZLL2P2Fcandidate_eta 
         out_data[self.ZLL2P2F_prefix + "phi"] = ZLL2P2Fcandidate_phi
+        out_data[self.ZLL2P2F_prefix + "lep3_pt"] = ZLL2P2Fcandidate_lep3_pt
+        out_data[self.ZLL2P2F_prefix + "lep3_eta"] = ZLL2P2Fcandidate_lep3_eta
+        out_data[self.ZLL2P2F_prefix + "lep3_pdgId"] = ZLL2P2Fcandidate_lep3_pdgId
+        out_data[self.ZLL2P2F_prefix + "lep4_pt"] = ZLL2P2Fcandidate_lep4_pt
+        out_data[self.ZLL2P2F_prefix + "lep4_eta"] = ZLL2P2Fcandidate_lep4_eta
+        out_data[self.ZLL2P2F_prefix + "lep4_pdgId"] = ZLL2P2Fcandidate_lep4_pdgId
+
 
         out_data[self.ZLL2P2F4e_prefix + "mass"] = ZLL2P2Fcandidate_mass_4e
         out_data[self.ZLL2P2F4e_prefix + "pt"] = ZLL2P2Fcandidate_pt_4e
         out_data[self.ZLL2P2F4e_prefix + "eta"] = ZLL2P2Fcandidate_eta_4e
         out_data[self.ZLL2P2F4e_prefix + "phi"] = ZLL2P2Fcandidate_phi_4e
+        out_data[self.ZLL2P2F4e_prefix + "lep3_pt"] = ZLL2P2Fcandidate_lep3_pt_4e
+        out_data[self.ZLL2P2F4e_prefix + "lep3_eta"] = ZLL2P2Fcandidate_lep3_eta_4e
+        out_data[self.ZLL2P2F4e_prefix + "lep3_pdgId"] = ZLL2P2Fcandidate_lep3_pdgId_4e
+        out_data[self.ZLL2P2F4e_prefix + "lep4_pt"] = ZLL2P2Fcandidate_lep4_pt_4e
+        out_data[self.ZLL2P2F4e_prefix + "lep4_eta"] = ZLL2P2Fcandidate_lep4_eta_4e
+        out_data[self.ZLL2P2F4e_prefix + "lep4_pdgId"] = ZLL2P2Fcandidate_lep4_pdgId_4e
 
         out_data[self.ZLL2P2F4mu_prefix + "mass"] = ZLL2P2Fcandidate_mass_4mu
         out_data[self.ZLL2P2F4mu_prefix + "pt"] = ZLL2P2Fcandidate_pt_4mu
         out_data[self.ZLL2P2F4mu_prefix + "eta"] = ZLL2P2Fcandidate_eta_4mu
         out_data[self.ZLL2P2F4mu_prefix + "phi"] = ZLL2P2Fcandidate_phi_4mu
+        out_data[self.ZLL2P2F4mu_prefix + "lep3_pt"] = ZLL2P2Fcandidate_lep3_pt_4mu
+        out_data[self.ZLL2P2F4mu_prefix + "lep3_eta"] = ZLL2P2Fcandidate_lep3_eta_4mu
+        out_data[self.ZLL2P2F4mu_prefix + "lep3_pdgId"] = ZLL2P2Fcandidate_lep3_pdgId_4mu
+        out_data[self.ZLL2P2F4mu_prefix + "lep4_pt"] = ZLL2P2Fcandidate_lep4_pt_4mu
+        out_data[self.ZLL2P2F4mu_prefix + "lep4_eta"] = ZLL2P2Fcandidate_lep4_eta_4mu
+        out_data[self.ZLL2P2F4mu_prefix + "lep4_pdgId"] = ZLL2P2Fcandidate_lep4_pdgId_4mu
 
         out_data[self.ZLL2P2F2e2mu_prefix + "mass"] =  ZLL2P2Fcandidate_mass_2e2mu
         out_data[self.ZLL2P2F2e2mu_prefix + "pt"] = ZLL2P2Fcandidate_pt_2e2mu
         out_data[self.ZLL2P2F2e2mu_prefix + "eta"] = ZLL2P2Fcandidate_eta_2e2mu
         out_data[self.ZLL2P2F2e2mu_prefix + "phi"] = ZLL2P2Fcandidate_phi_2e2mu
+        out_data[self.ZLL2P2F2e2mu_prefix + "lep3_pt"] = ZLL2P2Fcandidate_lep3_pt_2e2mu
+        out_data[self.ZLL2P2F2e2mu_prefix + "lep3_eta"] = ZLL2P2Fcandidate_lep3_eta_2e2mu
+        out_data[self.ZLL2P2F2e2mu_prefix + "lep3_pdgId"] = ZLL2P2Fcandidate_lep3_pdgId_2e2mu
+        out_data[self.ZLL2P2F2e2mu_prefix + "lep4_pt"] = ZLL2P2Fcandidate_lep4_pt_2e2mu
+        out_data[self.ZLL2P2F2e2mu_prefix + "lep4_eta"] = ZLL2P2Fcandidate_lep4_eta_2e2mu
+        out_data[self.ZLL2P2F2e2mu_prefix + "lep4_pdgId"] = ZLL2P2Fcandidate_lep4_pdgId_2e2mu
 
         # 3P1F
         ZLL3P1Fcandidate_mass = []
         ZLL3P1Fcandidate_pt = []
         ZLL3P1Fcandidate_eta = []
         ZLL3P1Fcandidate_phi = []
+        ZLL3P1Fcandidate_lep3_pt = []
+        ZLL3P1Fcandidate_lep3_eta = []
+        ZLL3P1Fcandidate_lep3_pdgId = []
+        ZLL3P1Fcandidate_lep4_pt = []
+        ZLL3P1Fcandidate_lep4_eta = []
+        ZLL3P1Fcandidate_lep4_pdgId = []
         ZLL3P1Fcandidate_mass_4e=[]
         ZLL3P1Fcandidate_pt_4e = []
         ZLL3P1Fcandidate_eta_4e = []
         ZLL3P1Fcandidate_phi_4e = []
+        ZLL3P1Fcandidate_lep3_pt_4e = []
+        ZLL3P1Fcandidate_lep3_eta_4e = []
+        ZLL3P1Fcandidate_lep3_pdgId_4e = []
+        ZLL3P1Fcandidate_lep4_pt_4e = []
+        ZLL3P1Fcandidate_lep4_eta_4e = []
+        ZLL3P1Fcandidate_lep4_pdgId_4e = []
         ZLL3P1Fcandidate_mass_4mu=[]
         ZLL3P1Fcandidate_pt_4mu = []
         ZLL3P1Fcandidate_eta_4mu = []
         ZLL3P1Fcandidate_phi_4mu = []
+        ZLL3P1Fcandidate_lep3_pt_4mu = []
+        ZLL3P1Fcandidate_lep3_eta_4mu = []
+        ZLL3P1Fcandidate_lep3_pdgId_4mu = []
+        ZLL3P1Fcandidate_lep4_pt_4mu = []
+        ZLL3P1Fcandidate_lep4_eta_4mu = []
+        ZLL3P1Fcandidate_lep4_pdgId_4mu = []
         ZLL3P1Fcandidate_mass_2e2mu=[]
         ZLL3P1Fcandidate_pt_2e2mu = []
         ZLL3P1Fcandidate_eta_2e2mu = []
         ZLL3P1Fcandidate_phi_2e2mu = []
+        ZLL3P1Fcandidate_lep3_pt_2e2mu = []
+        ZLL3P1Fcandidate_lep3_eta_2e2mu = []
+        ZLL3P1Fcandidate_lep3_pdgId_2e2mu = []
+        ZLL3P1Fcandidate_lep4_pt_2e2mu = []
+        ZLL3P1Fcandidate_lep4_eta_2e2mu = []
+        ZLL3P1Fcandidate_lep4_pdgId_2e2mu = []
 
         for ZLL3P1Fcandidate in event.ZLL3P1Fcandidates:
             ZLL3P1Fcandidate_mass.append(ZLL3P1Fcandidate.mass)
             ZLL3P1Fcandidate_pt.append(ZLL3P1Fcandidate.pt)
             ZLL3P1Fcandidate_eta.append(ZLL3P1Fcandidate.eta)
             ZLL3P1Fcandidate_phi.append(ZLL3P1Fcandidate.phi)
+            ZLL3P1Fcandidate_lep3_pt.append(ZLL3P1Fcandidate.Z2.lep1.pt)
+            ZLL3P1Fcandidate_lep3_eta.append(ZLL3P1Fcandidate.Z2.lep1.eta)
+            ZLL3P1Fcandidate_lep3_pdgId.append(ZLL3P1Fcandidate.Z2.lep1.pdgId)
+            ZLL3P1Fcandidate_lep4_pt.append(ZLL3P1Fcandidate.Z2.lep2.pt)
+            ZLL3P1Fcandidate_lep4_eta.append(ZLL3P1Fcandidate.Z2.lep2.eta)
+            ZLL3P1Fcandidate_lep4_pdgId.append(ZLL3P1Fcandidate.Z2.lep2.pdgId)
 
             # Extract PDG IDs
             lep_ids = {
@@ -1431,37 +1558,79 @@ class BaselineProducer(Module):
                 ZLL3P1Fcandidate_pt_4e.append(ZLL3P1Fcandidate.pt)
                 ZLL3P1Fcandidate_eta_4e.append(ZLL3P1Fcandidate.eta)
                 ZLL3P1Fcandidate_phi_4e.append(ZLL3P1Fcandidate.phi)
+                ZLL3P1Fcandidate_lep3_pt_4e.append(ZLL3P1Fcandidate.Z2.lep1.pt)
+                ZLL3P1Fcandidate_lep3_eta_4e.append(ZLL3P1Fcandidate.Z2.lep1.eta)
+                ZLL3P1Fcandidate_lep3_pdgId_4e.append(ZLL3P1Fcandidate.Z2.lep1.pdgId)
+                ZLL3P1Fcandidate_lep4_pt_4e.append(ZLL3P1Fcandidate.Z2.lep2.pt)
+                ZLL3P1Fcandidate_lep4_eta_4e.append(ZLL3P1Fcandidate.Z2.lep2.eta)
+                ZLL3P1Fcandidate_lep4_pdgId_4e.append(ZLL3P1Fcandidate.Z2.lep2.pdgId)
             elif lep_ids == {13}:  
                 ZLL3P1Fcandidate_mass_4mu.append(ZLL3P1Fcandidate.mass)
                 ZLL3P1Fcandidate_pt_4mu.append(ZLL3P1Fcandidate.pt)
                 ZLL3P1Fcandidate_eta_4mu.append(ZLL3P1Fcandidate.eta)
                 ZLL3P1Fcandidate_phi_4mu.append(ZLL3P1Fcandidate.phi)
+                ZLL3P1Fcandidate_lep3_pt_4mu.append(ZLL3P1Fcandidate.Z2.lep1.pt)
+                ZLL3P1Fcandidate_lep3_eta_4mu.append(ZLL3P1Fcandidate.Z2.lep1.eta)
+                ZLL3P1Fcandidate_lep3_pdgId_4mu.append(ZLL3P1Fcandidate.Z2.lep1.pdgId)
+                ZLL3P1Fcandidate_lep4_pt_4mu.append(ZLL3P1Fcandidate.Z2.lep2.pt)
+                ZLL3P1Fcandidate_lep4_eta_4mu.append(ZLL3P1Fcandidate.Z2.lep2.eta)
+                ZLL3P1Fcandidate_lep4_pdgId_4mu.append(ZLL3P1Fcandidate.Z2.lep2.pdgId)
             elif lep_ids == {11, 13}:  
                 ZLL3P1Fcandidate_mass_2e2mu.append(ZLL3P1Fcandidate.mass)
                 ZLL3P1Fcandidate_pt_2e2mu.append(ZLL3P1Fcandidate.pt)
                 ZLL3P1Fcandidate_eta_2e2mu.append(ZLL3P1Fcandidate.eta)
                 ZLL3P1Fcandidate_phi_2e2mu.append(ZLL3P1Fcandidate.phi)
+                ZLL3P1Fcandidate_lep3_pt_2e2mu.append(ZLL3P1Fcandidate.Z2.lep1.pt)
+                ZLL3P1Fcandidate_lep3_eta_2e2mu.append(ZLL3P1Fcandidate.Z2.lep1.eta)
+                ZLL3P1Fcandidate_lep3_pdgId_2e2mu.append(ZLL3P1Fcandidate.Z2.lep1.pdgId)
+                ZLL3P1Fcandidate_lep4_pt_2e2mu.append(ZLL3P1Fcandidate.Z2.lep2.pt)
+                ZLL3P1Fcandidate_lep4_eta_2e2mu.append(ZLL3P1Fcandidate.Z2.lep2.eta)
+                ZLL3P1Fcandidate_lep4_pdgId_2e2mu.append(ZLL3P1Fcandidate.Z2.lep2.pdgId)
 
         # Store in output dictionary
         out_data[self.ZLL3P1F_prefix + "mass"] = ZLL3P1Fcandidate_mass
         out_data[self.ZLL3P1F_prefix + "pt"] = ZLL3P1Fcandidate_pt
         out_data[self.ZLL3P1F_prefix + "eta"] = ZLL3P1Fcandidate_eta 
         out_data[self.ZLL3P1F_prefix + "phi"] = ZLL3P1Fcandidate_phi
+        out_data[self.ZLL3P1F_prefix + "lep3_pt"] = ZLL3P1Fcandidate_lep3_pt
+        out_data[self.ZLL3P1F_prefix + "lep3_eta"] = ZLL3P1Fcandidate_lep3_eta
+        out_data[self.ZLL3P1F_prefix + "lep3_pdgId"] = ZLL3P1Fcandidate_lep3_pdgId
+        out_data[self.ZLL3P1F_prefix + "lep4_pt"] = ZLL3P1Fcandidate_lep4_pt
+        out_data[self.ZLL3P1F_prefix + "lep4_eta"] = ZLL3P1Fcandidate_lep4_eta
+        out_data[self.ZLL3P1F_prefix + "lep4_pdgId"] = ZLL3P1Fcandidate_lep4_pdgId
 
         out_data[self.ZLL3P1F4e_prefix + "mass"] = ZLL3P1Fcandidate_mass_4e
         out_data[self.ZLL3P1F4e_prefix + "pt"] = ZLL3P1Fcandidate_pt_4e
         out_data[self.ZLL3P1F4e_prefix + "eta"] = ZLL3P1Fcandidate_eta_4e
         out_data[self.ZLL3P1F4e_prefix + "phi"] = ZLL3P1Fcandidate_phi_4e
+        out_data[self.ZLL3P1F4e_prefix + "lep3_pt"] = ZLL3P1Fcandidate_lep3_pt_4e
+        out_data[self.ZLL3P1F4e_prefix + "lep3_eta"] = ZLL3P1Fcandidate_lep3_eta_4e
+        out_data[self.ZLL3P1F4e_prefix + "lep3_pdgId"] = ZLL3P1Fcandidate_lep3_pdgId_4e
+        out_data[self.ZLL3P1F4e_prefix + "lep4_pt"] = ZLL3P1Fcandidate_lep4_pt_4e
+        out_data[self.ZLL3P1F4e_prefix + "lep4_eta"] = ZLL3P1Fcandidate_lep4_eta_4e
+        out_data[self.ZLL3P1F4e_prefix + "lep4_pdgId"] = ZLL3P1Fcandidate_lep4_pdgId_4e
 
         out_data[self.ZLL3P1F4mu_prefix + "mass"] = ZLL3P1Fcandidate_mass_4mu
         out_data[self.ZLL3P1F4mu_prefix + "pt"] = ZLL3P1Fcandidate_pt_4mu
         out_data[self.ZLL3P1F4mu_prefix + "eta"] = ZLL3P1Fcandidate_eta_4mu
         out_data[self.ZLL3P1F4mu_prefix + "phi"] = ZLL3P1Fcandidate_phi_4mu
+        out_data[self.ZLL3P1F4mu_prefix + "lep3_pt"] = ZLL3P1Fcandidate_lep3_pt_4mu
+        out_data[self.ZLL3P1F4mu_prefix + "lep3_eta"] = ZLL3P1Fcandidate_lep3_eta_4mu
+        out_data[self.ZLL3P1F4mu_prefix + "lep3_pdgId"] = ZLL3P1Fcandidate_lep3_pdgId_4mu
+        out_data[self.ZLL3P1F4mu_prefix + "lep4_pt"] = ZLL3P1Fcandidate_lep4_pt_4mu
+        out_data[self.ZLL3P1F4mu_prefix + "lep4_eta"] = ZLL3P1Fcandidate_lep4_eta_4mu
+        out_data[self.ZLL3P1F4mu_prefix + "lep4_pdgId"] = ZLL3P1Fcandidate_lep4_pdgId_4mu
 
         out_data[self.ZLL3P1F2e2mu_prefix + "mass"] =  ZLL3P1Fcandidate_mass_2e2mu
         out_data[self.ZLL3P1F2e2mu_prefix + "pt"] = ZLL3P1Fcandidate_pt_2e2mu
         out_data[self.ZLL3P1F2e2mu_prefix + "eta"] = ZLL3P1Fcandidate_eta_2e2mu
         out_data[self.ZLL3P1F2e2mu_prefix + "phi"] = ZLL3P1Fcandidate_phi_2e2mu
+        out_data[self.ZLL3P1F2e2mu_prefix + "lep3_pt"] = ZLL3P1Fcandidate_lep3_pt_2e2mu
+        out_data[self.ZLL3P1F2e2mu_prefix + "lep3_eta"] = ZLL3P1Fcandidate_lep3_eta_2e2mu
+        out_data[self.ZLL3P1F2e2mu_prefix + "lep3_pdgId"] = ZLL3P1Fcandidate_lep3_pdgId_2e2mu
+        out_data[self.ZLL3P1F2e2mu_prefix + "lep4_pt"] = ZLL3P1Fcandidate_lep4_pt_2e2mu
+        out_data[self.ZLL3P1F2e2mu_prefix + "lep4_eta"] = ZLL3P1Fcandidate_lep4_eta_2e2mu
+        out_data[self.ZLL3P1F2e2mu_prefix + "lep4_pdgId"] = ZLL3P1Fcandidate_lep4_pdgId_2e2mu
 
         # SSCR
         ZLLSSCRcandidate_mass = []
@@ -1517,6 +1686,7 @@ class BaselineProducer(Module):
         out_data[self.ZLLSSCR_prefix + "pt"] = ZLLSSCRcandidate_pt
         out_data[self.ZLLSSCR_prefix + "eta"] = ZLLSSCRcandidate_eta 
         out_data[self.ZLLSSCR_prefix + "phi"] = ZLLSSCRcandidate_phi
+
 
         out_data[self.ZLLSSCR4e_prefix + "mass"] = ZLLSSCRcandidate_mass_4e
         out_data[self.ZLLSSCR4e_prefix + "pt"] = ZLLSSCRcandidate_pt_4e
