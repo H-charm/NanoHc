@@ -350,6 +350,9 @@ class BaselineProducer(Module):
 
             Zcand = Zcandidate(lep1, lep2)
 
+            if Zcand.mass < 12 or Zcand.mass > 120:
+                continue
+
             # if not ((lep1.pt > 20 or lep2.pt > 20) and (lep1.pt > 10 or lep2.pt > 10)):
             #     continue
 
@@ -515,6 +518,58 @@ class BaselineProducer(Module):
                         if any(l in [Z1.lep1, Z1.lep2] for l in [Z2.lep1, Z2.lep2]):
                             continue
 
+                        if Z1.mass < 40: continue  
+            
+                        leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2]
+
+                        # Reject overlapping leptons
+                        leps_Z1 = [Z1.lep1, Z1.lep2]
+                        leps_Z2 = [Z2.lep1, Z2.lep2]
+            
+                        # Two DISTINCT leptons must pass pt > 10 and pt > 20
+                        num_passed_pt20 = 0
+                        num_passed_pt10 = 0
+
+                        for lep in leptons:
+                            if lep.pt > 20:
+                                num_passed_pt20 += 1
+                            elif lep.pt > 10:
+                                num_passed_pt10 += 1
+
+                        # Ensure we have at least one lepton passing each threshold, and they are distinct
+                        if num_passed_pt20 == 0 or (num_passed_pt10 + num_passed_pt20) < 2: continue 
+            
+                        lepton_pairs = list(itertools.combinations(leptons, 2)) # 6 combinations
+            
+                        dr_ll_values = [] # between each of the four leptons (Ghost removal: all pairs)
+                        m_ll_values = [] # between each of the four leptons (QCD suppression: opposite-sign pairs and same flavour)                     
+                        for lepton_pair in lepton_pairs:
+                            lep1 = lepton_pair[0]
+                            lep2 = lepton_pair[1]
+                            
+                            dr = math.sqrt( (lep1.eta - lep2.eta)**2 + (lep1.phi - lep2.phi)**2 ) 
+                            dr_ll_values.append(dr)
+                
+                            if (lep1.pdgId + lep2.pdgId) == 0:
+                                m_ll = sumP4(lep1, lep2).M()
+                                m_ll_values.append(m_ll)
+                    
+                        if any(dr < 0.02 for dr in dr_ll_values): continue
+                        if any(m_ll < 4 for m_ll in m_ll_values): continue
+            
+                        ## smart cut: check alternative pairing (4e or 4mu)
+                        if abs(Z1.lep1.pdgId) == abs(Z1.lep2.pdgId) == abs(Z2.lep1.pdgId) == abs(Z2.lep2.pdgId):
+
+                            ## define Za as the one closest to Z mass, and Zb as the other pair
+                            Ztemp1 = Zcandidate(Z1.lep1, Z2.lep2)
+                            Ztemp2 = Zcandidate(Z2.lep1, Z1.lep2)
+
+                            mZ = 91.1876
+                            Za, Zb = (Ztemp1, Ztemp2) if ( abs(Ztemp1.mass - mZ) < abs(Ztemp2.mass - mZ) ) else (Ztemp2, Ztemp1)
+                                
+                            ## reject if |mZa - mZ| < |mZ1 - mZ| and mZb < 12
+                            if ( abs(Za.mass - mZ) < abs(Z1.mass - mZ) ) and Zb.mass < 12: continue
+
                         ZLL = ZLLcandidate(Z1, Z2)
                         ZLL.Z2 = Z2  # to keep access to ID info
                         ZLLsTemp.append(ZLL)
@@ -557,11 +612,11 @@ class BaselineProducer(Module):
 
             for lep in [lep1,lep2]:
                 if lep.pt > 20:
-                        num_passed_pt20 += 1
+                    num_passed_pt20 += 1
                 elif lep.pt > 10:
                     num_passed_pt10 += 1
-            if abs(bestZ.mass-ZmassNominal) < 7 and num_passed_pt20 > 0 and (num_passed_pt10 + num_passed_pt20) > 2:
-                
+
+            if abs(bestZ.mass-ZmassNominal) < 7 and num_passed_pt20 > 0 and (num_passed_pt10 + num_passed_pt20) > 1:
                 lep1,lep2=[bestZ.lep1, bestZ.lep2]
                     
                 # extra_leptons = [
