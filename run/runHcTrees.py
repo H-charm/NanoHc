@@ -299,7 +299,7 @@ def run_add_weights():
     for sample, process_files in sample_dirs.items():
         if len(process_files) > 1:
             final_merged_file = os.path.join(base_output_dir, dataset_type, year, sample, f"{sample}_final_merged.root")
-            merge_cmd = f"haddnano.py {final_merged_file} {' '.join(process_files)}"
+            merge_cmd = f"hadd {final_merged_file} {' '.join(process_files)}"
             print(f"Merging {len(process_files)} weighted files into {final_merged_file}")
             subprocess.run(merge_cmd, shell=True, check=True)
         elif process_files:
@@ -459,7 +459,7 @@ def main():
         sys.exit(0)
    
     if args.post:
-        # run_add_weights()
+        run_add_weights()
         merge_output_files()
         sys.exit(0)   
         

@@ -1,130 +1,132 @@
 import numpy as np
 import os
-import correctionlib
 import ROOT
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
+from PhysicsTools.NanoAODTools.postprocessing.framework.datamodel import Collection
+
+era_dict = {
+    "2022": '2022_Summer22',
+    "2022EE": '2022_Summer22EE',
+    "2023": '2023_Summer23',
+    "2023BPix": '2023_Summer23BPix'
+}
 
 
-era_dict = {"2022": '2022_Summer22', "2022EE": '2022_Summer22EE', "2023": '2023_Summer23', "2023BPix": '2023_Summer23BPix'}
-key_dict = {"2022":     '2022Re-recoBCD',
-            "2022EE":   '2022Re-recoE+PromptFG',
-            "2023":     '2023PromptC',
-            "2023BPix": '2023PromptD'
-            }
-
-class ElectronSFProducer(Module, object):
-
+class ElectronSFProducer(Module):
     def __init__(self, year, dataset_type, **kwargs):
         self.year = year
         self.dataset_type = dataset_type
         self.era = era_dict[self.year]
-        #self.path=f'{self.year}Re-recoBCD'
-        # correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electron.json.gz'
-        correction_file = f'../../data/ElectronSF/{self.year}/electron.json.gz'
-        self.corr = correctionlib.CorrectionSet.from_file(correction_file)['Electron-ID-SF']
 
-    def get_sf(self, sf_type, lep):
-        if abs(lep.pdgId) != 11:
-            raise RuntimeError('Input lepton is not a electron')
+        base_path = f'../../data/ElectronSF/{self.year}/'
+        self.root_file_lowpt = ROOT.TFile(f'{base_path}egammaEffi_ptBelow20.root', "READ")
+        self.root_file_midpt = ROOT.TFile(f'{base_path}egammaEffi_ptBelow75.root', "READ")
+        self.root_file_highpt = ROOT.TFile(f'{base_path}egammaEffi_ptAbove75.root', "READ")
+        self.root_file_SF = ROOT.TFile(f'{base_path}SF2D_RMS.root', "READ")
 
-        wp = None
-        if sf_type == 'Reco':
-            wp = 'RecoBelow20' if lep.pt < 20 else 'Reco20to75' if 20 < lep.pt < 75 else 'RecoAbove75'
-        elif sf_type == 'ID':
-            wp = lep._wp_ID
-
-        if self.year == "2022" or self.year == "2022EE":
-            scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt)
-        elif self.year == "2023" or self.year == "2023BPix":
-            scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt, lep.phi)
-        else:
-            raise ValueError(f"ElectronSFProducer: Era {self.year} not supported")
-
-        return scale_factor
+        self.h_el_lowpt = self.root_file_lowpt.Get("EGamma_SF2D").Clone()
+        self.h_el_midpt = self.root_file_midpt.Get("EGamma_SF2D").Clone()
+        self.h_el_highpt = self.root_file_highpt.Get("EGamma_SF2D").Clone()
+        self.h_el_SF = self.root_file_SF.Get("EGamma_SF2D").Clone()
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
-        self.isMC = True if self.dataset_type == "mc" else False
+        self.isMC = self.dataset_type == "mc"
         if self.isMC:
             self.out = wrappedOutputTree
-
-            self.out.branch('elEffWeight', "F", limitedPrecision=10)
+            self.out.branch("elEffWeight", "F", limitedPrecision=12)
 
     def analyze(self, event):
-        """process event, return True (go to next module) or False (fail, go to next event)"""
-
         if not self.isMC:
             return True
 
-        wgtReco = 1
-        wgtID = 1
+        reco_sfs = []
+        id_sfs = []
 
         for lep in event.selectedElectrons:
             if abs(lep.pdgId) != 11:
                 continue
-            wgtReco *= self.get_sf('Reco', lep)
-            wgtID *= self.get_sf('ID', lep)
 
-        eventWgt = wgtReco * wgtID
-        self.out.fillBranch('elEffWeight', eventWgt)
+            sc_eta = lep.eta + getattr(lep, 'deltaEtaSC', 0.0)
+            sc_eta = max(min(sc_eta, 2.49), -2.49)
+            pt = min(lep.pt, 500.0)
 
+            if pt < 10:
+                reco = 1.0
+                id_ = self.getID_SF(pt, sc_eta)
+            else:
+                reco = self.getRecoSF(pt, sc_eta)
+                id_ = self.getID_SF(pt, sc_eta)
+
+            reco_sfs.append(reco)
+            id_sfs.append(id_)
+
+        reco_sf_prod = np.prod(reco_sfs) if reco_sfs else 1.0
+        id_sf_prod = np.prod(id_sfs) if id_sfs else 1.0
+        total_weight = reco_sf_prod * id_sf_prod
+
+        self.out.fillBranch("elEffWeight", total_weight)
         return True
 
+    def getRecoSF(self, pt, eta):
+        if pt < 20:
+            h = self.h_el_lowpt
+        elif pt < 75:
+            h = self.h_el_midpt
+        else:
+            h = self.h_el_highpt
 
-class MuonSFProducer(Module, object):
+        binX = min(max(1, h.GetXaxis().FindBin(eta)), h.GetNbinsX())
+        binY = min(max(1, h.GetYaxis().FindBin(pt)), h.GetNbinsY())
+        return h.GetBinContent(binX, binY)
 
+    def getID_SF(self, pt, eta):
+        h = self.h_el_SF
+        binX = min(max(1, h.GetXaxis().FindBin(eta)), h.GetNbinsX())
+        binY = min(max(1, h.GetYaxis().FindBin(pt)), h.GetNbinsY())
+        return h.GetBinContent(binX, binY)
+
+
+class MuonSFProducer(Module):
     def __init__(self, year, dataset_type, **kwargs):
         self.year = year
         self.dataset_type = dataset_type
         self.era = era_dict[self.year]
-        correction_file_muon_Z = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/{self.era}/muon_Z.json.gz' # pt binning starts from 15 
-        correction_file_muon_JPsi = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/{self.era}/muon_JPsi.json.gz'  # pt binning starts from 2 
 
-        self.corr_muon_Z = correctionlib.CorrectionSet.from_file(correction_file_muon_Z)
-        self.corr_muon_JPsi = correctionlib.CorrectionSet.from_file(correction_file_muon_JPsi)
-
-    def get_sf(self, sf_type, lep):
-        if abs(lep.pdgId) != 13:
-            raise RuntimeError('Input lepton is not a muon')
-        if sf_type == 'ID':
-            assert lep._wp_ID == 'TightID'
-            key = 'NUM_TightID_DEN_TrackerMuons'
-        elif sf_type == 'Iso':
-            key = f'NUM_{lep._wp_Iso}_DEN_TightID'
-        if lep.pt > 15:
-            scale_factor = self.corr_muon_Z[key].evaluate(abs(lep.eta), lep.pt, "nominal")
-        elif lep.pt <= 15:
-            scale_factor = self.corr_muon_JPsi[key].evaluate(abs(lep.eta), lep.pt, "nominal")
-        return scale_factor
+        self.root_file = ROOT.TFile(f'../../data/MuonSF/{self.year}/Muon_corr.root', "READ")
+        self.h_Mu_SF = self.root_file.Get("FINAL").Clone()
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
-        self.isMC = True if self.dataset_type == "mc" else False
+        self.isMC = self.dataset_type == "mc"
         if self.isMC:
             self.out = wrappedOutputTree
+            self.out.branch("muEffWeight", "F", limitedPrecision=12)
 
-            self.out.branch('muEffWeight', "F", limitedPrecision=10)
-            
     def analyze(self, event):
-        """process event, return True (go to next module) or False (fail, go to next event)"""
-
         if not self.isMC:
             return True
 
-        wgtID = 1
-        wgtIso = 1
+        sf_list = []
 
         for lep in event.selectedMuons:
             if abs(lep.pdgId) != 13:
                 continue
-            if lep.pt>15:
-                wgtID *= self.get_sf('ID', lep)
-                wgtIso *= self.get_sf('Iso', lep)
-            else:
-                wgtID *= self.get_sf('ID', lep)
 
+            pt = min(lep.pt, 199.0)
+            eta = lep.eta
+            sf = self.getSF(pt, eta)
+            sf_list.append(sf)
 
-        eventWgt = wgtID * wgtIso
-        self.out.fillBranch('muEffWeight', eventWgt)
+        mu_eff_weight = np.prod(sf_list) if sf_list else 1.0
 
+        self.out.fillBranch("muEffWeight", mu_eff_weight)
         return True
+
+    def getSF(self, pt, eta):
+        h = self.h_Mu_SF
+        binX = min(max(1, h.GetXaxis().FindBin(eta)), h.GetNbinsX())
+        binY = min(max(1, h.GetYaxis().FindBin(pt)), h.GetNbinsY())
+        return h.GetBinContent(binX, binY)
+
+

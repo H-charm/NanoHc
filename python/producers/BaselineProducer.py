@@ -11,14 +11,53 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 lumi_dict = {"2022": 7.98, "2022EE": 26.67, "2023": 17.794, "2023BPix": 9.451}
 
 class Zcandidate:
-    
-    def __init__(self,lep1,lep2):
+    def __init__(self, lep1, lep2, fsrPhotons, fsrIndices):
         self.lep1 = lep1
         self.lep2 = lep2
-        self.pt = sumP4(self.lep1, self.lep2).Pt()
-        self.eta = sumP4(self.lep1, self.lep2).Eta()
-        self.phi = sumP4(self.lep1, self.lep2).Phi()
-        self.mass = sumP4(self.lep1, self.lep2).M()
+
+        self.lep1_uncorrpt=lep1.pt
+        self.lep2_uncorrpt=lep2.pt
+
+        # Get fsr indices based on pdgId
+        if abs(lep1.pdgId) == 13:
+            self.fsrIdx1 = fsrIndices["muFsrPhotonIdx"][lep1.index]
+            self.fsrIdx2 = fsrIndices["muFsrPhotonIdx"][lep2.index]
+        elif abs(lep1.pdgId) == 11:
+            self.fsrIdx1 = fsrIndices["eleFsrPhotonIdx"][lep1.index]
+            self.fsrIdx2 = fsrIndices["eleFsrPhotonIdx"][lep2.index]
+        else:
+            self.fsrIdx1 = -1
+            self.fsrIdx2 = -1
+
+        # Get dressed four-momentum
+        self.lep1_dressed = lep1.p4()
+        self.lep2_dressed = lep2.p4()
+
+        if self.fsrIdx1 >= 0:
+            fsr1 = fsrPhotons[self.fsrIdx1]
+            fsr1_p4 = ROOT.TLorentzVector()
+            fsr1_p4.SetPtEtaPhiM(fsr1.pt, fsr1.eta, fsr1.phi, 0.0)
+            self.lep1_dressed += fsr1_p4
+        if self.fsrIdx2 >= 0:
+            fsr2 = fsrPhotons[self.fsrIdx2]
+            fsr2_p4 = ROOT.TLorentzVector()
+            fsr2_p4.SetPtEtaPhiM(fsr2.pt, fsr2.eta, fsr2.phi, 0.0) 
+            self.lep2_dressed += fsr2_p4
+
+        self.p4 = self.lep1_dressed + self.lep2_dressed
+
+        # Kinematic quantities from dressed p4
+        self.pt = self.p4.Pt()
+        self.eta = self.p4.Eta()
+        self.phi = self.p4.Phi()
+        self.mass = self.p4.M()
+
+    def sumpt(self):
+        return self.lep1.pt + self.lep2.pt
+
+    def finalState(self):
+        return self.lep1.pdgId * self.lep2.pdgId
+
 
 class ZZcandidate:
 
@@ -147,9 +186,9 @@ class BaselineProducer(Module):
         if self._select_triggers(event) is False:
             return False
         
-        self._associate_fsr_photons(event)
-        self._select_muons(event)
-        self._select_electrons(event)  
+        self._associate_fsr_photons_and_leptons(event)
+        # self._select_muons(event)
+        # self._select_electrons(event)  
         event.selectedLeptons = event.selectedMuons + event.selectedElectrons
         if len(event.selectedLeptons) < 4: return False
 
@@ -208,7 +247,7 @@ class BaselineProducer(Module):
         #     return False
 
         # for key in out_data:
-        #     self.out.fillBranch(key, out_data[key])
+        #     self.out.fillBranch(key, out_data[key]
 
         self.out.fillBranch("HLT_passZZ4lEle", passSingleEle or passDiEle or passTriEle)
         self.out.fillBranch("HLT_passZZ4lMu", passSingleMu or passDiMu or passTriMu)
@@ -224,6 +263,7 @@ class BaselineProducer(Module):
         # mva_leptons = [lepton for lepton in event.selectedLeptons if lepton.mvaTOP > 0.9]
         # lepton_pairs = list(itertools.combinations(mva_leptons, 2))
         lepton_pairs = list(itertools.combinations(event.selectedLeptons, 2))
+
         
         for lepton_pair in lepton_pairs:
             
@@ -233,8 +273,13 @@ class BaselineProducer(Module):
             
             # let's put negative charged lepton always as lep1 (useful later)
             lep1, lep2 = (lepton_pair[0], lepton_pair[1]) if lepton_pair[0].pdgId < 0 else (lepton_pair[1], lepton_pair[0])
-                        
-            Zcand = Zcandidate(lep1,lep2)
+
+            fsrPhotons = Collection(event, "FsrPhoton")
+            fsrIndices = {
+                "muFsrPhotonIdx": getattr(event, "muFsrPhotonIdx", []),
+                "eleFsrPhotonIdx": getattr(event, "eleFsrPhotonIdx", [])
+            }
+            Zcand = Zcandidate(lep1, lep2, fsrPhotons, fsrIndices)
             
             if Zcand.mass < 12 or Zcand.mass > 120:
                 continue
@@ -266,31 +311,26 @@ class BaselineProducer(Module):
                         
             self._flag_onshell_and_offshell_Z(Zcand_pair) 
             Z1, Z2 = (Zcand_pair[0], Zcand_pair[1]) if Zcand_pair[0].is_onshell else (Zcand_pair[1], Zcand_pair[0]) # by definition Z1 onshell, Z2 offshell
+
+            lep_ids = {
+                abs(Z1.lep1.pdgId),
+                abs(Z1.lep2.pdgId),
+                abs(Z2.lep1.pdgId),
+                abs(Z2.lep2.pdgId)
+            }
+
    
             if Z1.mass < 40: continue  
+            # if any(l in [Z1.lep1, Z1.lep2] for l in [Z2.lep1, Z2.lep2]):
+            #     continue
             
             leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2] 
-            
-            ## two DISTINCT leptons must pass pt > 10 and pt > 20
-            # at_least_one_passed_pt20 = False
-            # at_least_one_passed_pt10 = False
-            # for lep in leptons:
-            #     if lep.pt > 20: at_least_one_passed_pt20 = True
-            #     elif lep.pt > 10: at_least_one_passed_pt10 = True
-            # if not (at_least_one_passed_pt10 and at_least_one_passed_pt20): continue
 
-            # Two DISTINCT leptons must pass pt > 10 and pt > 20
-            num_passed_pt20 = 0
-            num_passed_pt10 = 0
-
-            for lep in leptons:
-                if lep.pt > 20:
-                    num_passed_pt20 += 1
-                elif lep.pt > 10:
-                    num_passed_pt10 += 1
-
-            # Ensure we have at least one lepton passing each threshold, and they are distinct
-            if num_passed_pt20 == 0 or (num_passed_pt10 + num_passed_pt20) < 2: continue 
+            # Trigger pT cut
+            leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2]
+            lep_pts = sorted([lep.pt for lep in leptons]) 
+            if not (lep_pts[3] > 20 and lep_pts[2] > 10):
+                continue
             
             lepton_pairs = list(itertools.combinations(leptons, 2)) # 6 combinations
             
@@ -300,39 +340,39 @@ class BaselineProducer(Module):
                 lep1 = lepton_pair[0]
                 lep2 = lepton_pair[1]
                             
-                dr = math.sqrt( (lep1.eta - lep2.eta)**2 + (lep1.phi - lep2.phi)**2 ) 
+                dr = deltaR(lep1.eta,lep1.phi,lep2.eta,lep2.phi)
                 dr_ll_values.append(dr)
                 
                 if (lep1.pdgId + lep2.pdgId) == 0:
-                    m_ll = sumP4(lep1, lep2).M()
+                    m_ll = (lep1.p4()+lep2.p4()).M()
                     m_ll_values.append(m_ll)
                     
-            if any(dr < 0.02 for dr in dr_ll_values): continue
-            if any(m_ll < 4 for m_ll in m_ll_values): continue
+            if any(dr <= 0.02 for dr in dr_ll_values): 
+                continue
+            if any(m_ll <= 4 for m_ll in m_ll_values): 
+                continue
             
             ## smart cut: check alternative pairing (4e or 4mu)
             if abs(Z1.lep1.pdgId) == abs(Z1.lep2.pdgId) == abs(Z2.lep1.pdgId) == abs(Z2.lep2.pdgId):
 
-                ## define Za as the one closest to Z mass, and Zb as the other pair
-                Ztemp1 = Zcandidate(Z1.lep1, Z2.lep2)
-                Ztemp2 = Zcandidate(Z2.lep1, Z1.lep2)
+                fsrPhotons = Collection(event, "FsrPhoton")
+                fsrIndices = {
+                    "muFsrPhotonIdx": getattr(event, "muFsrPhotonIdx", []),
+                    "eleFsrPhotonIdx": getattr(event, "eleFsrPhotonIdx", [])
+                }
 
+                Ztemp1 = Zcandidate(Z1.lep1, Z2.lep2, fsrPhotons, fsrIndices)
+                Ztemp2 = Zcandidate(Z2.lep1, Z1.lep2, fsrPhotons, fsrIndices)
                 mZ = 91.1876
                 Za, Zb = (Ztemp1, Ztemp2) if ( abs(Ztemp1.mass - mZ) < abs(Ztemp2.mass - mZ) ) else (Ztemp2, Ztemp1)
                                 
                 ## reject if |mZa - mZ| < |mZ1 - mZ| and mZb < 12
-                if ( abs(Za.mass - mZ) < abs(Z1.mass - mZ) ) and Zb.mass < 12: continue
-
-            ## reject if inv mass of 4-lepton system < 70            
-            m_4l = sumP4(Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2).M()
-            if m_4l < 70: continue
-             # ## reject if inv mass of 4-lepton system < 105             
-            # if m_4l < 105: continue
-
-            # ## reject if inv mass of 4-lepton system > 140
-            # if m_4l > 140: continue
-                
+                if ( abs(Za.mass - mZ) < abs(Z1.mass - mZ) ) and Zb.mass < 12: 
+                    continue
+                    
             ZZcand = ZZcandidate(Z1,Z2)
+            m_4l = ZZcand.mass
+            if m_4l < 70: continue
             event.ZZcandidates.append(ZZcand)      
             
     def _select_H_candidates(self, event):
@@ -377,45 +417,59 @@ class BaselineProducer(Module):
         #     )
 
         # event.Hcandidates.append(best_candidate)
+    def isoFsrCorr(self, lep, selectedFSR):
+        combRelIsoPFFSRCorr = lep.pfRelIso03_all
+        for fsr in selectedFSR:
+            dR = deltaR(lep.eta, lep.phi, fsr.eta, fsr.phi)
+            if 0.01 < dR < 0.3:
+                combRelIsoPFFSRCorr = max(0.0, combRelIsoPFFSRCorr - fsr.pt / lep.pt)
+        return combRelIsoPFFSRCorr
+
         
     ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py    
-    def _associate_fsr_photons(self, event):
+    def _associate_fsr_photons_and_leptons(self, event):
         muons = Collection(event, "Muon")
         electrons = Collection(event, "Electron")
         fsrPhotons = Collection(event, "FsrPhoton")
+
         fsr_dRET2_max = 0.012
         relIso_cut = 1.8
 
-        # Init index and dREt2 tracking
         muFsrPhotonIdx = [-1] * len(muons)
         eleFsrPhotonIdx = [-1] * len(electrons)
         muPhotondREt2 = [999] * len(muons)
         elePhotondREt2 = [999] * len(electrons)
+        fsrPhoton_mydROverEt2 = [-1] * len(fsrPhotons)
         fsrPhoton_myMuonIdx = [-1] * len(fsrPhotons)
         fsrPhoton_myElectronIdx = [-1] * len(fsrPhotons)
-        fsrPhoton_mydROverEt2 = [-1] * len(fsrPhotons)
 
         for ifsr, fsr in enumerate(fsrPhotons):
             if fsr.pt < 2 or abs(fsr.eta) > 2.4 or fsr.relIso03 > relIso_cut:
                 continue
 
             dRmin = 0.5
-            closestMu = -1
-            closestEle = -1
+            closestMu=-1
+            closestEle=-1
 
+            # Check muons
             for imu, mu in enumerate(muons):
+                if not (mu.pt > 5 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and abs(mu.sip3d) < 4 and (mu.isGlobal or (mu.isTracker and mu.nStations > 0))):
+                    continue
                 dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
                 if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
                     dRmin = dR
-                    closestMu = imu
-                    closestEle = -1
+                    closestMu=imu
 
-            for iel, ele in enumerate(electrons):
-                dR = deltaR(ele.eta, ele.phi, fsr.eta, fsr.phi)
+            # Check electrons
+            for iel, el in enumerate(electrons):
+                etaSC = el.eta + el.deltaEtaSC  # still used later, not here
+                if not (el.pt > 7 and abs(el.eta) < 2.5 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and abs(el.sip3d) < 4):
+                    continue
+                dR = deltaR(el.eta, el.phi, fsr.eta, fsr.phi)
                 if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
                     dRmin = dR
-                    closestMu = -1
-                    closestEle = iel
+                    closestMu=-1
+                    closestEle=iel
 
             if closestMu >= 0 or closestEle >= 0:
                 dREt2 = dRmin / (fsr.pt ** 2)
@@ -433,74 +487,59 @@ class BaselineProducer(Module):
                         elePhotondREt2[closestEle] = dREt2
                         eleFsrPhotonIdx[closestEle] = ifsr
 
-        # Store the results back in the event
+        # Store results
         event.muFsrPhotonIdx = muFsrPhotonIdx
         event.eleFsrPhotonIdx = eleFsrPhotonIdx
 
-    def _select_muons(self, event):
+        selectedFSR = []
+        for ifsr in muFsrPhotonIdx + eleFsrPhotonIdx :
+            if ifsr>=0 : selectedFSR.append(fsrPhotons[ifsr])
+    # def _select_muons(self, event):
+        muons = Collection(event, "Muon")
+        fsrPhotons = Collection(event, "FsrPhoton")
+        # muFsrPhotonIdx = getattr(event, "muFsrPhotonIdx", [-1] * len(muons))
+
+        # selectedFSR = [fsrPhotons[i] for i in muFsrPhotonIdx if i >= 0]
 
         event.selectedMuons = []
 
-        muons = Collection(event, "Muon")
-        fsrPhotons = Collection(event, "FsrPhoton")
-        muFsrPhotonIdx = getattr(event, "muFsrPhotonIdx", [-1] * len(muons))
-
         for imu, mu in enumerate(muons):
 
-            isoCorr = mu.pfRelIso03_all
-            if muFsrPhotonIdx[imu] >= 0:
-                fsr = fsrPhotons[muFsrPhotonIdx[imu]]
-                dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
-                if 0.01 < dR < 0.3:
-                    isoCorr = max(0.0, mu.pfRelIso03_all - fsr.pt / mu.pt)
-            mu.iso=isoCorr
-            
-            passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
-            
-            if mu.pt > 5 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and abs(mu.sip3d) < 4 and isoCorr < 0.35 and passMuID and (mu.isGlobal or (mu.isTracker and mu.nStations>0)):
-                mu._wp_ID = 'TightID'
+            isoCorr = self.isoFsrCorr(mu, selectedFSR)
+            passIso = isoCorr < 0.35
+
+            # full ID
+            passID = (mu.isPFcand or (mu.highPtId > 0 and mu.pt > 200))
+            passKinematics = (
+                mu.pt > 5 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5
+                and abs(mu.dz) < 1 and abs(mu.sip3d) < 4
+            )
+
+            if passID and passKinematics and passIso and (mu.isGlobal or (mu.isTracker and mu.nStations > 0)):
                 mu._wp_Iso = 'LoosePFIso'
+                mu._wp_ID = 'TightID'
+                mu.iso = isoCorr
+                mu.index = imu
                 event.selectedMuons.append(mu)
+
             
-    ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py       
-    def _select_electrons(self, event):
+    #     ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py       
+    # def _select_electrons(self, event):
+        electrons = Collection(event, "Electron")
+        fsrPhotons = Collection(event, "FsrPhoton")
+        # eleFsrPhotonIdx = getattr(event, "eleFsrPhotonIdx", [-1] * len(electrons))
+
+        # selectedFSR = [fsrPhotons[i] for i in eleFsrPhotonIdx if i >= 0]
 
         event.selectedElectrons = []
 
-        electrons = Collection(event, "Electron")
-        fsrPhotons = Collection(event, "FsrPhoton")
-        eleFsrPhotonIdx = getattr(event, "eleFsrPhotonIdx", [-1] * len(electrons))
-        
         for iel, el in enumerate(electrons):
-            el.etaSC = el.eta + el.deltaEtaSC
-            isoCorr = el.pfRelIso03_all
-            if eleFsrPhotonIdx[iel] >= 0:
-                fsr = fsrPhotons[eleFsrPhotonIdx[iel]]
-                dR = deltaR(el.eta, el.phi, fsr.eta, fsr.phi)
-                if 0.01 < dR < 0.3:
-                    isoCorr = max(0.0, el.pfRelIso03_all - fsr.pt / el.pt)
-            el.iso=isoCorr
+            etaSC = el.eta + el.deltaEtaSC
+            isoCorr = self.isoFsrCorr(el, selectedFSR)
+
             if el.pt > 7 and abs(el.eta) < 2.5 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and abs(el.sip3d) < 4:
-                el._wp_ID = 'wp90iso'
-                
-                ## https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/getEleBDTCut.py#L22-L31
-                # if abs(el.etaSC) < 0.8:
-                #     if el.pt < 10:
-                #         if el.mvaIso < 0.9044286167: continue
-                #     else:
-                #         if el.mvaIso < 0.1968600840: continue
-                # elif 0.8 < abs(el.etaSC) < 1.479:
-                #     if el.pt < 10:
-                #         if el.mvaIso < 0.9094166886: continue
-                #     else:
-                #         if el.mvaIso < 0.0759172100: continue                  
-                # else: # |el.etaSC| > 1.479
-                #     if el.pt < 10:
-                #         if el.mvaIso < 0.9443653660: continue
-                #     else:
-                #         if el.mvaIso < -0.5169136775: continue
-                # Full ID BDT cuts
-                etaSC = abs(el.etaSC)
+                # full BDT ID
+                el.etaSC = etaSC
                 mva = el.mvaHZZIso
                 if etaSC < 0.8:
                     if el.pt < 10 and mva < 0.9044286167: continue
@@ -510,9 +549,17 @@ class BaselineProducer(Module):
                     if el.pt >= 10 and mva < 0.0759172100: continue
                 else:
                     if el.pt < 10 and mva < 0.9443653660: continue
-                    if el.pt >= 10 and mva < -0.5169136775: continue                      
-                                    
+                    if el.pt >= 10 and mva < -0.5169136775: continue
+                
+                el._wp_ID = 'wp90iso'
+                el.iso = isoCorr
+                el.etaSC = etaSC
+                el.index = iel
                 event.selectedElectrons.append(el)
+
+
+
+            # baseline cut
 
     def _select_jets(self, event):
 
