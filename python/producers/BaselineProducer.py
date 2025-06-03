@@ -11,14 +11,52 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 lumi_dict = {"2022": 7.9804, "2022EE": 26.6717, "2023": 17.794, "2023BPix": 9.451}
 
 class Zcandidate:
-    
-    def __init__(self,lep1,lep2):
+    def __init__(self, lep1, lep2, fsrPhotons, fsrIndices):
         self.lep1 = lep1
         self.lep2 = lep2
-        self.pt = sumP4(self.lep1, self.lep2).Pt()
-        self.eta = sumP4(self.lep1, self.lep2).Eta()
-        self.phi = sumP4(self.lep1, self.lep2).Phi()
-        self.mass = sumP4(self.lep1, self.lep2).M()
+
+        self.lep1_uncorrpt=lep1.pt
+        self.lep2_uncorrpt=lep2.pt
+
+        # Get fsr indices based on pdgId
+        if abs(lep1.pdgId) == 13:
+            self.fsrIdx1 = fsrIndices["muFsrPhotonIdx"][lep1.index]
+            self.fsrIdx2 = fsrIndices["muFsrPhotonIdx"][lep2.index]
+        elif abs(lep1.pdgId) == 11:
+            self.fsrIdx1 = fsrIndices["eleFsrPhotonIdx"][lep1.index]
+            self.fsrIdx2 = fsrIndices["eleFsrPhotonIdx"][lep2.index]
+        else:
+            self.fsrIdx1 = -1
+            self.fsrIdx2 = -1
+
+        # Get dressed four-momentum
+        self.lep1_dressed = lep1.p4()
+        self.lep2_dressed = lep2.p4()
+
+        if self.fsrIdx1 >= 0:
+            fsr1 = fsrPhotons[self.fsrIdx1]
+            fsr1_p4 = ROOT.TLorentzVector()
+            fsr1_p4.SetPtEtaPhiM(fsr1.pt, fsr1.eta, fsr1.phi, 0.0)
+            self.lep1_dressed += fsr1_p4
+        if self.fsrIdx2 >= 0:
+            fsr2 = fsrPhotons[self.fsrIdx2]
+            fsr2_p4 = ROOT.TLorentzVector()
+            fsr2_p4.SetPtEtaPhiM(fsr2.pt, fsr2.eta, fsr2.phi, 0.0) 
+            self.lep2_dressed += fsr2_p4
+
+        self.p4 = self.lep1_dressed + self.lep2_dressed
+
+        # Kinematic quantities from dressed p4
+        self.pt = self.p4.Pt()
+        self.eta = self.p4.Eta()
+        self.phi = self.p4.Phi()
+        self.mass = self.p4.M()
+
+    def sumpt(self):
+        return self.lep1.pt + self.lep2.pt
+
+    def finalState(self):
+        return self.lep1.pdgId * self.lep2.pdgId
 
 class ZZcandidate:
 
@@ -256,7 +294,7 @@ class BaselineProducer(Module):
 
         if event.PV_npvsGood < 1: return False
 
-        if event.MET_pt > 25: return False
+        # if event.MET_pt > 25: return False
 
         # Apply trigger selections 
         if self._select_triggers(event) is False:
@@ -268,7 +306,7 @@ class BaselineProducer(Module):
         # if len(event.fullIDLeptons) < 4: return False 
         event.selectedLeptons = event.relaxedMuons + event.relaxedElectrons
 
-        if len(event.selectedLeptons) < 3: return False # For Z+L CR we need to change this to 3 
+        if len(event.selectedLeptons) < 4: return False # For Z+L CR we need to change this to 3 
 
         self._select_jets(event)
         # if len(event.selectedJets) == 0:
@@ -344,11 +382,18 @@ class BaselineProducer(Module):
         lepton_pairs = list(itertools.combinations(event.selectedLeptons, 2))
 
         for lep1, lep2 in lepton_pairs:
+            if not (abs(lep1.pdgId)==abs(lep2.pdgId)):
+                continue
 
             # Ensure consistent ordering (lep1 = negative charge)
             lep1, lep2 = (lep1, lep2) if lep1.pdgId < 0 else (lep2, lep1)
 
-            Zcand = Zcandidate(lep1, lep2)
+            fsrPhotons = Collection(event, "FsrPhoton")
+            fsrIndices = {
+                "muFsrPhotonIdx": getattr(event, "muFsrPhotonIdx", []),
+                "eleFsrPhotonIdx": getattr(event, "eleFsrPhotonIdx", [])
+            }
+            Zcand = Zcandidate(lep1, lep2, fsrPhotons, fsrIndices)
 
             if Zcand.mass < 12 or Zcand.mass > 120:
                 continue
@@ -423,29 +468,16 @@ class BaselineProducer(Module):
 
 
     def _build_SR_and_CR_combinations(self, event):
-        event.ZZSRcandidates = []
-        event.ZLLcandidates = []
+
+        # Initialize storage
+        event.ZZSRcandidates, event.ZLLcandidates = [], []
         event.ZLcandidates = None
-        event.ZLcandidates_all = []
-        event.ZLcandidates_alle = []
-        event.ZLcandidates_allmu = []
-        event.ZLcandidates_pass = []
-        event.ZLcandidates_passe = []
-        event.ZLcandidates_passmu = []
-        
+        event.ZLcandidates_all, event.ZLcandidates_alle, event.ZLcandidates_allmu = [], [], []
+        event.ZLcandidates_pass, event.ZLcandidates_passe, event.ZLcandidates_passmu = [], [], []
         event.bestZZIdx = -1
 
         Zs = event.Zcandidates
-        ZZs = []
-        ZLLs = []
-        ZLLsTemp = []
-        ZLs_all = []
-        ZLs_alle = []
-        ZLs_allmu = []
-        ZLs_pass = []
-        ZLs_passe = []
-        ZLs_passmu = []
-
+        ZZs, ZLLs, ZLLsTemp = [], [], []
         ZLL2P2F=[]
         ZLL3P1F=[]
         ZLLSSCR=[]
@@ -453,248 +485,102 @@ class BaselineProducer(Module):
         event.ZLL3P1Fcandidates = []
         event.ZLLSSCRcandidates = []
 
-        best2P2FCRIdx = -1
-        best3P1FCRIdx = -1
-        bestSSCRIdx = -1
-        bestCandIdx = -1
-
-        ZmassNominal = 91.1876  # Z mass in GeV
+        bestZZIdx, best2P2FCRIdx, best3P1FCRIdx, bestSSCRIdx = -1, -1, -1, -1
+        ZmassNominal = 91.1876
 
         def bestCandCmp(a, b):
+            if abs(a.Z1.mass - b.Z1.mass) < 1e-4:
+                return -1 if a.Z2.lep1.pt + a.Z2.lep2.pt > b.Z2.lep1.pt + b.Z2.lep2.pt else 1
+            return -1 if abs(a.Z1.mass - ZmassNominal) < abs(b.Z1.mass - ZmassNominal) else 1
 
-            if abs(a.Z1.mass - b.Z1.mass) < 1e-4 : # If Z1 masses are similar, compare Z2 sum of transverse momenta
-                if a.Z2.lep1.pt + a.Z2.lep2.pt > b.Z2.lep1.pt + b.Z2.lep2.pt:
-                    return -1  # a is better
-                else:
-                    return 1   # b is better
-            else:
-                if abs(a.Z1.mass - 91.1876) < abs(b.Z1.mass - 91.1876):
-                    return -1  # a is better
-                else:
-                    return 1   # b is better days ago
+        def leptonOverlapOrFail(leps):
+            if len(set(leps)) != 4:
+                return True
+            lep_pts = sorted([lep.pt for lep in leps])
+            if not (lep_pts[3] > 20 and lep_pts[2] > 10):
+                return True
+            lepton_pairs = itertools.combinations(leps, 2)
+            dr_ll = [deltaR(l1.eta, l1.phi, l2.eta, l2.phi) for l1, l2 in lepton_pairs]
+            if any(dr <= 0.02 for dr in dr_ll):
+                return True
+            m_ll = [(l1.p4() + l2.p4()).M() for l1, l2 in lepton_pairs if l1.pdgId + l2.pdgId == 0]
+            return any(m <= 4 for m in m_ll)
 
-        # ---------- Build ZZ candidates (SR) ----------
+        def failsSmartPairing(Z1, Z2):
+            if abs(Z1.lep1.pdgId) != abs(Z2.lep1.pdgId): return False
+            fsrPhotons = Collection(event, "FsrPhoton")
+            fsrIndices = {
+                "muFsrPhotonIdx": getattr(event, "muFsrPhotonIdx", []),
+                "eleFsrPhotonIdx": getattr(event, "eleFsrPhotonIdx", [])
+            }
+            Zt1 = Zcandidate(Z1.lep1, Z2.lep2, fsrPhotons, fsrIndices)
+            Zt2 = Zcandidate(Z2.lep1, Z1.lep2, fsrPhotons, fsrIndices)
+            Za, Zb = (Zt1, Zt2) if abs(Zt1.mass - ZmassNominal) < abs(Zt2.mass - ZmassNominal) else (Zt2, Zt1)
+            return abs(Za.mass - ZmassNominal) < abs(Z1.mass - ZmassNominal) and Zb.mass < 12
+
+        # ---------- Signal Region (ZZ) ----------
         for i, Z1 in enumerate(Zs):
             for j in range(i + 1, len(Zs)):
                 Z2 = Zs[j]
+                if not (Z1.isOSSF and Z2.isOSSF): continue
+                if any(l in [Z1.lep1, Z1.lep2] for l in [Z2.lep1, Z2.lep2]): continue
+                if leptonOverlapOrFail([Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2]): continue
+                if failsSmartPairing(Z1, Z2): continue
 
-                # Require both Zs are OSSF
-                if not (Z1.isOSSF and Z2.isOSSF):
-                    continue
-
-                # Reject overlapping leptons
-                leps_Z1 = [Z1.lep1, Z1.lep2]
-                leps_Z2 = [Z2.lep1, Z2.lep2]
-                if any(l in leps_Z1 for l in leps_Z2):
-                    continue
-
-                # Check both Zs for SR quality
-                isGoodZZ = Z1.isSR and Z2.isSR
                 ZZ = ZZcandidate(Z1, Z2)
+                if ZZ.mass < 70: continue
 
-                if isGoodZZ:
+                if Z1.isSR and Z2.isSR:
                     ZZ.isSR = True
                     ZZs.append(ZZ)
-                    if bestCandIdx < 0 or bestCandCmp(ZZ, ZZs[bestCandIdx]) < 0:
-                        bestCandIdx = len(ZZs) - 1
-
-                else:
-                    ZZ.isSR = False
-                    # ZZs.append(ZZ)  # optional: store all
+                    if bestZZIdx < 0 or bestCandCmp(ZZ, ZZs[bestZZIdx]) < 0:
+                        bestZZIdx = len(ZZs) - 1
 
         event.ZZSRcandidates = ZZs
-        if bestCandIdx >= 0:
-            event.bestZZIdx = bestCandIdx
+        if bestZZIdx >= 0:
+            event.bestZZIdx = bestZZIdx
 
-        # ---------- Control Region: ZLL (only if no good SR ZZ) ----------
-        if bestCandIdx < 0 and len(Zs) >= 2:
+        # ---------- Control Regions (ZLL) ----------
+        if bestZZIdx < 0 and len(Zs) >= 2:
             for Z1 in Zs:
-                if not Z1.isSR:
-                    continue
+                if not Z1.isSR: continue
                 for Z2 in Zs:
-                    if Z1 == Z2:
-                        continue
-                    if Z2.is1FCR or Z2.is2FCR or Z2.isSSCR :
-                        if any(l in [Z1.lep1, Z1.lep2] for l in [Z2.lep1, Z2.lep2]):
-                            continue
+                    if Z1 == Z2 or not (Z2.is1FCR or Z2.is2FCR or Z2.isSSCR): continue
+                    if any(l in [Z1.lep1, Z1.lep2] for l in [Z2.lep1, Z2.lep2]): continue
+                    if Z1.mass < 40: continue
+                    if leptonOverlapOrFail([Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2]): continue
+                    if failsSmartPairing(Z1, Z2): continue
 
-                        if Z1.mass < 40: continue  
-            
-                        leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2]
+                    ZLL = ZLLcandidate(Z1, Z2)
+                    ZLL.Z2 = Z2
+                    ZLLsTemp.append(ZLL)
 
-                        # Reject overlapping leptons
-                        leps_Z1 = [Z1.lep1, Z1.lep2]
-                        leps_Z2 = [Z2.lep1, Z2.lep2]
-            
-                        # Two DISTINCT leptons must pass pt > 10 and pt > 20
-                        num_passed_pt20 = 0
-                        num_passed_pt10 = 0
+                    if Z2.is2FCR and (best2P2FCRIdx < 0 or bestCandCmp(ZLL, ZLLsTemp[best2P2FCRIdx]) < 0):
+                        best2P2FCRIdx = len(ZLLsTemp) - 1
+                        ZLL.category = "2P2F"
+                    if Z2.is1FCR and (best3P1FCRIdx < 0 or bestCandCmp(ZLL, ZLLsTemp[best3P1FCRIdx]) < 0):
+                        best3P1FCRIdx = len(ZLLsTemp) - 1
+                        ZLL.category = "3P1F"
+                    if Z2.isSSCR and (bestSSCRIdx < 0 or bestCandCmp(ZLL, ZLLsTemp[bestSSCRIdx]) < 0):
+                        bestSSCRIdx = len(ZLLsTemp) - 1
+                        ZLL.category = "SSCR"
 
-                        for lep in leptons:
-                            if lep.pt > 20:
-                                num_passed_pt20 += 1
-                            elif lep.pt > 10:
-                                num_passed_pt10 += 1
-
-                        # Ensure we have at least one lepton passing each threshold, and they are distinct
-                        if num_passed_pt20 == 0 or (num_passed_pt10 + num_passed_pt20) < 2: continue 
-            
-                        lepton_pairs = list(itertools.combinations(leptons, 2)) # 6 combinations
-            
-                        dr_ll_values = [] # between each of the four leptons (Ghost removal: all pairs)
-                        m_ll_values = [] # between each of the four leptons (QCD suppression: opposite-sign pairs and same flavour)                     
-                        for lepton_pair in lepton_pairs:
-                            lep1 = lepton_pair[0]
-                            lep2 = lepton_pair[1]
-                            
-                            dr = math.sqrt( (lep1.eta - lep2.eta)**2 + (lep1.phi - lep2.phi)**2 ) 
-                            dr_ll_values.append(dr)
-                
-                            if (lep1.pdgId + lep2.pdgId) == 0:
-                                m_ll = sumP4(lep1, lep2).M()
-                                m_ll_values.append(m_ll)
-                    
-                        if any(dr < 0.02 for dr in dr_ll_values): continue
-                        if any(m_ll < 4 for m_ll in m_ll_values): continue
-            
-                        ## smart cut: check alternative pairing (4e or 4mu)
-                        if abs(Z1.lep1.pdgId) == abs(Z1.lep2.pdgId) == abs(Z2.lep1.pdgId) == abs(Z2.lep2.pdgId):
-
-                            ## define Za as the one closest to Z mass, and Zb as the other pair
-                            Ztemp1 = Zcandidate(Z1.lep1, Z2.lep2)
-                            Ztemp2 = Zcandidate(Z2.lep1, Z1.lep2)
-
-                            mZ = 91.1876
-                            Za, Zb = (Ztemp1, Ztemp2) if ( abs(Ztemp1.mass - mZ) < abs(Ztemp2.mass - mZ) ) else (Ztemp2, Ztemp1)
-                                
-                            ## reject if |mZa - mZ| < |mZ1 - mZ| and mZb < 12
-                            if ( abs(Za.mass - mZ) < abs(Z1.mass - mZ) ) and Zb.mass < 12: continue
-
-                        ZLL = ZLLcandidate(Z1, Z2)
-                        ZLL.Z2 = Z2  # to keep access to ID info
-                        ZLLsTemp.append(ZLL)
-
-                        if Z2.is2FCR and (best2P2FCRIdx < 0 or bestCandCmp(ZLL, ZLLsTemp[best2P2FCRIdx]) < 0):
-                            best2P2FCRIdx = len(ZLLsTemp) - 1
-                            ZLL.category = "2P2F"
-                        if Z2.is1FCR and (best3P1FCRIdx < 0 or bestCandCmp(ZLL, ZLLsTemp[best3P1FCRIdx]) < 0):
-                            best3P1FCRIdx = len(ZLLsTemp) - 1
-                            ZLL.category = "3P1F"
-                        if Z2.isSSCR and (bestSSCRIdx < 0 or bestCandCmp(ZLL, ZLLsTemp[bestSSCRIdx]) < 0):
-                            bestSSCRIdx = len(ZLLsTemp) - 1
-                            ZLL.category = "SSCR"
-
-            # Keep only best per CR
-            for iZLL, ZLL in enumerate(ZLLsTemp):
-                if iZLL in [best2P2FCRIdx, best3P1FCRIdx, bestSSCRIdx]:
+            # Keep only best ZLL candidates per category
+            for idx, ZLL in enumerate(ZLLsTemp):
+                if idx in [best2P2FCRIdx, best3P1FCRIdx, bestSSCRIdx]:
                     ZLLs.append(ZLL)
-                if iZLL == best2P2FCRIdx:
+                if idx == best2P2FCRIdx:
                     ZLL2P2F.append(ZLL)
-                if iZLL == best3P1FCRIdx:
+                if idx == best3P1FCRIdx:
                     ZLL3P1F.append(ZLL)
-                if iZLL == bestSSCRIdx:
+                if idx == bestSSCRIdx:
                     ZLLSSCR.append(ZLL)
-
 
         event.ZLLcandidates = ZLLs
         event.ZLL2P2Fcandidates = ZLL2P2F
         event.ZLL3P1Fcandidates = ZLL3P1F
         event.ZLLSSCRcandidates = ZLLSSCR
 
-
-        # ---------- Control Region: Z + L ----------
-        if hasattr(event, "bestZIdx") and event.bestZIdx >= 0:
-            bestZ = event.Zcandidates[event.bestZIdx]
-            lep1,lep2=[bestZ.lep1, bestZ.lep2]
-
-            num_passed_pt20 = 0
-            num_passed_pt10 = 0
-
-            for lep in [lep1,lep2]:
-                if lep.pt > 20:
-                    num_passed_pt20 += 1
-                elif lep.pt > 10:
-                    num_passed_pt10 += 1
-
-            if abs(bestZ.mass-ZmassNominal) < 7 and num_passed_pt20 > 0 and (num_passed_pt10 + num_passed_pt20) > 1:
-                lep1,lep2=[bestZ.lep1, bestZ.lep2]
-                    
-                # extra_leptons = [
-                #     lep for lep in event.selectedLeptons
-                #     if lep not in [bestZ.lep1, bestZ.lep2] and lep.isRelaxed
-                # ]
-                selected_with_idx = list(enumerate(event.selectedLeptons))
-
-                # Find index of bestZ.lep1 and bestZ.lep2
-                idx_lep1 = next((i for i, lep in selected_with_idx if lep is bestZ.lep1), -1)
-                idx_lep2 = next((i for i, lep in selected_with_idx if lep is bestZ.lep2), -1)
-
-                # Filter out Z leptons and keep relaxed leptons
-                extra_leptons_with_idx = [
-                    (i, lep) for i, lep in selected_with_idx
-                    if lep not in [bestZ.lep1, bestZ.lep2] and lep.isRelaxed
-                ]
-                if len(extra_leptons_with_idx) == 1:
-                    idx_aL, aL = extra_leptons_with_idx[0]
-                    # print("DEBUG: Z+L candidate leptons:")
-                    # print(f" - aL (third lepton): index={idx_aL}, pt={aL.pt}")
-                    def deltaR(eta1, phi1, eta2, phi2):
-                        return math.sqrt((eta1 - eta2) ** 2 + (phi1 - phi2) ** 2)
-
-                    if deltaR(aL.eta, aL.phi, bestZ.lep1.eta, bestZ.lep1.phi) > 0.02 and \
-                        deltaR(aL.eta, aL.phi, bestZ.lep2.eta, bestZ.lep2.phi) > 0.02:
-
-                        # QCD suppression (m_ll > 4 GeV if OS)
-                        if (aL.charge != bestZ.lep1.charge and sumP4(aL, bestZ.lep1).M() <= 4) or \
-                            (aL.charge != bestZ.lep2.charge and sumP4(aL, bestZ.lep2).M() <= 4):
-                            pass
-                        else:
-                            event.ZLcandidates = aL
-                            ZL = ZLcandidate(bestZ, aL)                 
-                            ZLs_all.append(ZL)
-                            if abs(aL.pdgId) == 11:
-                                ZLs_alle.append(ZL)
-                            elif abs(aL.pdgId) == 13:
-                                ZLs_allmu.append(ZL)
-
-                            if aL.isFullID:
-                                ZLs_pass.append(ZL)
-                                if abs(aL.pdgId) == 11:
-                                    ZLs_passe.append(ZL)
-                                elif abs(aL.pdgId) == 13:
-                                    ZLs_passmu.append(ZL)
-        
-        event.ZLcandidates_all = ZLs_all
-        event.ZLcandidates_alle = ZLs_alle
-        event.ZLcandidates_allmu = ZLs_allmu
-        event.ZLcandidates_pass = ZLs_pass
-        event.ZLcandidates_passe = ZLs_passe
-        event.ZLcandidates_passmu = ZLs_passmu
-
-
-    # def _select_Z_candidates(self, event):
-
-    #     event.Zcandidates = []
-        
-    #     # mva_leptons = [lepton for lepton in event.selectedLeptons if lepton.mvaTOP > 0.9]
-    #     # lepton_pairs = list(itertools.combinations(mva_leptons, 2))
-    #     lepton_pairs = list(itertools.combinations(event.selectedLeptons, 2))
-        
-    #     for lepton_pair in lepton_pairs:
-            
-    #         # we need same flavor and opposite charge
-    #         if (lepton_pair[0].pdgId + lepton_pair[1].pdgId) != 0:
-    #             continue
-            
-    #         # let's put negative charged lepton always as lep1 (useful later)
-    #         lep1, lep2 = (lepton_pair[0], lepton_pair[1]) if lepton_pair[0].pdgId < 0 else (lepton_pair[1], lepton_pair[0])
-                        
-    #         Zcand = Zcandidate(lep1,lep2)
-            
-    #         if Zcand.mass < 12 or Zcand.mass > 120:
-    #             continue
-        
-    #         event.Zcandidates.append(Zcand)
 
     def _flag_onshell_and_offshell_Z(self, Zcand_pair):
                     
@@ -720,31 +606,49 @@ class BaselineProducer(Module):
                 
         Zcand_pairs = list(itertools.combinations(event.ZcandidatesSR, 2))
         for Zcand_pair in Zcand_pairs:
+                        
             self._flag_onshell_and_offshell_Z(Zcand_pair) 
             Z1, Z2 = (Zcand_pair[0], Zcand_pair[1]) if Zcand_pair[0].is_onshell else (Zcand_pair[1], Zcand_pair[0]) # by definition Z1 onshell, Z2 offshell
+
+            lep_ids = {
+                abs(Z1.lep1.pdgId),
+                abs(Z1.lep2.pdgId),
+                abs(Z2.lep1.pdgId),
+                abs(Z2.lep2.pdgId)
+            }
+
    
             if Z1.mass < 40: continue  
+            # if any(l in [Z1.lep1, Z1.lep2] for l in [Z2.lep1, Z2.lep2]):
+            #     continue
             
-            leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2]
+            leptons = [Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2] 
+            
+            ## two DISTINCT leptons must pass pt > 10 and pt > 20
+            # at_least_one_passed_pt20 = False
+            # at_least_one_passed_pt10 = False
+            # for lep in leptons:
+            #     if lep.pt > 20: at_least_one_passed_pt20 = True
+            #     elif lep.pt > 10: at_least_one_passed_pt10 = True
+            # if not (at_least_one_passed_pt10 and at_least_one_passed_pt20): continue
 
-            # Reject overlapping leptons
-            leps_Z1 = [Z1.lep1, Z1.lep2]
-            leps_Z2 = [Z2.lep1, Z2.lep2]
-            if any(l in leps_Z1 for l in leps_Z2):
-                continue
-            
             # Two DISTINCT leptons must pass pt > 10 and pt > 20
-            num_passed_pt20 = 0
-            num_passed_pt10 = 0
+            # num_passed_pt20 = 0
+            # num_passed_pt10 = 0
 
-            for lep in leptons:
-                if lep.pt > 20:
-                    num_passed_pt20 += 1
-                elif lep.pt > 10:
-                    num_passed_pt10 += 1
+            # for lep in leptons:
+            #     if lep.pt > 20:
+            #         num_passed_pt20 += 1
+            #     elif lep.pt > 10:
+            #         num_passed_pt10 += 1
 
-            # Ensure we have at least one lepton passing each threshold, and they are distinct
-            if num_passed_pt20 == 0 or (num_passed_pt10 + num_passed_pt20) < 2: continue 
+            # # Ensure we have at least one lepton passing each threshold, and they are distinct
+            # if num_passed_pt20 == 0 or (num_passed_pt10 + num_passed_pt20) < 2: 
+            #     print("pt cut!")
+            #     continue 
+            lep_pts = sorted([lep.pt for lep in leptons])
+            if not (lep_pts[3] > 20 and lep_pts[2] > 10):
+                continue
             
             lepton_pairs = list(itertools.combinations(leptons, 2)) # 6 combinations
             
@@ -754,35 +658,40 @@ class BaselineProducer(Module):
                 lep1 = lepton_pair[0]
                 lep2 = lepton_pair[1]
                             
-                dr = math.sqrt( (lep1.eta - lep2.eta)**2 + (lep1.phi - lep2.phi)**2 ) 
+                dr = deltaR(lep1.eta,lep1.phi,lep2.eta,lep2.phi)
                 dr_ll_values.append(dr)
                 
                 if (lep1.pdgId + lep2.pdgId) == 0:
-                    m_ll = sumP4(lep1, lep2).M()
+                    m_ll = (lep1.p4()+lep2.p4()).M()
                     m_ll_values.append(m_ll)
                     
-            if any(dr < 0.02 for dr in dr_ll_values): continue
-            if any(m_ll < 4 for m_ll in m_ll_values): continue
+            if any(dr <= 0.02 for dr in dr_ll_values): 
+                continue
+            if any(m_ll <= 4 for m_ll in m_ll_values): 
+                continue
             
             ## smart cut: check alternative pairing (4e or 4mu)
             if abs(Z1.lep1.pdgId) == abs(Z1.lep2.pdgId) == abs(Z2.lep1.pdgId) == abs(Z2.lep2.pdgId):
 
-                ## define Za as the one closest to Z mass, and Zb as the other pair
-                Ztemp1 = Zcandidate(Z1.lep1, Z2.lep2)
-                Ztemp2 = Zcandidate(Z2.lep1, Z1.lep2)
+                fsrPhotons = Collection(event, "FsrPhoton")
+                fsrIndices = {
+                    "muFsrPhotonIdx": getattr(event, "muFsrPhotonIdx", []),
+                    "eleFsrPhotonIdx": getattr(event, "eleFsrPhotonIdx", [])
+                }
 
+                Ztemp1 = Zcandidate(Z1.lep1, Z2.lep2, fsrPhotons, fsrIndices)
+                Ztemp2 = Zcandidate(Z2.lep1, Z1.lep2, fsrPhotons, fsrIndices)
                 mZ = 91.1876
                 Za, Zb = (Ztemp1, Ztemp2) if ( abs(Ztemp1.mass - mZ) < abs(Ztemp2.mass - mZ) ) else (Ztemp2, Ztemp1)
                                 
                 ## reject if |mZa - mZ| < |mZ1 - mZ| and mZb < 12
-                if ( abs(Za.mass - mZ) < abs(Z1.mass - mZ) ) and Zb.mass < 12: continue
-
-            ## reject if inv mass of 4-lepton system < 70            
-            m_4l = sumP4(Z1.lep1, Z1.lep2, Z2.lep1, Z2.lep2).M()
-            if m_4l < 70: continue
-                
+                if ( abs(Za.mass - mZ) < abs(Z1.mass - mZ) ) and Zb.mass < 12: 
+                    continue
+                    
             ZZcand = ZZcandidate(Z1,Z2)
-            event.ZZcandidates.append(ZZcand)
+            m_4l = ZZcand.mass
+            if m_4l < 70: continue
+            event.ZZcandidates.append(ZZcand)      
             
     def _select_H_candidates(self, event):
         
@@ -807,21 +716,27 @@ class BaselineProducer(Module):
         best_candidate = min(event.ZZcandidates, key=cmp_to_key(best_candidate_comparator))
         event.Hcandidates.append(best_candidate)    
 
+    def isoFsrCorr(self, lep, selectedFSR):
+        combRelIsoPFFSRCorr = lep.pfRelIso03_all
+        for fsr in selectedFSR:
+            dR = deltaR(lep.eta, lep.phi, fsr.eta, fsr.phi)
+            if 0.01 < dR < 0.3:
+                combRelIsoPFFSRCorr = max(0.0, combRelIsoPFFSRCorr - fsr.pt / lep.pt)
+        return combRelIsoPFFSRCorr
+
     ## taken from here https://github.com/CJLST/ZZAnalysis/blob/Run3/NanoAnalysis/python/nanoZZ4lAnalysis.py   
     def _associate_fsr_photons(self, event):
         muons = Collection(event, "Muon")
         electrons = Collection(event, "Electron")
         fsrPhotons = Collection(event, "FsrPhoton")
+
         fsr_dRET2_max = 0.012
         relIso_cut = 1.8
 
-        # Init index and dREt2 tracking
         muFsrPhotonIdx = [-1] * len(muons)
         eleFsrPhotonIdx = [-1] * len(electrons)
         muPhotondREt2 = [999] * len(muons)
         elePhotondREt2 = [999] * len(electrons)
-        fsrPhoton_myMuonIdx = [-1] * len(fsrPhotons)
-        fsrPhoton_myElectronIdx = [-1] * len(fsrPhotons)
         fsrPhoton_mydROverEt2 = [-1] * len(fsrPhotons)
 
         for ifsr, fsr in enumerate(fsrPhotons):
@@ -833,14 +748,21 @@ class BaselineProducer(Module):
             closestEle = -1
 
             for imu, mu in enumerate(muons):
+                # relaxed ID: all cuts except pfCand/highPt
+                if not (mu.pt > 5 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and abs(mu.sip3d) < 4) and (mu.isGlobal or (mu.isTracker and mu.nStations > 0)):
+                    continue
                 dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
                 if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
                     dRmin = dR
                     closestMu = imu
                     closestEle = -1
 
-            for iel, ele in enumerate(electrons):
-                dR = deltaR(ele.eta, ele.phi, fsr.eta, fsr.phi)
+            for iel, el in enumerate(electrons):
+                # relaxed ID: all cuts except BDT
+                etaSC = el.eta + el.deltaEtaSC
+                if not (el.pt > 7 and abs(el.eta) < 2.5 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and abs(el.sip3d) < 4) :
+                    continue
+                dR = deltaR(el.eta, el.phi, fsr.eta, fsr.phi)
                 if 0.001 < dR < dRmin and dR / (fsr.pt ** 2) < fsr_dRET2_max:
                     dRmin = dR
                     closestMu = -1
@@ -851,18 +773,15 @@ class BaselineProducer(Module):
                 fsrPhoton_mydROverEt2[ifsr] = dREt2
 
                 if closestMu >= 0:
-                    fsrPhoton_myMuonIdx[ifsr] = closestMu
                     if dREt2 < muPhotondREt2[closestMu]:
                         muPhotondREt2[closestMu] = dREt2
                         muFsrPhotonIdx[closestMu] = ifsr
 
                 if closestEle >= 0:
-                    fsrPhoton_myElectronIdx[ifsr] = closestEle
                     if dREt2 < elePhotondREt2[closestEle]:
                         elePhotondREt2[closestEle] = dREt2
                         eleFsrPhotonIdx[closestEle] = ifsr
 
-        # Store the results back in the event
         event.muFsrPhotonIdx = muFsrPhotonIdx
         event.eleFsrPhotonIdx = eleFsrPhotonIdx
  
@@ -875,24 +794,21 @@ class BaselineProducer(Module):
         fsrPhotons = Collection(event, "FsrPhoton")
         muFsrPhotonIdx = getattr(event, "muFsrPhotonIdx", [-1] * len(muons))
 
+        selectedFSR = [fsrPhotons[i] for i in muFsrPhotonIdx if i >= 0]
+
         relIso_cut = 0.35
 
         for imu, mu in enumerate(muons):
             mu.isRelaxed = False
             mu.isFullID = False
-            isoCorr = mu.pfRelIso03_all
-            if muFsrPhotonIdx[imu] >= 0:
-                fsr = fsrPhotons[muFsrPhotonIdx[imu]]
-                dR = deltaR(mu.eta, mu.phi, fsr.eta, fsr.phi)
-                if 0.01 < dR < 0.3:
-                    isoCorr = max(0.0, mu.pfRelIso03_all - fsr.pt / mu.pt)
-            mu.iso=isoCorr
+            isoCorr = self.isoFsrCorr(mu, selectedFSR)
 
             event.allMuons.append(mu)
 
             if mu.pt > 5 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and abs(mu.sip3d) < 4 and (mu.isGlobal or (mu.isTracker and mu.nStations > 0)):
                 mu._wp_Iso = 'LoosePFIso'
                 mu.isRelaxed = True
+                mu.index = imu
                 event.relaxedMuons.append(mu)
 
                 # Full ID with corrected iso
@@ -912,22 +828,19 @@ class BaselineProducer(Module):
         fsrPhotons = Collection(event, "FsrPhoton")
         eleFsrPhotonIdx = getattr(event, "eleFsrPhotonIdx", [-1] * len(electrons))
 
+        selectedFSR = [fsrPhotons[i] for i in eleFsrPhotonIdx if i >= 0]
+
         for iel, el in enumerate(electrons):
             el.etaSC = el.eta + el.deltaEtaSC
             el.isRelaxed = False
             el.isFullID = False
-            isoCorr = el.pfRelIso03_all
-            if eleFsrPhotonIdx[iel] >= 0:
-                fsr = fsrPhotons[eleFsrPhotonIdx[iel]]
-                dR = deltaR(el.eta, el.phi, fsr.eta, fsr.phi)
-                if 0.01 < dR < 0.3:
-                    isoCorr = max(0.0, el.pfRelIso03_all - fsr.pt / el.pt)
-            el.iso=isoCorr
-
+            isoCorr = self.isoFsrCorr(el, selectedFSR)
+            
 
             if el.pt > 7 and abs(el.eta) < 2.5 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and abs(el.sip3d) < 4:
                 el._wp_ID = 'wp90iso'
                 el.isRelaxed = True
+                el.index = iel
                 event.relaxedElectrons.append(el)
 
                 # Full ID BDT cuts
