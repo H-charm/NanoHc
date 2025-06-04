@@ -198,7 +198,7 @@ class BaselineProducer(Module):
 
             dr_ll = deltaR(el1.eta, el1.phi, el2.eta, el2.phi)
             if dr_ll < 0.3:
-                continue:
+                continue
             
             if not ((el1.pt > 33 or el2.pt > 33) and (el1.pt > 15 or el2.pt > 15)):
                 continue
