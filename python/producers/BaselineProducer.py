@@ -96,9 +96,8 @@ class BaselineProducer(Module):
 
         self._select_muons(event)
         self._select_electrons(event)
-        self._select_jets(event)
-
         event.selectedLeptons = event.selectedMuons + event.selectedElectrons
+        self._select_jets(event)    
 
         if not (
             (len(event.selectedMuons) == 2 and len(event.selectedElectrons) == 0) or
@@ -181,7 +180,7 @@ class BaselineProducer(Module):
 
             Zcand_mu = Zcandidate(mu1, mu2)
 
-            if Zcand_mu.mass < 60 or Zcand.mass > 120:
+            if Zcand_mu.mass < 60 or Zcand_mu.mass > 120:
                 continue
             
             event.Zcandidates_mu.append(Zcand_mu) 
@@ -205,7 +204,7 @@ class BaselineProducer(Module):
 
             Zcand_el = Zcandidate(el1, el2)
 
-            if Zcand_el.mass < 60 or Zcand.mass > 120:
+            if Zcand_el.mass < 60 or Zcand_el.mass > 120:
                 continue
 
             event.Zcandidates_el.append(Zcand_el)
@@ -221,7 +220,7 @@ class BaselineProducer(Module):
             
             passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
             
-            if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and mu.pfRelIso03_all < 0.15 and mu.Muon_tightId == True:
+            if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and mu.pfRelIso03_all < 0.15 and mu.tightId == True:
                 mu._wp_ID = 'TightID'
                 mu._wp_Iso = 'LooseRelIso'
                 event.selectedMuons.append(mu)
@@ -232,7 +231,7 @@ class BaselineProducer(Module):
         electrons = Collection(event, "Electron")
         for el in electrons:
             el.etaSC = el.eta + el.deltaEtaSC
-            if el.pt > 10 and abs(el.eta) < 2.4 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and el.Electron_mvaIso_WP80 == True:
+            if el.pt > 10 and abs(el.eta) < 2.4 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and el.mvaIso_WP80 == True:
                 el._wp_ID = 'wp90iso'
                 event.selectedElectrons.append(el)
 
