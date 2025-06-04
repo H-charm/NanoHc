@@ -221,7 +221,7 @@ class BaselineProducer(Module):
             
             passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
             
-            if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 mu.pfRelIso03_all < 0.15:
+            if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 mu.pfRelIso03_all < 0.15 and mu.Muon_tightId == True:
                 mu._wp_ID = 'TightID'
                 mu._wp_Iso = 'LooseRelIso'
                 event.selectedMuons.append(mu)
@@ -233,20 +233,8 @@ class BaselineProducer(Module):
         electrons = Collection(event, "Electron")
         for el in electrons:
             el.etaSC = el.eta + el.deltaEtaSC
-            if el.pt > 10 and abs(el.eta) < 2.4 and abs(el.dxy) < 0.5 and abs(el.dz) < 1:
-                # el._wp_ID = 'wp90iso'
-                
-                # mva = el.mvaHZZIso
-                # if etaSC < 0.8:
-                #     if el.pt < 10 and mva < 0.9044286167: continue
-                #     if el.pt >= 10 and mva < 0.1968600840: continue
-                # elif 0.8 < etaSC < 1.479:
-                #     if el.pt < 10 and mva < 0.9094166886: continue
-                #     if el.pt >= 10 and mva < 0.0759172100: continue
-                # else:
-                #     if el.pt < 10 and mva < 0.9443653660: continue
-                #     if el.pt >= 10 and mva < -0.5169136775: continue      
-                                    
+            if el.pt > 10 and abs(el.eta) < 2.4 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and el.Electron_mvaIso_WP80 == True:
+                el._wp_ID = 'wp90iso'
                 event.selectedElectrons.append(el)
 
     def _select_jets(self, event):
