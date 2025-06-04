@@ -221,7 +221,7 @@ class BaselineProducer(Module):
             
             passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
             
-            if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 mu.pfRelIso03_all < 0.15 and mu.Muon_tightId == True:
+            if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and mu.pfRelIso03_all < 0.15 and mu.Muon_tightId == True:
                 mu._wp_ID = 'TightID'
                 mu._wp_Iso = 'LooseRelIso'
                 event.selectedMuons.append(mu)
