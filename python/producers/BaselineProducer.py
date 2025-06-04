@@ -226,8 +226,7 @@ class BaselineProducer(Module):
                 mu._wp_Iso = 'LooseRelIso'
                 event.selectedMuons.append(mu)
             
-     def _select_electrons(self, event):
-
+    def _select_electrons(self, event):
         event.selectedElectrons = []
 
         electrons = Collection(event, "Electron")
