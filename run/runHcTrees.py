@@ -390,6 +390,7 @@ def check_job_status():
     jobids = {'running': [], 'failed': [], 'completed': []}
     for jobid in range(njobs):
         logpath = os.path.join(args.jobs_dir, "log", '%d.log' % jobid)
+        errorpath = os.path.join(args.jobs_dir, "log", '%d.err' % jobid)
         # print(logpath)
         if not os.path.exists(logpath):
             print('Cannot find log file %s' % logpath)
@@ -411,7 +412,7 @@ def check_job_status():
                         errormsg = line
                     break
             if errormsg:
-                print(logpath + '\n   ' + errormsg)
+                print(logpath + '\n   ' + errormsg + '\n   ' + errorpath)
                 jobids['failed'].append(str(jobid))
             else:
                 if finished:
