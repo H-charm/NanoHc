@@ -412,7 +412,7 @@ def check_job_status():
                         errormsg = line
                     break
             if errormsg:
-                print(logpath + '\n   ' + errormsg + '\n   ' + errorpath)
+                print(logpath + '\n' + errorpath + '\n   ' + errormsg)
                 jobids['failed'].append(str(jobid))
             else:
                 if finished:

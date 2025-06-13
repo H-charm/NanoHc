@@ -362,10 +362,10 @@ class BaselineProducer(Module):
             Zcandidate_mu_eta.append(Zcandidate.eta)
             Zcandidate_mu_phi.append(Zcandidate.phi)
                 
-        out_data[self.Z_prefix + "mass"] = Zcandidate_mu_mass
-        out_data[self.Z_prefix + "pt"] = Zcandidate_mu_pt
-        out_data[self.Z_prefix + "eta"] = Zcandidate_mu_eta 
-        out_data[self.Z_prefix + "phi"] = Zcandidate_mu_phi
+        out_data[self.Zmu_prefix + "mass"] = Zcandidate_mu_mass
+        out_data[self.Zmu_prefix + "pt"] = Zcandidate_mu_pt
+        out_data[self.Zmu_prefix + "eta"] = Zcandidate_mu_eta 
+        out_data[self.Zmu_prefix + "phi"] = Zcandidate_mu_phi
 
         ## Z(el,el) candidates
         Zcandidate_el_mass = []
@@ -378,10 +378,10 @@ class BaselineProducer(Module):
             Zcandidate_el_eta.append(Zcandidate.eta)
             Zcandidate_el_phi.append(Zcandidate.phi)
                 
-        out_data[self.Z_prefix + "mass"] = Zcandidate_el_mass
-        out_data[self.Z_prefix + "pt"] = Zcandidate_el_pt
-        out_data[self.Z_prefix + "eta"] = Zcandidate_el_eta 
-        out_data[self.Z_prefix + "phi"] = Zcandidate_el_phi 
+        out_data[self.Zel_prefix + "mass"] = Zcandidate_el_mass
+        out_data[self.Zel_prefix + "pt"] = Zcandidate_el_pt
+        out_data[self.Zel_prefix + "eta"] = Zcandidate_el_eta 
+        out_data[self.Zel_prefix + "phi"] = Zcandidate_el_phi 
 
         ## fill all branches
         for key in out_data:
