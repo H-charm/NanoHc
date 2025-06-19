@@ -201,7 +201,7 @@ class BaselineProducer(Module):
             
             if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and mu.pfRelIso03_all < 0.15 and mu.tightId == True:
                 mu._wp_ID = 'TightID'
-                mu._wp_Iso = 'LooseRelIso'
+                mu._wp_Iso = 'LoosePFIso'
                 event.selectedMuons.append(mu)
             
     def _select_electrons(self, event):
