@@ -19,6 +19,15 @@ class Zcandidate:
         self.eta = sumP4(self.lep1, self.lep2).Eta()
         self.phi = sumP4(self.lep1, self.lep2).Phi()
         self.mass = sumP4(self.lep1, self.lep2).M()
+        self.dR = deltaR(lep1.eta, lep1.phi, lep2.eta, lep2.phi)
+
+        self.lep1_pt = lep1.pt
+        self.lep1_eta = lep1.eta
+        self.lep1_phi = lep1.phi
+
+        self.lep2_pt = lep2.pt
+        self.lep2_eta = lep2.eta
+        self.lep2_phi = lep2.phi
 
 class BaselineProducer(Module):
     
@@ -30,9 +39,7 @@ class BaselineProducer(Module):
         # Define the variables you want to plot
         self.lep_vars = ["pt","eta","phi","pdgId"]
         self.mu_vars = ["pt","eta","phi", "pdgId"]
-        self.jet_vars = ["pt","eta","phi","mass","bdisc","cvbdisc","cvldisc","gvudsdisc"]
-        self.jet_vars_mc = ["hadronFlavour"]
-        self.Z_vars = ["pt","eta","phi","mass","onshell_mass","offshell_mass"]
+        self.Z_vars = ["pt","eta","phi","mass","dR", "lep1_pt", "lep1_eta", "lep1_phi", "lep2_pt", "lep2_eta", "lep2_phi"]
 
         # Define the prefixes
         self.mu_prefix = "mu_"
@@ -59,18 +66,8 @@ class BaselineProducer(Module):
             self.out.branch(self.el_prefix + lep_var, "F", 20, lenVar="nEl")
             self.out.branch(self.lep_prefix + lep_var, "F", 20, lenVar="nLep")
         
-        # Define jet branches
-        for jet_var in self.jet_vars:
-            self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
-        if self.isMC: 
-            for jet_var in self.jet_vars_mc:
-                self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
-        
         # Define trigger branches
-        self.out.branch("HLT_passZZ4lEle", "O")   # pass Ele triggers
-        self.out.branch("HLT_passZZ4lMu", "O")    # pass Muon triggers
-        self.out.branch("HLT_passZZ4lMuEle", "O") # pass MuEle triggers
-        self.out.branch("HLT_passZZ4l", "O")      # pass trigger requirements for the given sample (including sample precedence vetos) 
+        self.out.branch("HLT_pass", "O")      # pass trigger requirements for the given sample (including sample precedence vetos) 
 
         # Define luminosity branch
         self.out.branch("lumiwgt", "F")
@@ -107,7 +104,7 @@ class BaselineProducer(Module):
         
         self._select_Z_candidates(event)
 
-        if len(event.Zcandidates) > 1 or len(event.Zcandidates) == 0:
+        if len(event.Zcandidates) != 1:
             return False
 
         self._fill_event_info(event)
@@ -119,21 +116,11 @@ class BaselineProducer(Module):
         passTrigger = False 
         out_data = {}
         if self.year == "2022" or self.year == "2022EE" : # Checked that these are unprescaled in run 359751
-            passSingleEle = event.HLT_Ele30_WPTight_Gsf #Note: we used Ele32 in 2018! 
+            passSingleEle = event.HLT_Ele30_WPTight_Gsf 
             passSingleMu = event.HLT_IsoMu24
-            # passDiEle = event.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_DoubleEle25_CaloIdL_MW
-            # passDiMu = event.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
-            # passMuEle = event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL or event.HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ or event.HLT_DiMu9_Ele9_CaloIdL_TrackIdL_DZ or event.HLT_Mu8_DiEle12_CaloIdL_TrackIdL_DZ
-            # passTriEle = False
-            # passTriMu = event.HLT_TripleMu_10_5_5_DZ or event.HLT_TripleMu_12_10_5
         elif self.year == "2023" or self.year == "2023BPix" : # Checked that these are unprescaled, reference twikis for 2023 Eg & Muon Triggers https://twiki.cern.ch/twiki/bin/view/CMS/EgHLTRunIIISummary & https://twiki.cern.ch/twiki/bin/view/CMS/MuonHLT2023
             passSingleEle = event.HLT_Ele30_WPTight_Gsf
             passSingleMu = event.HLT_IsoMu24
-            # passDiEle = event.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL
-            # passDiMu = event.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
-            # passMuEle = event.HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL
-            # passTriEle = False
-            # passTriMu = event.HLT_TripleMu_10_5_5_DZ or event.HLT_TripleMu_12_10_5
         else:
             print(f"Year {self.year} not found")
 
@@ -141,20 +128,12 @@ class BaselineProducer(Module):
             passTrigger = passSingleEle or passSingleMu # passDiEle or passDiMu or passMuEle or passTriEle or passTriMu or passSingleEle or passSingleMu
         else: # Data: ensure each event is taken only from a single sample
             if self.sample == "" : sys.exit("ERROR: sample must be set in data") # we may want to merge triggers for test runs 
-            # if (self.sample in ["DoubleEle", "DoubleEG", "EGamma"] and (passDiEle or passTriEle)) or \
-            # (self.sample in ["Muon", "DoubleMu", "DoubleMuon"] and (passDiMu or passTriMu) and not passDiEle and not passTriEle) or \
-            # (self.sample in ["MuEG", "MuonEG"] and passMuEle and not passDiEle and not passTriEle and not passDiMu and not passTriMu) or \
-            # (self.sample in ["SingleElectron", "EGamma"] and passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle) or \
-            # (self.sample in ["SingleMuon", "Muon"] and passSingleMu and not passSingleEle and not passMuEle and not passDiMu and not passTriMu and not passDiEle and not passTriEle):
-            #     passTrigger = True
             if (self.sample == "Muon" and passSingleMu) or \
+               (self.sample == "SingleMuon" and passSingleMu) or \
                (self.sample == "EGamma" and passSingleEle):
                 passTrigger = True
 
-        # self.out.fillBranch("HLT_passZZ4lEle", passSingleEle or passDiEle or passTriEle)
-        # self.out.fillBranch("HLT_passZZ4lMu", passSingleMu or passDiMu or passTriMu)
-        # self.out.fillBranch("HLT_passZZ4lMuEle", passMuEle)
-        self.out.fillBranch("HLT_passZZ4l", passTrigger)
+        self.out.fillBranch("HLT_pass", passTrigger)
 
         return passTrigger
 
@@ -175,7 +154,7 @@ class BaselineProducer(Module):
             if dr_ll < 0.3:
                 continue
             
-            if not ((mu1.pt > 27 or mu2.pt > 27) and (mu1.pt > 15 or mu2.pt > 15)):
+            if not ((mu1.pt > 27 and mu2.pt > 15) or (mu1.pt > 15 and mu2.pt > 27)):
                 continue
 
             Zcand_mu = Zcandidate(mu1, mu2)
@@ -199,7 +178,7 @@ class BaselineProducer(Module):
             if dr_ll < 0.3:
                 continue
             
-            if not ((el1.pt > 33 or el2.pt > 33) and (el1.pt > 15 or el2.pt > 15)):
+            if not ((el1.pt > 33 and el2.pt > 15) or (el1.pt > 15 and el2.pt > 33)):
                 continue
 
             Zcand_el = Zcandidate(el1, el2)
@@ -312,76 +291,118 @@ class BaselineProducer(Module):
         out_data[self.mu_prefix + "eta"] = mu_eta
         out_data[self.mu_prefix + "phi"] = mu_phi
         out_data[self.mu_prefix + "pdgId"] = mu_pdgId
-        
-        ## jets  
-        ak4_pt = []
-        ak4_eta = []
-        ak4_phi = []
-        ak4_mass = []
-        ak4_hadronFlavour = []
-        
-        for jet in event.selectedJets:
-            ak4_pt.append(jet.pt)
-            ak4_eta.append(jet.eta)
-            ak4_phi.append(jet.phi)
-            ak4_mass.append(jet.mass)
-            if self.isMC: ak4_hadronFlavour.append(jet.hadronFlavour)
-        
-        out_data[self.jet_prefix + "pt"] = ak4_pt 
-        out_data[self.jet_prefix + "eta"] = ak4_eta 
-        out_data[self.jet_prefix + "phi"] = ak4_phi 
-        out_data[self.jet_prefix + "mass"] = ak4_mass 
-        if self.isMC: out_data[self.jet_prefix + "hadronFlavour"] = ak4_hadronFlavour 
-           
+                   
         ## Z candidates
         Zcandidate_mass = []
         Zcandidate_pt = []
         Zcandidate_eta = []
         Zcandidate_phi = []
-        Zcandidate_onshell_mass = []
-        Zcandidate_offshell_mass = []
+        Zcandidate_dR = []
+        Zcandidate_lep1_pt = []
+        Zcandidate_lep1_eta = []
+        Zcandidate_lep1_phi = []
+        Zcandidate_lep2_pt = []
+        Zcandidate_lep2_eta = []
+        Zcandidate_lep2_phi = []
+
         for Zcandidate in event.Zcandidates:
             Zcandidate_mass.append(Zcandidate.mass)
             Zcandidate_pt.append(Zcandidate.pt)
             Zcandidate_eta.append(Zcandidate.eta)
             Zcandidate_phi.append(Zcandidate.phi)
-                
+            Zcandidate_dR.append(Zcandidate.dR)
+            Zcandidate_lep1_pt.append(Zcandidate.lep1_pt)
+            Zcandidate_lep1_eta.append(Zcandidate.lep1_eta)
+            Zcandidate_lep1_phi.append(Zcandidate.lep1_phi)
+            Zcandidate_lep2_pt.append(Zcandidate.lep2_pt)
+            Zcandidate_lep2_eta.append(Zcandidate.lep2_eta)
+            Zcandidate_lep2_phi.append(Zcandidate.lep2_phi)
+
         out_data[self.Z_prefix + "mass"] = Zcandidate_mass
         out_data[self.Z_prefix + "pt"] = Zcandidate_pt
         out_data[self.Z_prefix + "eta"] = Zcandidate_eta 
-        out_data[self.Z_prefix + "phi"] = Zcandidate_phi 
+        out_data[self.Z_prefix + "phi"] = Zcandidate_phi
+        out_data[self.Z_prefix + "dR"] = Zcandidate_dR
+        out_data[self.Z_prefix + "lep1_pt"] =  Zcandidate_lep1_pt
+        out_data[self.Z_prefix + "lep1_eta"] =  Zcandidate_lep1_eta
+        out_data[self.Z_prefix + "lep1_phi"] =  Zcandidate_lep1_phi
+        out_data[self.Z_prefix + "lep2_pt"] =  Zcandidate_lep2_pt
+        out_data[self.Z_prefix + "lep2_eta"] =  Zcandidate_lep2_eta
+        out_data[self.Z_prefix + "lep2_phi"] =  Zcandidate_lep2_phi
 
         ## Z(mu,mu) candidates
         Zcandidate_mu_mass = []
         Zcandidate_mu_pt = []
         Zcandidate_mu_eta = []
         Zcandidate_mu_phi = []
+        Zcandidate_mu_dR = []
+        Zcandidate_mu_lep1_pt = []
+        Zcandidate_mu_lep1_eta = []
+        Zcandidate_mu_lep1_phi = []
+        Zcandidate_mu_lep2_pt = []
+        Zcandidate_mu_lep2_eta = []
+        Zcandidate_mu_lep2_phi = []
         for Zcandidate in event.Zcandidates_mu:
             Zcandidate_mu_mass.append(Zcandidate.mass)
             Zcandidate_mu_pt.append(Zcandidate.pt)
             Zcandidate_mu_eta.append(Zcandidate.eta)
             Zcandidate_mu_phi.append(Zcandidate.phi)
+            Zcandidate_mu_dR.append(Zcandidate.dR)
+            Zcandidate_mu_lep1_pt.append(Zcandidate.lep1_pt)
+            Zcandidate_mu_lep1_eta.append(Zcandidate.lep1_eta)
+            Zcandidate_mu_lep1_phi.append(Zcandidate.lep1_phi)
+            Zcandidate_mu_lep2_pt.append(Zcandidate.lep2_pt)
+            Zcandidate_mu_lep2_eta.append(Zcandidate.lep2_eta)
+            Zcandidate_mu_lep2_phi.append(Zcandidate.lep2_phi)
                 
         out_data[self.Zmu_prefix + "mass"] = Zcandidate_mu_mass
         out_data[self.Zmu_prefix + "pt"] = Zcandidate_mu_pt
         out_data[self.Zmu_prefix + "eta"] = Zcandidate_mu_eta 
         out_data[self.Zmu_prefix + "phi"] = Zcandidate_mu_phi
+        out_data[self.Zmu_prefix + "dR"] = Zcandidate_mu_dR
+        out_data[self.Zmu_prefix + "lep1_pt"] =  Zcandidate_mu_lep1_pt
+        out_data[self.Zmu_prefix + "lep1_eta"] =  Zcandidate_mu_lep1_eta
+        out_data[self.Zmu_prefix + "lep1_phi"] =  Zcandidate_mu_lep1_phi
+        out_data[self.Zmu_prefix + "lep2_pt"] =  Zcandidate_mu_lep2_pt
+        out_data[self.Zmu_prefix + "lep2_eta"] =  Zcandidate_mu_lep2_eta
+        out_data[self.Zmu_prefix + "lep2_phi"] =  Zcandidate_mu_lep2_phi
 
         ## Z(el,el) candidates
         Zcandidate_el_mass = []
         Zcandidate_el_pt = []
         Zcandidate_el_eta = []
         Zcandidate_el_phi = []
+        Zcandidate_el_dR = []
+        Zcandidate_el_lep1_pt = []
+        Zcandidate_el_lep1_eta = []
+        Zcandidate_el_lep1_phi = []
+        Zcandidate_el_lep2_pt = []
+        Zcandidate_el_lep2_eta = []
+        Zcandidate_el_lep2_phi = []
         for Zcandidate in event.Zcandidates_el:
             Zcandidate_el_mass.append(Zcandidate.mass)
             Zcandidate_el_pt.append(Zcandidate.pt)
             Zcandidate_el_eta.append(Zcandidate.eta)
             Zcandidate_el_phi.append(Zcandidate.phi)
+            Zcandidate_el_dR.append(Zcandidate.dR)
+            Zcandidate_el_lep1_pt.append(Zcandidate.lep1_pt)
+            Zcandidate_el_lep1_eta.append(Zcandidate.lep1_eta)
+            Zcandidate_el_lep1_phi.append(Zcandidate.lep1_phi)
+            Zcandidate_el_lep2_pt.append(Zcandidate.lep2_pt)
+            Zcandidate_el_lep2_eta.append(Zcandidate.lep2_eta)
+            Zcandidate_el_lep2_phi.append(Zcandidate.lep2_phi)
                 
         out_data[self.Zel_prefix + "mass"] = Zcandidate_el_mass
         out_data[self.Zel_prefix + "pt"] = Zcandidate_el_pt
         out_data[self.Zel_prefix + "eta"] = Zcandidate_el_eta 
-        out_data[self.Zel_prefix + "phi"] = Zcandidate_el_phi 
+        out_data[self.Zel_prefix + "phi"] = Zcandidate_el_phi
+        out_data[self.Zel_prefix + "dR"] = Zcandidate_el_dR
+        out_data[self.Zel_prefix + "lep1_pt"] =  Zcandidate_el_lep1_pt
+        out_data[self.Zel_prefix + "lep1_eta"] =  Zcandidate_el_lep1_eta
+        out_data[self.Zel_prefix + "lep1_phi"] =  Zcandidate_el_lep1_phi
+        out_data[self.Zel_prefix + "lep2_pt"] =  Zcandidate_el_lep2_pt
+        out_data[self.Zel_prefix + "lep2_eta"] =  Zcandidate_el_lep2_eta
+        out_data[self.Zel_prefix + "lep2_phi"] =  Zcandidate_el_lep2_phi
 
         ## fill all branches
         for key in out_data:
