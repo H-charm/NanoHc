@@ -16,9 +16,10 @@ key_dict = {"2022":     '2022Re-recoBCD',
 
 class ElectronSFProducer(Module, object):
 
-    def __init__(self, year, dataset_type, **kwargs):
+    def __init__(self, year, dataset_type, doSysVar=False, **kwargs):
         self.year = year
         self.dataset_type = dataset_type
+        self.doSysVar = doSysVar
         self.era = era_dict[self.year]
         #self.path=f'{self.year}Re-recoBCD'
         # correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electron.json.gz'
@@ -37,12 +38,18 @@ class ElectronSFProducer(Module, object):
 
         if self.year == "2022" or self.year == "2022EE":
             scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt)
+            if self.doSysVar:
+                scale_factor_up = self.corr.evaluate(key_dict[self.year], "sfup", wp, lep.etaSC, lep.pt)
+                scale_factor_down = self.corr.evaluate(key_dict[self.year], "sfdown", wp, lep.etaSC, lep.pt)
         elif self.year == "2023" or self.year == "2023BPix":
             scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt, lep.phi)
+            if self.doSysVar:
+                scale_factor_up = self.corr.evaluate(key_dict[self.year], "sfup", wp, lep.etaSC, lep.pt, lep.phi)
+                scale_factor_down = self.corr.evaluate(key_dict[self.year], "sfdown", wp, lep.etaSC, lep.pt, lep.phi)
         else:
             raise ValueError(f"ElectronSFProducer: Era {self.year} not supported")
 
-        return scale_factor
+        return scale_factor, scale_factor_up, scale_factor_down if self.doSysVar else scale_factor
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.isMC = True if self.dataset_type == "mc" else False
@@ -50,6 +57,9 @@ class ElectronSFProducer(Module, object):
             self.out = wrappedOutputTree
 
             self.out.branch('elEffWeight', "F", limitedPrecision=10)
+            if self.doSysVar:
+                self.out.branch('elEffWeightUp', "F", limitedPrecision=10)
+                self.out.branch('elEffWeightDown', "F", limitedPrecision=10)
 
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
@@ -57,26 +67,46 @@ class ElectronSFProducer(Module, object):
         if not self.isMC:
             return True
 
-        wgtReco = 1
-        wgtID = 1
+        wgtReco = wgtRecoUp = wgtRecoDown = 1
+        wgtID = wgtIDUp = wgtIDDown = 1
 
         for lep in event.selectedElectrons:
             if abs(lep.pdgId) != 11:
                 continue
-            wgtReco *= self.get_sf('Reco', lep)
-            wgtID *= self.get_sf('ID', lep)
+
+            if self.doSysVar:
+                sfReco, sfRecoUp, sfRecoDown = self.get_sf('Reco', lep)
+                sfID, sfIDUp, sfIDDown = self.get_sf('ID', lep)
+
+                wgtReco *= sfReco
+                wgtRecoUp *= sfRecoUp
+                wgtRecoDown *= sfRecoDown
+
+                wgtID *= sfID
+                wgtIDUp *= sfIDUp
+                wgtIDDown *= sfIDDown
+            else:
+                wgtReco *= self.get_sf('Reco', lep)
+                wgtID *= self.get_sf('ID', lep)
 
         eventWgt = wgtReco * wgtID
         self.out.fillBranch('elEffWeight', eventWgt)
 
+        if self.doSysVar:
+            eventWgtUp = wgtRecoUp * wgtIDUp
+            eventWgtDown = wgtRecoDown * wgtIDDown
+            self.out.fillBranch('elEffWeightUp', eventWgtUp)
+            self.out.fillBranch('elEffWeightDown', eventWgtDown)
+
         return True
 
-
+# 'nominal', 'stat', 'syst', 'systup', and 'systdown' (systup = syst + stat, systdown = syst - stat)
 class MuonSFProducer(Module, object):
 
-    def __init__(self, year, dataset_type, **kwargs):
+    def __init__(self, year, dataset_type, doSysVar=False, **kwargs):
         self.year = year
         self.dataset_type = dataset_type
+        self.doSysVar = doSysVar
         self.era = era_dict[self.year]
         correction_file_muon_Z = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/{self.era}/muon_Z.json.gz' # pt binning starts from 15 
         correction_file_muon_JPsi = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/{self.era}/muon_JPsi.json.gz'  # pt binning starts from 2 
@@ -94,9 +124,15 @@ class MuonSFProducer(Module, object):
             key = f'NUM_{lep._wp_Iso}_DEN_TightID'
         if lep.pt > 15:
             scale_factor = self.corr_muon_Z[key].evaluate(abs(lep.eta), lep.pt, "nominal")
+            if self.doSysVar:
+                scale_factor_up = self.corr_muon_Z[key].evaluate(abs(lep.eta), lep.pt, "systup")
+                scale_factor_down = self.corr_muon_Z[key].evaluate(abs(lep.eta), lep.pt, "systdown")
         elif lep.pt <= 15:
             scale_factor = self.corr_muon_JPsi[key].evaluate(abs(lep.eta), lep.pt, "nominal")
-        return scale_factor
+            if self.doSysVar:
+                scale_factor_up = self.corr_muon_JPsi[key].evaluate(abs(lep.eta), lep.pt, "systup")
+                scale_factor_down = self.corr_muon_JPsi[key].evaluate(abs(lep.eta), lep.pt, "systdown")
+        return scale_factor, scale_factor_up, scale_factor_down if self.doSysVar else scale_factor
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.isMC = True if self.dataset_type == "mc" else False
@@ -104,6 +140,9 @@ class MuonSFProducer(Module, object):
             self.out = wrappedOutputTree
 
             self.out.branch('muEffWeight', "F", limitedPrecision=10)
+            if self.doSysVar:
+                self.out.branch('muEffWeightUp', 'F', limitedPrecision=10)
+                self.out.branch('muEffWeightDown', 'F', limitedPrecision=10)
             
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
@@ -111,20 +150,42 @@ class MuonSFProducer(Module, object):
         if not self.isMC:
             return True
 
-        wgtID = 1
-        wgtIso = 1
+        wgtID = wgtIDUp = wgtIDDown = 1
+        wgtIso = wgtIsoUp = wgtIsoDown = 1
 
         for lep in event.selectedMuons:
             if abs(lep.pdgId) != 13:
                 continue
-            if lep.pt>15:
-                wgtID *= self.get_sf('ID', lep)
-                wgtIso *= self.get_sf('Iso', lep)
-            else:
-                wgtID *= self.get_sf('ID', lep)
+            if self.doSysVar:
+                if lep.pt>15:
+                    sfID, sfIDUp, sfIDDown = self.get_sf('ID', lep)
+                    sfIso, sfIsoUp, sfIsoDown = self.get_sf('Iso', lep)
 
+                    wgtID *= sfID
+                    wgtIDUp *= sfIDUp
+                    wgtIDDown *= sfIDDown
+                    wgtIso *= sfIso
+                    wgtIsoUp *= sfIsoUp
+                    wgtIsoDown *= sfIsoDown
+
+                else:
+                    sfID, sfIDUp, sfIDDown = self.get_sf('ID', lep)
+                    wgtID *= sfID
+                    wgtIDUp *= sfIDUp
+                    wgtIDDown *= sfIDDown
+            else:
+                if lep.pt>15:
+                    wgtID *= self.get_sf('ID', lep)
+                    wgtIso *= self.get_sf('Iso', lep)
+                else:
+                    wgtID *= self.get_sf('ID', lep)
 
         eventWgt = wgtID * wgtIso
         self.out.fillBranch('muEffWeight', eventWgt)
 
+        if self.doSysVar:
+            eventWgtUp = wgtIsoUp * wgtIDUp
+            eventWgtDown = wgtIsoDown * wgtIDDown
+            self.out.fillBranch('muEffWeightUp', eventWgtUp)
+            self.out.fillBranch('muEffWeightDown', eventWgtDown)
         return True
