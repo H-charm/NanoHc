@@ -68,10 +68,8 @@ class ElectronHLTSFProducer(Module, object):
         eff1 = eff2 = 1.0
         eff1Up = eff2Up = eff1Down = eff2Down = 1.0
 
-        electrons = [ele for ele in event.selectedElectrons if abs(ele.pdgId) == 11]
-
-        if len(electrons) == 2:
-            el1, el2 = electrons[:2]
+        if len(event.selectedElectrons) == 2:
+            el1, el2 = event.selectedElectrons[:2]
 
             if self.doSysVar:
                 sf1, sf1Up, sf1Down = self.get_sf(el1)
@@ -94,6 +92,8 @@ class ElectronHLTSFProducer(Module, object):
                 wgt *= sf1 * sf2
                 eff1 = sf1
                 eff2 = sf2
+        else:
+            return True 
 
         combined_weight = eff1 + eff2 - eff1 * eff2
         self.out.fillBranch('elHLTWeight', wgt)
@@ -170,10 +170,8 @@ class MuonHLTSFProducer(Module, object):
         eff1 = eff2 = 1.0
         eff1Up = eff2Up = eff1Down = eff2Down = 1.0
 
-        muons = [mu for mu in event.selectedMuons if abs(mu.pdgId) == 13]
-
-        if len(muons) >= 2:
-            mu1, mu2 = muons[:2]  # Take leading 2 muons
+        if len(event.selectedMuons) == 2:
+            mu1, mu2 = event.selectedMuons[:2]  # Take leading 2 muons
 
             if self.doSysVar:
                 sf1, sf1Up, sf1Down = self.get_sf(mu1)
@@ -199,11 +197,7 @@ class MuonHLTSFProducer(Module, object):
 
                 wgt *= sf1 * sf2
         else:
-            print('SOMETHING IS WRONG -- DID NOT FOUND 2 LEPTONS')
-            eff1 = eff2 = 1.0
-            if self.doSysVar:
-                eff1Up = eff2Up = eff1Down = eff2Down = 1.0
-
+            return True
 
         combined_weight = eff1 + eff2 - eff1 * eff2
         self.out.fillBranch('muHLTWeight', wgt)
