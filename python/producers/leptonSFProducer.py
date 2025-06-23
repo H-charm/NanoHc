@@ -31,6 +31,7 @@ class ElectronSFProducer(Module, object):
             raise RuntimeError('Input lepton is not a electron')
 
         wp = None
+        scale_factor_up = scale_factor_down = 1
         if sf_type == 'Reco':
             wp = 'RecoBelow20' if lep.pt < 20 else 'Reco20to75' if 20 < lep.pt < 75 else 'RecoAbove75'
         elif sf_type == 'ID':
@@ -49,7 +50,10 @@ class ElectronSFProducer(Module, object):
         else:
             raise ValueError(f"ElectronSFProducer: Era {self.year} not supported")
 
-        return scale_factor, scale_factor_up, scale_factor_down if self.doSysVar else scale_factor
+        if self.doSysVar:
+            return scale_factor, scale_factor_up, scale_factor_down
+        else:
+            return scale_factor
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.isMC = True if self.dataset_type == "mc" else False
@@ -86,8 +90,10 @@ class ElectronSFProducer(Module, object):
                 wgtIDUp *= sfIDUp
                 wgtIDDown *= sfIDDown
             else:
-                wgtReco *= self.get_sf('Reco', lep)
-                wgtID *= self.get_sf('ID', lep)
+                sfReco = self.get_sf('Reco', lep)
+                sfID = self.get_sf('ID', lep)
+                wgtReco *= sfReco
+                wgtID *= sfID
 
         eventWgt = wgtReco * wgtID
         self.out.fillBranch('elEffWeight', eventWgt)
@@ -122,6 +128,7 @@ class MuonSFProducer(Module, object):
             key = 'NUM_TightID_DEN_TrackerMuons'
         elif sf_type == 'Iso':
             key = f'NUM_{lep._wp_Iso}_DEN_TightID'
+        scale_factor_up = scale_factor_down = 1
         if lep.pt > 15:
             scale_factor = self.corr_muon_Z[key].evaluate(abs(lep.eta), lep.pt, "nominal")
             if self.doSysVar:
@@ -132,7 +139,10 @@ class MuonSFProducer(Module, object):
             if self.doSysVar:
                 scale_factor_up = self.corr_muon_JPsi[key].evaluate(abs(lep.eta), lep.pt, "systup")
                 scale_factor_down = self.corr_muon_JPsi[key].evaluate(abs(lep.eta), lep.pt, "systdown")
-        return scale_factor, scale_factor_up, scale_factor_down if self.doSysVar else scale_factor
+        if self.doSysVar:
+            return scale_factor, scale_factor_up, scale_factor_down
+        else:
+            return scale_factor
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.isMC = True if self.dataset_type == "mc" else False
@@ -175,10 +185,13 @@ class MuonSFProducer(Module, object):
                     wgtIDDown *= sfIDDown
             else:
                 if lep.pt>15:
-                    wgtID *= self.get_sf('ID', lep)
-                    wgtIso *= self.get_sf('Iso', lep)
+                    sfID = self.get_sf('ID', lep)
+                    sfIso = self.get_sf('Iso', lep)
+                    wgtID *= sfID
+                    wgtIso *= sfIso
                 else:
-                    wgtID *= self.get_sf('ID', lep)
+                    sfID = self.get_sf('ID', lep)
+                    wgtID *= sfID
 
         eventWgt = wgtID * wgtIso
         self.out.fillBranch('muEffWeight', eventWgt)
