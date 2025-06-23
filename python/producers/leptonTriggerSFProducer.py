@@ -149,7 +149,8 @@ class MuonHLTSFProducer(Module, object):
                 self.out.branch('muHLTWeightDown', 'F', limitedPrecision=10)
                 self.out.branch('muTriggerWeightUp', 'F', limitedPrecision=10)
                 self.out.branch('muTriggerWeightDown', 'F', limitedPrecision=10)
-            def analyze(self, event):
+            
+    def analyze(self, event):
     """process event, return True (go to next module) or False (fail, go to next event)"""
 
     if not self.isMC:
