@@ -34,9 +34,9 @@ class ElectronHLTSFProducer(Module, object):
         wp = 'HLT_SF_Ele30_MVAiso90ID'
 
         scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt)
-            if self.doSysVar:
-                scale_factor_up = self.corr.evaluate(key_dict[self.year], "sfup", wp, lep.etaSC, lep.pt)
-                scale_factor_down = self.corr.evaluate(key_dict[self.year], "sfdown", wp, lep.etaSC, lep.pt)
+        if self.doSysVar:
+            scale_factor_up = self.corr.evaluate(key_dict[self.year], "sfup", wp, lep.etaSC, lep.pt)
+            scale_factor_down = self.corr.evaluate(key_dict[self.year], "sfdown", wp, lep.etaSC, lep.pt)
 
         return scale_factor, scale_factor_up, scale_factor_down if self.doSysVar else scale_factor
 
