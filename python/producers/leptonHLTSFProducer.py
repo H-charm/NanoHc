@@ -62,8 +62,6 @@ class ElectronHLTSF(Module, object):
 
         wgt = wgtUp = wgtDown = 1.0
 
-        eff1 = eff2 = 1.0
-        eff1Up = eff2Up = eff1Down = eff2Down = 1.0
         for lep in event.selectedElectrons:
             if abs(lep.pdgId) != 11:
                 continue
@@ -75,17 +73,9 @@ class ElectronHLTSF(Module, object):
                 wgtUp *= sf1Up
                 wgtDown *= sf1Down
 
-                eff1 = sf1
-                eff1Up = sf1Up
-                eff1Down = sf1Down
-
             else:
                 sf1 = self.get_sf(lep)
                 wgt *= sf1
-                eff1 = sf1
-        else:
-            return True 
-
 
         self.out.fillBranch('elHLT', wgt)
         if self.doSysVar:
@@ -144,9 +134,6 @@ class MuonHLTSF(Module, object):
         """process event, return True (go to next module) or False (fail, go to next event)"""
 
         wgt = wgtUp = wgtDown = 1.0
-
-        eff1 = 1.0
-        eff1Up = eff1Down =  1.0
         for lep in event.selectedMuons:
             if abs(lep.pdgId) != 13:
                 continue
@@ -158,17 +145,9 @@ class MuonHLTSF(Module, object):
                 wgtUp *= sf1Up
                 wgtDown *= sf1Down
 
-                eff1 = sf1
-                eff1Up = sf1Up
-                eff1Down = sf1Down
-
             else:
                 sf1 = self.get_sf(lep)
                 wgt *= sf1
-                eff1 = sf1
-        else:
-            return True 
-
 
         self.out.fillBranch('muHLT', wgt)
         if self.doSysVar:
