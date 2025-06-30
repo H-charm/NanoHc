@@ -155,4 +155,3 @@ class MuonHLTSF(Module, object):
             self.out.fillBranch('muHLTDown', wgtDown)
 
         return True
-        return True
