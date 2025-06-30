@@ -31,7 +31,7 @@ class ElectronHLTSFProducer(Module, object):
             raise RuntimeError('Input lepton is not a electron')
 
         #WPs: "HLT_SF_Ele30_LooseID","HLT_SF_Ele30_MediumID","HLT_SF_Ele30_TightID","HLT_SF_Ele30_MVAiso80ID", "HLT_SF_Ele30_MVAiso90ID"
-        wp = 'HLT_SF_Ele30_MVAiso90ID'
+        wp = 'HLT_SF_Ele30_MVAiso80ID'
         scale_factor_up = scale_factor_down = scale_factor = 1
         if lep.pt > 25:
             scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt)
@@ -56,12 +56,19 @@ class ElectronHLTSFProducer(Module, object):
                 self.out.branch('elHLTWeightDown', "F", limitedPrecision=10)
                 self.out.branch('elTriggerWeightUp', "F", limitedPrecision=10)
                 self.out.branch('elTriggerWeightDown', "F", limitedPrecision=10)
+        else:
+            self.out = wrappedOutputTree
+
+            self.out.branch('elHLTWeightData', "F", limitedPrecision=10)
+            self.out.branch('elTriggerWeightData', "F", limitedPrecision=10)
+            if self.doSysVar:
+                self.out.branch('elHLTWeightUpData', "F", limitedPrecision=10)
+                self.out.branch('elHLTWeightDownData', "F", limitedPrecision=10)
+                self.out.branch('elTriggerWeightUpData', "F", limitedPrecision=10)
+                self.out.branch('elTriggerWeightDownData', "F", limitedPrecision=10)
 
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
-
-        if not self.isMC:
-            return True
 
         wgt = wgtUp = wgtDown = 1.0
 
@@ -96,17 +103,31 @@ class ElectronHLTSFProducer(Module, object):
             return True 
 
         combined_weight = eff1 + eff2 - eff1 * eff2
-        self.out.fillBranch('elHLTWeight', wgt)
-        self.out.fillBranch('elTriggerWeight', combined_weight)
 
-        if self.doSysVar:
-            combined_weight_up = eff1Up + eff2Up - eff1Up * eff2Up
-            combined_weight_down = eff1Down + eff2Down - eff1Down * eff2Down
+        if self.isMC:
+            self.out.fillBranch('elHLTWeight', wgt)
+            self.out.fillBranch('elTriggerWeight', combined_weight)
 
-            self.out.fillBranch('elHLTWeightUp', wgtUp)
-            self.out.fillBranch('elHLTWeightDown', wgtDown)
-            self.out.fillBranch('elTriggerWeightUp', combined_weight_up)
-            self.out.fillBranch('elTriggerWeightDown', combined_weight_down)
+            if self.doSysVar:
+                combined_weight_up = eff1Up + eff2Up - eff1Up * eff2Up
+                combined_weight_down = eff1Down + eff2Down - eff1Down * eff2Down
+
+                self.out.fillBranch('elHLTWeightUp', wgtUp)
+                self.out.fillBranch('elHLTWeightDown', wgtDown)
+                self.out.fillBranch('elTriggerWeightUp', combined_weight_up)
+                self.out.fillBranch('elTriggerWeightDown', combined_weight_down)
+        else:
+            self.out.fillBranch('elHLTWeightData', wgt)
+            self.out.fillBranch('elTriggerWeightData', combined_weight)
+
+            if self.doSysVar:
+                combined_weight_up = eff1Up + eff2Up - eff1Up * eff2Up
+                combined_weight_down = eff1Down + eff2Down - eff1Down * eff2Down
+
+                self.out.fillBranch('elHLTWeightUpData', wgtUp)
+                self.out.fillBranch('elHLTWeightDownData', wgtDown)
+                self.out.fillBranch('elTriggerWeightUpData', combined_weight_up)
+                self.out.fillBranch('elTriggerWeightDownData', combined_weight_down)
 
         return True
 
@@ -156,12 +177,19 @@ class MuonHLTSFProducer(Module, object):
                 self.out.branch('muHLTWeightDown', 'F', limitedPrecision=10)
                 self.out.branch('muTriggerWeightUp', 'F', limitedPrecision=10)
                 self.out.branch('muTriggerWeightDown', 'F', limitedPrecision=10)
+        else:
+            self.out = wrappedOutputTree
+
+            self.out.branch('muHLTWeightData', "F", limitedPrecision=10)
+            self.out.branch('muTriggerWeightData', 'F', limitedPrecision=10)
+            if self.doSysVar:
+                self.out.branch('muHLTWeightUpData', 'F', limitedPrecision=10)
+                self.out.branch('muHLTWeightDownData', 'F', limitedPrecision=10)
+                self.out.branch('muTriggerWeightUpData', 'F', limitedPrecision=10)
+                self.out.branch('muTriggerWeightDownData', 'F', limitedPrecision=10)
             
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
-
-        if not self.isMC:
-            return True
 
         # Default weights (for multiplicative weight)
         wgt = wgtUp = wgtDown = 1.0
@@ -200,16 +228,29 @@ class MuonHLTSFProducer(Module, object):
             return True
 
         combined_weight = eff1 + eff2 - eff1 * eff2
-        self.out.fillBranch('muHLTWeight', wgt)
-        self.out.fillBranch('muTriggerWeight', combined_weight)
+        if self.isMC:
+            self.out.fillBranch('muHLTWeight', wgt)
+            self.out.fillBranch('muTriggerWeight', combined_weight)
 
-        if self.doSysVar:
-            combined_weight_up = eff1Up + eff2Up - eff1Up * eff2Up
-            combined_weight_down = eff1Down + eff2Down - eff1Down * eff2Down
+            if self.doSysVar:
+                combined_weight_up = eff1Up + eff2Up - eff1Up * eff2Up
+                combined_weight_down = eff1Down + eff2Down - eff1Down * eff2Down
 
-            self.out.fillBranch('muHLTWeightUp', wgtUp)
-            self.out.fillBranch('muHLTWeightDown', wgtDown)
-            self.out.fillBranch('muTriggerWeightUp', combined_weight_up)
-            self.out.fillBranch('muTriggerWeightDown', combined_weight_down)
+                self.out.fillBranch('muHLTWeightUp', wgtUp)
+                self.out.fillBranch('muHLTWeightDown', wgtDown)
+                self.out.fillBranch('muTriggerWeightUp', combined_weight_up)
+                self.out.fillBranch('muTriggerWeightDown', combined_weight_down)
+        else:
+            self.out.fillBranch('muHLTWeightData', wgt)
+            self.out.fillBranch('muTriggerWeightData', combined_weight)
+
+            if self.doSysVar:
+                combined_weight_up = eff1Up + eff2Up - eff1Up * eff2Up
+                combined_weight_down = eff1Down + eff2Down - eff1Down * eff2Down
+
+                self.out.fillBranch('muHLTWeightUpData', wgtUp)
+                self.out.fillBranch('muHLTWeightDownData', wgtDown)
+                self.out.fillBranch('muTriggerWeightUpData', combined_weight_up)
+                self.out.fillBranch('muTriggerWeightDownData', combined_weight_down)
 
         return True

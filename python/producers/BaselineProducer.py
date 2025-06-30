@@ -94,7 +94,7 @@ class BaselineProducer(Module):
         self._select_muons(event)
         self._select_electrons(event)
         event.selectedLeptons = event.selectedMuons + event.selectedElectrons
-        self._select_jets(event)    
+        self._select_jets(event)
 
         if not (
             (len(event.selectedMuons) == 2 and len(event.selectedElectrons) == 0) or
@@ -201,7 +201,7 @@ class BaselineProducer(Module):
             
             if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and mu.pfRelIso03_all < 0.15 and mu.tightId == True:
                 mu._wp_ID = 'TightID'
-                mu._wp_Iso = 'LoosePFIso'
+                mu._wp_Iso = 'TightPFIso'
                 event.selectedMuons.append(mu)
             
     def _select_electrons(self, event):
@@ -211,7 +211,7 @@ class BaselineProducer(Module):
         for el in electrons:
             el.etaSC = el.eta + el.deltaEtaSC
             if el.pt > 10 and abs(el.eta) < 2.4 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and el.mvaIso_WP80 == True:
-                el._wp_ID = 'wp90iso'
+                el._wp_ID = 'wp80iso'
                 event.selectedElectrons.append(el)
 
     def _select_jets(self, event):
@@ -222,7 +222,7 @@ class BaselineProducer(Module):
         FsrPhotons = Collection(event, "FsrPhoton")
 
         for jet in jets:
-            if jet.pt <= 20 and abs(jet.eta) >= 2.5:
+            if jet.pt <= 20 and abs(jet.eta) >= 2.5 and jet.jetId != 6:
                 continue
             
             jet_isolated = True

@@ -7,6 +7,7 @@ from PhysicsTools.NanoHc.producers.topleptonmva import TopLeptonMvaModule
 from PhysicsTools.NanoHc.producers.jetSFProducer import JetVMAPProducer, jetJERCProducer
 from PhysicsTools.NanoHc.producers.leptonScaleResProducer import eleScaleRes, muonScaleRes
 from PhysicsTools.NanoHc.producers.leptonTriggerSFProducer import ElectronHLTSFProducer, MuonHLTSFProducer
+from PhysicsTools.NanoHc.producers.leptonHLTSFProducer import ElectronHLTSF, MuonHLTSF
 
 import sys
 import json 
@@ -58,8 +59,10 @@ p = PostProcessor(
             PileupWeightProducer(year, dataset_type, True),
             ElectronSFProducer(year, dataset_type, True), # pt binning starts at 10, our selections at 7 (keep it out for now)
             ElectronHLTSFProducer(year, dataset_type, True), # pt binning starts from 25
+            ElectronHLTSF(year, dataset_type, True), # pt binning starts from 25
             MuonSFProducer(year, dataset_type, True),
             MuonHLTSFProducer(year, dataset_type, True), # pt binning starts from 26
+            MuonHLTSF(year, dataset_type, True), # pt binning starts from 26
             ],
     branchsel=keep_and_drop_input_branches,
     outputbranchsel=keep_and_drop_output_branches,
