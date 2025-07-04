@@ -551,8 +551,8 @@ class BaselineProducer(Module):
                     if el.pt < 10 and mva < 0.9443653660: continue
                     if el.pt >= 10 and mva < -0.5169136775: continue
                 
-                el._wp_ID = 'wp90iso'
                 el.iso = isoCorr
+                el._wp_ID = 'wp90iso'
                 el.etaSC = etaSC
                 el.index = iel
                 event.selectedElectrons.append(el)
@@ -780,5 +780,6 @@ class BaselineProducer(Module):
         ## fill all branches
         for key in out_data:
             self.out.fillBranch(key, out_data[key])
-            
+
+        
         return True

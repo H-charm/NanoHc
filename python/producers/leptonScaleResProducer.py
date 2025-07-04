@@ -109,10 +109,10 @@ class eleScaleRes(Module):
         return True
 
 key_dict={
-    "2022":     "2022_schemaV2.json.gz",
-    "2022EE":   "2022EE_schemaV2.json.gz",
-    "2023":     "2023_schemaV2.json.gz",
-    "2023BPix": "2023BPix_schemaV2.json.gz"
+    "2022":     "2022_Summer22.json.gz",
+    "2022EE":   "2022EE_Summer22EE.json.gz",
+    "2023":     "2023_Summer23.json.gz",
+    "2023BPix": "2023BPix_Summer23BPix.json.gz"
 }
 
 class muonScaleRes(Module):
@@ -139,11 +139,11 @@ class muonScaleRes(Module):
         if muon.pt > self.maxPt : 
             return muon.pt
         isData = int(not self.isMC)
-        scale_corr = self.corrModule.pt_scale(isData, muon.pt, muon.eta, muon.phi, muon.charge, var)
+        scale_corr = self.corrModule.pt_scale(isData, muon.pt, muon.eta, muon.phi, muon.charge)
         pt_corr = scale_corr
 
         if self.isMC:
-            smear_corr = self.corrModule.pt_resol(scale_corr, muon.eta, muon.nTrackerLayers, var)
+            smear_corr = self.corrModule.pt_resol(scale_corr, muon.eta, muon.nTrackerLayers)
             pt_corr = smear_corr
 
         return pt_corr
