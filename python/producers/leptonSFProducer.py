@@ -21,13 +21,16 @@ class ElectronSFProducer(Module, object):
         self.dataset_type = dataset_type
         self.era = era_dict[self.year]
         #self.path=f'{self.year}Re-recoBCD'
-        correction_file = f'../../data/ElectronSF/{self.year}/electron.json.gz'
-        # correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electron.json.gz'
+        # correction_file = f'../../data/ElectronSF/{self.year}/electron.json.gz'
+        correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electron.json.gz'
         self.corr = correctionlib.CorrectionSet.from_file(correction_file)['Electron-ID-SF']
 
     def get_sf(self, sf_type, lep):
         if abs(lep.pdgId) != 11:
             raise RuntimeError('Input lepton is not a electron')
+
+        if lep.pt < 10:
+            return 1.0
 
         wp = None
         if sf_type == 'Reco':
