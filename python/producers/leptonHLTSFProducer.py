@@ -45,9 +45,9 @@ class ElectronHLTSF(Module, object):
             return scale_factor
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
-        self.isMC = True if self.dataset_type == "mc" else False
-        if not self.isMC:
-            return True
+        # self.isMC = True if self.dataset_type == "mc" else False
+        # if not self.isMC:
+        #     return True
 
         self.out = wrappedOutputTree
 
@@ -59,8 +59,8 @@ class ElectronHLTSF(Module, object):
 
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
-        if not self.isMC:
-            return True
+        # if not self.isMC:
+        #     return True
 
         wgt = wgtUp = wgtDown = 1.0
 
@@ -122,8 +122,8 @@ class MuonHLTSF(Module, object):
             return scale_factor
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.isMC = True if self.dataset_type == "mc" else False
-        if not self.isMC:
-            return True
+        # if not self.isMC:
+        #     return True
 
         self.out = wrappedOutputTree
 
@@ -134,8 +134,8 @@ class MuonHLTSF(Module, object):
             
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
-        if not self.isMC:
-            return True
+        # if not self.isMC:
+        #     return True
             
         wgt = wgtUp = wgtDown = 1.0
         for lep in event.selectedMuons:

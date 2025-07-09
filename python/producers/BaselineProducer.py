@@ -199,7 +199,7 @@ class BaselineProducer(Module):
             
             passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
             
-            if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and mu.pfRelIso03_all < 0.15 and mu.tightId == True:
+            if mu.pt > 26 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and mu.pfRelIso03_all < 0.15 and mu.tightId == True:
                 mu._wp_ID = 'TightID'
                 mu._wp_Iso = 'TightPFIso'
                 event.selectedMuons.append(mu)
@@ -210,7 +210,7 @@ class BaselineProducer(Module):
         electrons = Collection(event, "Electron")
         for el in electrons:
             el.etaSC = el.eta + el.deltaEtaSC
-            if el.pt > 10 and abs(el.eta) < 2.4 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and el.mvaIso_WP80 == True:
+            if el.pt > 25 and abs(el.eta) < 2.4 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and el.mvaIso_WP80 == True:
                 el._wp_ID = 'wp80iso'
                 event.selectedElectrons.append(el)
 

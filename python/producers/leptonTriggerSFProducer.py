@@ -21,10 +21,15 @@ class ElectronHLTSFProducer(Module, object):
         self.dataset_type = dataset_type
         self.doSysVar = doSysVar
         self.era = era_dict[self.year]
+        self.isMC = True if self.dataset_type == "mc" else False
         #self.path=f'{self.year}Re-recoBCD'
         correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{self.era}/electronHlt.json.gz'
         # correction_file = f'../../data/ElectronSF/{self.year}/electron.json.gz'
-        self.corr = correctionlib.CorrectionSet.from_file(correction_file)['Electron-HLT-SF']
+        if self.isMC:
+            self.corr = correctionlib.CorrectionSet.from_file(correction_file)['Electron-HLT-McEff']
+        else:
+            self.corr = correctionlib.CorrectionSet.from_file(correction_file)['Electron-HLT-DataEff']
+        
 
     def get_sf(self, lep):
         if abs(lep.pdgId) != 11:
@@ -34,10 +39,10 @@ class ElectronHLTSFProducer(Module, object):
         wp = 'HLT_SF_Ele30_MVAiso80ID'
         scale_factor_up = scale_factor_down = scale_factor = 1
         if lep.pt > 25:
-            scale_factor = self.corr.evaluate(key_dict[self.year], "sf", wp, lep.etaSC, lep.pt)
+            scale_factor = self.corr.evaluate(key_dict[self.year], "nom", wp, lep.etaSC, lep.pt)
             if self.doSysVar:
-                scale_factor_up = self.corr.evaluate(key_dict[self.year], "sfup", wp, lep.etaSC, lep.pt)
-                scale_factor_down = self.corr.evaluate(key_dict[self.year], "sfdown", wp, lep.etaSC, lep.pt)
+                scale_factor_up = self.corr.evaluate(key_dict[self.year], "up", wp, lep.etaSC, lep.pt)
+                scale_factor_down = self.corr.evaluate(key_dict[self.year], "down", wp, lep.etaSC, lep.pt)
 
         if self.doSysVar:
             return scale_factor, scale_factor_up, scale_factor_down
