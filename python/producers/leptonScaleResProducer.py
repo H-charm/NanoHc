@@ -110,9 +110,9 @@ class eleScaleRes(Module):
 
 key_dict={
     "2022":     "2022_Summer22.json.gz",
-    "2022EE":   "2022EE_Summer22EE.json.gz",
+    "2022EE":   "2022_Summer22EE.json.gz",
     "2023":     "2023_Summer23.json.gz",
-    "2023BPix": "2023BPix_Summer23BPix.json.gz"
+    "2023BPix": "2023_Summer23BPix.json.gz"
 }
 
 class muonScaleRes(Module):

@@ -49,8 +49,8 @@ p = PostProcessor(
     modules=[
             # LeptonVariablesModule(),
             # TopLeptonMvaModule(year, 'ULv2'),
-            JetVMAPProducer(year,dataset_type),
-            jetJERCProducer(year, era_data, dataset_type),
+            # JetVMAPProducer(year,dataset_type),
+            # jetJERCProducer(year, era_data, dataset_type),
             eleScaleRes(year,dataset_type),
             muonScaleRes(year,dataset_type),
             BaselineProducer(year, dataset_type, sample),
