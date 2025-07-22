@@ -326,6 +326,8 @@ class BaselineProducer(Module):
         Zcandidate_eta = []
         Zcandidate_phi = []
         Zcandidate_dR = []
+        Zcandidate_deta = []
+        Zcandidate_dphi = []
         Zcandidate_lep1_pt = []
         Zcandidate_lep1_eta = []
         Zcandidate_lep1_phi = []
@@ -339,6 +341,8 @@ class BaselineProducer(Module):
             Zcandidate_eta.append(Zcandidate.eta)
             Zcandidate_phi.append(Zcandidate.phi)
             Zcandidate_dR.append(Zcandidate.dR)
+            Zcandidate_deta.append(Zcandidate.deta)
+            Zcandidate_dphi.append(Zcandidate.dphi)
             Zcandidate_lep1_pt.append(Zcandidate.lep1_pt)
             Zcandidate_lep1_eta.append(Zcandidate.lep1_eta)
             Zcandidate_lep1_phi.append(Zcandidate.lep1_phi)
@@ -351,6 +355,8 @@ class BaselineProducer(Module):
         out_data[self.Z_prefix + "eta"] = Zcandidate_eta 
         out_data[self.Z_prefix + "phi"] = Zcandidate_phi
         out_data[self.Z_prefix + "dR"] = Zcandidate_dR
+        out_data[self.Z_prefix + "deta"] = Zcandidate_deta
+        out_data[self.Z_prefix + "dphi"] = Zcandidate_dphi
         out_data[self.Z_prefix + "lep1_pt"] =  Zcandidate_lep1_pt
         out_data[self.Z_prefix + "lep1_eta"] =  Zcandidate_lep1_eta
         out_data[self.Z_prefix + "lep1_phi"] =  Zcandidate_lep1_phi
@@ -364,6 +370,8 @@ class BaselineProducer(Module):
         Zcandidate_mu_eta = []
         Zcandidate_mu_phi = []
         Zcandidate_mu_dR = []
+        Zcandidate_mu_deta = []
+        Zcandidate_mu_dphi = []
         Zcandidate_mu_lep1_pt = []
         Zcandidate_mu_lep1_eta = []
         Zcandidate_mu_lep1_phi = []
@@ -376,6 +384,8 @@ class BaselineProducer(Module):
             Zcandidate_mu_eta.append(Zcandidate.eta)
             Zcandidate_mu_phi.append(Zcandidate.phi)
             Zcandidate_mu_dR.append(Zcandidate.dR)
+            Zcandidate_mu_deta.append(Zcandidate.deta)
+            Zcandidate_mu_dphi.append(Zcandidate.dphi)
             Zcandidate_mu_lep1_pt.append(Zcandidate.lep1_pt)
             Zcandidate_mu_lep1_eta.append(Zcandidate.lep1_eta)
             Zcandidate_mu_lep1_phi.append(Zcandidate.lep1_phi)
@@ -388,6 +398,8 @@ class BaselineProducer(Module):
         out_data[self.Zmu_prefix + "eta"] = Zcandidate_mu_eta 
         out_data[self.Zmu_prefix + "phi"] = Zcandidate_mu_phi
         out_data[self.Zmu_prefix + "dR"] = Zcandidate_mu_dR
+        out_data[self.Zmu_prefix + "deta"] = Zcandidate_mu_deta
+        out_data[self.Zmu_prefix + "dphi"] = Zcandidate_mu_dphi
         out_data[self.Zmu_prefix + "lep1_pt"] =  Zcandidate_mu_lep1_pt
         out_data[self.Zmu_prefix + "lep1_eta"] =  Zcandidate_mu_lep1_eta
         out_data[self.Zmu_prefix + "lep1_phi"] =  Zcandidate_mu_lep1_phi
@@ -401,6 +413,8 @@ class BaselineProducer(Module):
         Zcandidate_el_eta = []
         Zcandidate_el_phi = []
         Zcandidate_el_dR = []
+        Zcandidate_el_deta = []
+        Zcandidate_el_dphi = []
         Zcandidate_el_lep1_pt = []
         Zcandidate_el_lep1_eta = []
         Zcandidate_el_lep1_phi = []
@@ -413,6 +427,8 @@ class BaselineProducer(Module):
             Zcandidate_el_eta.append(Zcandidate.eta)
             Zcandidate_el_phi.append(Zcandidate.phi)
             Zcandidate_el_dR.append(Zcandidate.dR)
+            Zcandidate_el_deta.append(Zcandidate.deta)
+            Zcandidate_el_dphi.append(Zcandidate.dphi)
             Zcandidate_el_lep1_pt.append(Zcandidate.lep1_pt)
             Zcandidate_el_lep1_eta.append(Zcandidate.lep1_eta)
             Zcandidate_el_lep1_phi.append(Zcandidate.lep1_phi)
@@ -425,6 +441,8 @@ class BaselineProducer(Module):
         out_data[self.Zel_prefix + "eta"] = Zcandidate_el_eta 
         out_data[self.Zel_prefix + "phi"] = Zcandidate_el_phi
         out_data[self.Zel_prefix + "dR"] = Zcandidate_el_dR
+        out_data[self.Zel_prefix + "deta"] = Zcandidate_el_deta
+        out_data[self.Zel_prefix + "dphi"] = Zcandidate_el_dphi
         out_data[self.Zel_prefix + "lep1_pt"] =  Zcandidate_el_lep1_pt
         out_data[self.Zel_prefix + "lep1_eta"] =  Zcandidate_el_lep1_eta
         out_data[self.Zel_prefix + "lep1_phi"] =  Zcandidate_el_lep1_phi
