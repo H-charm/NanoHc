@@ -330,6 +330,16 @@ def run_add_weights():
                 merge_cmd = f"haddnano.py {merged_file} {' '.join(map(str, root_files))}"
                 print(f"Merging {len(root_files)} files into {merged_file}")
                 subprocess.run(merge_cmd, shell=True, check=True)
+            ## If there is a large number of files, use the following block instead:
+            # if len(root_files) > 1:
+            #     filelist_path = os.path.join(process_dir, "merge_input.txt")
+            #     with open(filelist_path, "w") as f:
+            #         for rf in root_files:
+            #             f.write(str(rf) + "\n")
+
+            #     merge_cmd = f"hadd {merged_file} @{filelist_path}"
+            #     print(f"Merging {len(root_files)} files into {merged_file} using file list")
+            #     subprocess.run(merge_cmd, shell=True, check=True)
             else:
                 merged_file = str(root_files[0])
 
