@@ -20,6 +20,8 @@ class Zcandidate:
         self.phi = sumP4(self.lep1, self.lep2).Phi()
         self.mass = sumP4(self.lep1, self.lep2).M()
         self.dR = deltaR(lep1.eta, lep1.phi, lep2.eta, lep2.phi)
+        self.deta = abs(lep1.eta - lep2.eta)
+        self.dphi = abs(lep1.phi - lep2.phi)
 
         self.lep1_pt = lep1.pt
         self.lep1_eta = lep1.eta
@@ -38,8 +40,8 @@ class BaselineProducer(Module):
 
         # Define the variables you want to plot
         self.lep_vars = ["pt","eta","phi","pdgId"]
-        self.mu_vars = ["pt","eta","phi", "pdgId"]
-        self.Z_vars = ["pt","eta","phi","mass","dR", "lep1_pt", "lep1_eta", "lep1_phi", "lep2_pt", "lep2_eta", "lep2_phi"]
+        self.Z_vars = ["pt","eta","phi","mass","dR", "deta", "dphi","lep1_pt", "lep1_eta", "lep1_phi", "lep2_pt", "lep2_eta", "lep2_phi"]
+        self.jet_vars = ["pt", "eta", "phi", "number"]
 
         # Define the prefixes
         self.mu_prefix = "mu_"
@@ -65,6 +67,9 @@ class BaselineProducer(Module):
             self.out.branch(self.mu_prefix + lep_var, "F", 20, lenVar="nMu")
             self.out.branch(self.el_prefix + lep_var, "F", 20, lenVar="nEl")
             self.out.branch(self.lep_prefix + lep_var, "F", 20, lenVar="nLep")
+        
+        for jet_var in self.jet_vars:
+            self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar = "nJet")
         
         # Define trigger branches
         self.out.branch("HLT_pass", "O")      # pass trigger requirements for the given sample (including sample precedence vetos) 
@@ -157,7 +162,10 @@ class BaselineProducer(Module):
             if not ((mu1.pt > 27 and mu2.pt > 15) or (mu1.pt > 15 and mu2.pt > 27)):
                 continue
 
-            Zcand_mu = Zcandidate(mu1, mu2)
+            if mu1.pt > mu2.pt:
+                Zcand_mu = Zcandidate(mu1, mu2)
+            else:
+                Zcand_mu = Zcandidate(mu2, mu1)
 
             if Zcand_mu.mass < 60 or Zcand_mu.mass > 120:
                 continue
@@ -181,7 +189,10 @@ class BaselineProducer(Module):
             if not ((el1.pt > 33 and el2.pt > 15) or (el1.pt > 15 and el2.pt > 33)):
                 continue
 
-            Zcand_el = Zcandidate(el1, el2)
+            if el1.pt > el2.pt:
+                Zcand_el = Zcandidate(el1, el2)
+            else:
+                Zcand_el = Zcandidate(el2, el1)
 
             if Zcand_el.mass < 60 or Zcand_el.mass > 120:
                 continue
@@ -291,6 +302,23 @@ class BaselineProducer(Module):
         out_data[self.mu_prefix + "eta"] = mu_eta
         out_data[self.mu_prefix + "phi"] = mu_phi
         out_data[self.mu_prefix + "pdgId"] = mu_pdgId
+
+        ## Jets
+        jet_pt = []
+        jet_eta = []
+        jet_phi = []
+        jet_n = []
+
+
+        for jet in event.selectedJets:
+            jet_pt.append(jet.pt)
+            jet_eta.appned(jet.eta)
+            jet_phi.append(jet.phi)
+            jet_n.append(nJet)
+        out_data[self.jet_prefix + "pt"] = jet_pt
+        out_data[self.jet_prefix + "eta"] = jet_eta
+        out_data[self.jet_prefix + "phi"] = jet_phi
+        out_data[self.jet_prefix + "number"] = jet_n
                    
         ## Z candidates
         Zcandidate_mass = []
