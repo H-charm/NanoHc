@@ -26,7 +26,6 @@ class MuonROOTProducer(Module):
         self.h_Mu_MCEff = self.root_file.Get("NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight_eta_pt_efficiencyMC").Clone()
         self.h_Mu_DataEff = self.root_file.Get("NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight_eta_pt_efficiencyData").Clone()
         
-
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.isMC = self.dataset_type == "mc"
         if self.isMC:
@@ -46,7 +45,6 @@ class MuonROOTProducer(Module):
                 self.out.branch('muHLTWeightDownData', "F", limitedPrecision=10)
                 self.out.branch('muTriggerWeightUpData', "F", limitedPrecision=10)
                 self.out.branch('muTriggerWeightDownData', "F", limitedPrecision=10)
-    
     
     def getSF(self, pt, eta, corr_type):
         if corr_type == 'mc':
@@ -72,12 +70,6 @@ class MuonROOTProducer(Module):
 
         MCEff2_list = []
         DataEff2_list = []
-
-        # for lep in event.selectedMuons:
-        #     if abs(lep.pdgId) != 13:
-        #         continue
-        #     if lep.pt < 26.0:
-        #         continue
             
         if len(event.selectedMuons) == 2:
             mu1, mu2 = event.selectedMuons[:2]
@@ -122,7 +114,13 @@ class MuonROOTProducer(Module):
 
         HLT_weight = np.prod(sf_list) if sf_list else 1.0
 
+        HLT_MC_weight = np.prod(MCEff_list) if MCEff_list else 1.0
+        HLT_Data_weight = np.prod(DataEff_list) if DataEff_list else 1.0
+
         self.out.fillBranch("muTriggerWeight", HLT_weight)
+
+        self.out.fillBranch("muHLTWeight", HLT_MC_weight)
+        self.out.fillBranch("muHLTWeightData", HLT_Data_weight)
         return True
 
 
