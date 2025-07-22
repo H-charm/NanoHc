@@ -21,3 +21,4 @@ drop SubJet*
 drop LowPtElectron*
 drop BeamSpot*
 drop boosted*
+keep Jet_*

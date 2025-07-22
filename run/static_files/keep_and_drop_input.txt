@@ -15,3 +15,6 @@ keep PV_*
 keep genWeight
 keep Rho_*
 keep MET_*
+keep PSWeight
+keep LHEPdfWeight
+keep LHEScaleWeight
