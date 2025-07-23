@@ -312,7 +312,7 @@ class BaselineProducer(Module):
 
         for jet in event.selectedJets:
             jet_pt.append(jet.pt)
-            jet_eta.appned(jet.eta)
+            jet_eta.append(jet.eta)
             jet_phi.append(jet.phi)
             jet_n.append(nJet)
         out_data[self.jet_prefix + "pt"] = jet_pt
