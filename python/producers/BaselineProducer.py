@@ -314,11 +314,11 @@ class BaselineProducer(Module):
             jet_pt.append(jet.pt)
             jet_eta.append(jet.eta)
             jet_phi.append(jet.phi)
-            jet_n.append(nJet)
+            #jet_n.append(nJet)
         out_data[self.jet_prefix + "pt"] = jet_pt
         out_data[self.jet_prefix + "eta"] = jet_eta
         out_data[self.jet_prefix + "phi"] = jet_phi
-        out_data[self.jet_prefix + "number"] = jet_n
+        #out_data[self.jet_prefix + "number"] = jet_n
                    
         ## Z candidates
         Zcandidate_mass = []
