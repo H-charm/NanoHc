@@ -11,14 +11,53 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 lumi_dict = {"2022": 7.9804, "2022EE": 26.6717, "2023": 17.794, "2023BPix": 9.451}
 
 class Zcandidate:
-    
-    def __init__(self,lep1,lep2):
+    def __init__(self, lep1, lep2, fsrPhotons, fsrIndices):
         self.lep1 = lep1
         self.lep2 = lep2
-        self.pt = sumP4(self.lep1, self.lep2).Pt()
-        self.eta = sumP4(self.lep1, self.lep2).Eta()
-        self.phi = sumP4(self.lep1, self.lep2).Phi()
-        self.mass = sumP4(self.lep1, self.lep2).M()
+
+        self.lep1_uncorrpt=lep1.pt
+        self.lep2_uncorrpt=lep2.pt
+
+        # Get fsr indices based on pdgId
+        if abs(lep1.pdgId) == 13:
+            self.fsrIdx1 = fsrIndices["muFsrPhotonIdx"][lep1.index]
+            self.fsrIdx2 = fsrIndices["muFsrPhotonIdx"][lep2.index]
+        elif abs(lep1.pdgId) == 11:
+            self.fsrIdx1 = fsrIndices["eleFsrPhotonIdx"][lep1.index]
+            self.fsrIdx2 = fsrIndices["eleFsrPhotonIdx"][lep2.index]
+        else:
+            self.fsrIdx1 = -1
+            self.fsrIdx2 = -1
+
+        # Get dressed four-momentum
+        self.lep1_dressed = lep1.p4()
+        self.lep2_dressed = lep2.p4()
+
+        if self.fsrIdx1 >= 0:
+            fsr1 = fsrPhotons[self.fsrIdx1]
+            fsr1_p4 = ROOT.TLorentzVector()
+            fsr1_p4.SetPtEtaPhiM(fsr1.pt, fsr1.eta, fsr1.phi, 0.0)
+            self.lep1_dressed += fsr1_p4
+        if self.fsrIdx2 >= 0:
+            fsr2 = fsrPhotons[self.fsrIdx2]
+            fsr2_p4 = ROOT.TLorentzVector()
+            fsr2_p4.SetPtEtaPhiM(fsr2.pt, fsr2.eta, fsr2.phi, 0.0) 
+            self.lep2_dressed += fsr2_p4
+
+        self.p4 = self.lep1_dressed + self.lep2_dressed
+
+        # Kinematic quantities from dressed p4
+        self.pt = self.p4.Pt()
+        self.eta = self.p4.Eta()
+        self.phi = self.p4.Phi()
+        self.mass = self.p4.M()
+
+        self.lep1 = lep1
+        self.lep2 = lep2
+        self.pt_2 = sumP4(self.lep1, self.lep2).Pt()
+        self.eta_2 = sumP4(self.lep1, self.lep2).Eta()
+        self.phi_2 = sumP4(self.lep1, self.lep2).Phi()
+        self.mass_2 = sumP4(self.lep1, self.lep2).M()
         self.dR = deltaR(lep1.eta, lep1.phi, lep2.eta, lep2.phi)
         self.deta = abs(lep1.eta - lep2.eta)
         self.dphi = abs(lep1.phi - lep2.phi)
@@ -31,6 +70,13 @@ class Zcandidate:
         self.lep2_eta = lep2.eta
         self.lep2_phi = lep2.phi
 
+    def sumpt(self):
+        return self.lep1.pt + self.lep2.pt
+
+    def finalState(self):
+        return self.lep1.pdgId * self.lep2.pdgId
+
+
 class BaselineProducer(Module):
     
     def __init__(self, year, dataset_type, sample):
@@ -40,7 +86,7 @@ class BaselineProducer(Module):
 
         # Define the variables you want to plot
         self.lep_vars = ["pt","eta","phi","pdgId"]
-        self.Z_vars = ["pt","eta","phi","mass","dR", "deta", "dphi","lep1_pt", "lep1_eta", "lep1_phi", "lep2_pt", "lep2_eta", "lep2_phi"]
+        self.Z_vars = ["pt","eta","phi","mass","dR", "deta", "dphi","lep1_pt", "lep1_eta", "lep1_phi", "lep2_pt", "lep2_eta", "lep2_phi", "mass_2", "phi_2", "eta_2", "pt_2"]
         self.jet_vars = ["pt", "eta", "phi", "number"]
 
         # Define the prefixes
@@ -96,8 +142,10 @@ class BaselineProducer(Module):
         if self._select_triggers(event) is False:
             return False
 
-        self._select_muons(event)
-        self._select_electrons(event)
+        self._associate_fsr_photons_and_leptons(event)
+
+        # self._select_muons(event)
+        # self._select_electrons(event)
         event.selectedLeptons = event.selectedMuons + event.selectedElectrons
         self._select_jets(event)
 
@@ -162,10 +210,15 @@ class BaselineProducer(Module):
             if not ((mu1.pt > 27 and mu2.pt > 15) or (mu1.pt > 15 and mu2.pt > 27)):
                 continue
 
+            fsrPhotons = Collection(event, "FsrPhoton")
+            fsrIndices = {
+                "muFsrPhotonIdx": getattr(event, "muFsrPhotonIdx", [])
+            }
+
             if mu1.pt > mu2.pt:
-                Zcand_mu = Zcandidate(mu1, mu2)
+                Zcand_mu = Zcandidate(mu1, mu2, fsrPhotons, fsrIndices)
             else:
-                Zcand_mu = Zcandidate(mu2, mu1)
+                Zcand_mu = Zcandidate(mu2, mu1, fsrPhotons, fsrIndices)
 
             if Zcand_mu.mass < 60 or Zcand_mu.mass > 120:
                 continue
@@ -188,11 +241,16 @@ class BaselineProducer(Module):
             
             if not ((el1.pt > 33 and el2.pt > 15) or (el1.pt > 15 and el2.pt > 33)):
                 continue
+            
+            fsrPhotons = Collection(event, "FsrPhoton")
+            fsrIndices = {
+                "eleFsrPhotonIdx": getattr(event, "eleFsrPhotonIdx", [])
+            }
 
             if el1.pt > el2.pt:
-                Zcand_el = Zcandidate(el1, el2)
+                Zcand_el = Zcandidate(el1, el2, fsrPhotons, fsrIndices)
             else:
-                Zcand_el = Zcandidate(el2, el1)
+                Zcand_el = Zcandidate(el2, el1, fsrPhotons, fsrIndices)
 
             if Zcand_el.mass < 60 or Zcand_el.mass > 120:
                 continue
@@ -200,30 +258,30 @@ class BaselineProducer(Module):
             event.Zcandidates_el.append(Zcand_el)
             event.Zcandidates.append(Zcand_el)
 
-    def _select_muons(self, event):
+    # def _select_muons(self, event):
 
-        event.selectedMuons = []
+    #     event.selectedMuons = []
 
-        muons = Collection(event, "Muon")
+    #     muons = Collection(event, "Muon")
         
-        for mu in muons:
+    #     for mu in muons:
             
-            passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
+    #         passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
             
-            if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and mu.pfRelIso03_all < 0.15 and mu.tightId == True:
-                mu._wp_ID = 'TightID'
-                mu._wp_Iso = 'TightPFIso'
-                event.selectedMuons.append(mu)
+    #         if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and mu.pfRelIso03_all < 0.15 and mu.tightId == True:
+    #             mu._wp_ID = 'TightID'
+    #             mu._wp_Iso = 'TightPFIso'
+    #             event.selectedMuons.append(mu)
             
-    def _select_electrons(self, event):
-        event.selectedElectrons = []
+    # def _select_electrons(self, event):
+    #     event.selectedElectrons = []
 
-        electrons = Collection(event, "Electron")
-        for el in electrons:
-            el.etaSC = el.eta + el.deltaEtaSC
-            if el.pt > 10 and abs(el.eta) < 2.4 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and el.mvaIso_WP80 == True:
-                el._wp_ID = 'wp80iso'
-                event.selectedElectrons.append(el)
+    #     electrons = Collection(event, "Electron")
+    #     for el in electrons:
+    #         el.etaSC = el.eta + el.deltaEtaSC
+    #         if el.pt > 10 and abs(el.eta) < 2.4 and abs(el.dxy) < 0.5 and abs(el.dz) < 1 and el.mvaIso_WP80 == True:
+    #             el._wp_ID = 'wp80iso'
+    #             event.selectedElectrons.append(el)
 
     def _select_jets(self, event):
 
@@ -309,7 +367,6 @@ class BaselineProducer(Module):
         jet_phi = []
         jet_n = []
 
-
         for jet in event.selectedJets:
             jet_pt.append(jet.pt)
             jet_eta.append(jet.eta)
@@ -334,6 +391,10 @@ class BaselineProducer(Module):
         Zcandidate_lep2_pt = []
         Zcandidate_lep2_eta = []
         Zcandidate_lep2_phi = []
+        Zcandidate_mass_2 = []
+        Zcandidate_pt_2 = []
+        Zcandidate_eta_2 = []
+        Zcandidate_phi_2 = []
 
         for Zcandidate in event.Zcandidates:
             Zcandidate_mass.append(Zcandidate.mass)
@@ -349,6 +410,10 @@ class BaselineProducer(Module):
             Zcandidate_lep2_pt.append(Zcandidate.lep2_pt)
             Zcandidate_lep2_eta.append(Zcandidate.lep2_eta)
             Zcandidate_lep2_phi.append(Zcandidate.lep2_phi)
+            Zcandidate_mass_2.append(Zcandidate.mass_2)
+            Zcandidate_pt_2.append(Zcandidate.pt_2)
+            Zcandidate_eta_2.append(Zcandidate.eta_2)
+            Zcandidate_phi_2.append(Zcandidate.phi_2)
 
         out_data[self.Z_prefix + "mass"] = Zcandidate_mass
         out_data[self.Z_prefix + "pt"] = Zcandidate_pt
@@ -363,6 +428,10 @@ class BaselineProducer(Module):
         out_data[self.Z_prefix + "lep2_pt"] =  Zcandidate_lep2_pt
         out_data[self.Z_prefix + "lep2_eta"] =  Zcandidate_lep2_eta
         out_data[self.Z_prefix + "lep2_phi"] =  Zcandidate_lep2_phi
+        out_data[self.Z_prefix + "mass_2"] = Zcandidate_mass_2
+        out_data[self.Z_prefix + "pt_2"] = Zcandidate_pt_2
+        out_data[self.Z_prefix + "eta_2"] = Zcandidate_eta_2 
+        out_data[self.Z_prefix + "phi_2"] = Zcandidate_phi_2
 
         ## Z(mu,mu) candidates
         Zcandidate_mu_mass = []
@@ -378,6 +447,10 @@ class BaselineProducer(Module):
         Zcandidate_mu_lep2_pt = []
         Zcandidate_mu_lep2_eta = []
         Zcandidate_mu_lep2_phi = []
+        Zcandidate_mu_mass_2 = []
+        Zcandidate_mu_pt_2 = []
+        Zcandidate_mu_eta_2 = []
+        Zcandidate_mu_phi_2 = []
         for Zcandidate in event.Zcandidates_mu:
             Zcandidate_mu_mass.append(Zcandidate.mass)
             Zcandidate_mu_pt.append(Zcandidate.pt)
@@ -392,6 +465,10 @@ class BaselineProducer(Module):
             Zcandidate_mu_lep2_pt.append(Zcandidate.lep2_pt)
             Zcandidate_mu_lep2_eta.append(Zcandidate.lep2_eta)
             Zcandidate_mu_lep2_phi.append(Zcandidate.lep2_phi)
+            Zcandidate_mu_mass_2.append(Zcandidate.mass_2)
+            Zcandidate_mu_pt_2.append(Zcandidate.pt_2)
+            Zcandidate_mu_eta_2.append(Zcandidate.eta_2)
+            Zcandidate_mu_phi_2.append(Zcandidate.phi_2)
                 
         out_data[self.Zmu_prefix + "mass"] = Zcandidate_mu_mass
         out_data[self.Zmu_prefix + "pt"] = Zcandidate_mu_pt
@@ -406,6 +483,10 @@ class BaselineProducer(Module):
         out_data[self.Zmu_prefix + "lep2_pt"] =  Zcandidate_mu_lep2_pt
         out_data[self.Zmu_prefix + "lep2_eta"] =  Zcandidate_mu_lep2_eta
         out_data[self.Zmu_prefix + "lep2_phi"] =  Zcandidate_mu_lep2_phi
+        out_data[self.Zmu_prefix + "mass_2"] = Zcandidate_mu_mass_2
+        out_data[self.Zmu_prefix + "pt_2"] = Zcandidate_mu_pt_2
+        out_data[self.Zmu_prefix + "eta_2"] = Zcandidate_mu_eta_2 
+        out_data[self.Zmu_prefix + "phi_2"] = Zcandidate_mu_phi_2
 
         ## Z(el,el) candidates
         Zcandidate_el_mass = []
@@ -421,6 +502,10 @@ class BaselineProducer(Module):
         Zcandidate_el_lep2_pt = []
         Zcandidate_el_lep2_eta = []
         Zcandidate_el_lep2_phi = []
+        Zcandidate_el_mass_2 = []
+        Zcandidate_el_pt_2 = []
+        Zcandidate_el_eta_2 = []
+        Zcandidate_el_phi_2 = []
         for Zcandidate in event.Zcandidates_el:
             Zcandidate_el_mass.append(Zcandidate.mass)
             Zcandidate_el_pt.append(Zcandidate.pt)
@@ -435,6 +520,10 @@ class BaselineProducer(Module):
             Zcandidate_el_lep2_pt.append(Zcandidate.lep2_pt)
             Zcandidate_el_lep2_eta.append(Zcandidate.lep2_eta)
             Zcandidate_el_lep2_phi.append(Zcandidate.lep2_phi)
+            Zcandidate_el_mass_2.append(Zcandidate.mass_2)
+            Zcandidate_el_pt_2.append(Zcandidate.pt_2)
+            Zcandidate_el_eta_2.append(Zcandidate.eta_2)
+            Zcandidate_el_phi_2.append(Zcandidate.phi_2)
                 
         out_data[self.Zel_prefix + "mass"] = Zcandidate_el_mass
         out_data[self.Zel_prefix + "pt"] = Zcandidate_el_pt
@@ -449,6 +538,10 @@ class BaselineProducer(Module):
         out_data[self.Zel_prefix + "lep2_pt"] =  Zcandidate_el_lep2_pt
         out_data[self.Zel_prefix + "lep2_eta"] =  Zcandidate_el_lep2_eta
         out_data[self.Zel_prefix + "lep2_phi"] =  Zcandidate_el_lep2_phi
+        out_data[self.Zel_prefix + "mass_2"] = Zcandidate_el_mass_2
+        out_data[self.Zel_prefix + "pt_2"] = Zcandidate_el_pt_2
+        out_data[self.Zel_prefix + "eta_2"] = Zcandidate_el_eta_2 
+        out_data[self.Zel_prefix + "phi_2"] = Zcandidate_el_phi_2
 
         ## fill all branches
         for key in out_data:
