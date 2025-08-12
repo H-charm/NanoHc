@@ -220,6 +220,7 @@ class BaselineProducer(Module):
                 mu._wp_ID = 'TightID'
                 mu._wp_Iso = 'TightPFIso'
 
+                el_isolated = True
                 for el in electrons:
                     dR_mu_el = math.sqrt((el.eta - mu.eta)**2 + (el.phi - mu.phi)**2)
                     if dR_mu_el <= 0.4:
