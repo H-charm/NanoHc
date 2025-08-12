@@ -101,6 +101,9 @@ class BaselineProducer(Module):
         event.selectedLeptons = event.selectedMuons + event.selectedElectrons
         self._select_jets(event)
 
+        if len(event.selectedJets) < 1:
+            return False
+
         if not (
             (len(event.selectedMuons) == 2 and len(event.selectedElectrons) == 0) or
             (len(event.selectedElectrons) == 2 and len(event.selectedMuons) == 0)
