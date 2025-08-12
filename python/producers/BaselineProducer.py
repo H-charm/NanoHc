@@ -379,48 +379,48 @@ class BaselineProducer(Module):
         out_data[self.Z_prefix + "lep2_eta"] =  Zcandidate_lep2_eta
         out_data[self.Z_prefix + "lep2_phi"] =  Zcandidate_lep2_phi
 
-        ## Z(mu,mu) candidates
-        Zcandidate_mu_mass = []
-        Zcandidate_mu_pt = []
-        Zcandidate_mu_eta = []
-        Zcandidate_mu_phi = []
-        Zcandidate_mu_dR = []
-        Zcandidate_mu_deta = []
-        Zcandidate_mu_dphi = []
-        Zcandidate_mu_lep1_pt = []
-        Zcandidate_mu_lep1_eta = []
-        Zcandidate_mu_lep1_phi = []
-        Zcandidate_mu_lep2_pt = []
-        Zcandidate_mu_lep2_eta = []
-        Zcandidate_mu_lep2_phi = []
-        for Zcandidate in event.Zcandidates_mu:
-            Zcandidate_mu_mass.append(Zcandidate.mass)
-            Zcandidate_mu_pt.append(Zcandidate.pt)
-            Zcandidate_mu_eta.append(Zcandidate.eta)
-            Zcandidate_mu_phi.append(Zcandidate.phi)
-            Zcandidate_mu_dR.append(Zcandidate.dR)
-            Zcandidate_mu_deta.append(Zcandidate.deta)
-            Zcandidate_mu_dphi.append(Zcandidate.dphi)
-            Zcandidate_mu_lep1_pt.append(Zcandidate.lep1_pt)
-            Zcandidate_mu_lep1_eta.append(Zcandidate.lep1_eta)
-            Zcandidate_mu_lep1_phi.append(Zcandidate.lep1_phi)
-            Zcandidate_mu_lep2_pt.append(Zcandidate.lep2_pt)
-            Zcandidate_mu_lep2_eta.append(Zcandidate.lep2_eta)
-            Zcandidate_mu_lep2_phi.append(Zcandidate.lep2_phi)
+        # ## Z(mu,mu) candidates
+        # Zcandidate_mu_mass = []
+        # Zcandidate_mu_pt = []
+        # Zcandidate_mu_eta = []
+        # Zcandidate_mu_phi = []
+        # Zcandidate_mu_dR = []
+        # Zcandidate_mu_deta = []
+        # Zcandidate_mu_dphi = []
+        # Zcandidate_mu_lep1_pt = []
+        # Zcandidate_mu_lep1_eta = []
+        # Zcandidate_mu_lep1_phi = []
+        # Zcandidate_mu_lep2_pt = []
+        # Zcandidate_mu_lep2_eta = []
+        # Zcandidate_mu_lep2_phi = []
+        # for Zcandidate in event.Zcandidates_mu:
+        #     Zcandidate_mu_mass.append(Zcandidate.mass)
+        #     Zcandidate_mu_pt.append(Zcandidate.pt)
+        #     Zcandidate_mu_eta.append(Zcandidate.eta)
+        #     Zcandidate_mu_phi.append(Zcandidate.phi)
+        #     Zcandidate_mu_dR.append(Zcandidate.dR)
+        #     Zcandidate_mu_deta.append(Zcandidate.deta)
+        #     Zcandidate_mu_dphi.append(Zcandidate.dphi)
+        #     Zcandidate_mu_lep1_pt.append(Zcandidate.lep1_pt)
+        #     Zcandidate_mu_lep1_eta.append(Zcandidate.lep1_eta)
+        #     Zcandidate_mu_lep1_phi.append(Zcandidate.lep1_phi)
+        #     Zcandidate_mu_lep2_pt.append(Zcandidate.lep2_pt)
+        #     Zcandidate_mu_lep2_eta.append(Zcandidate.lep2_eta)
+        #     Zcandidate_mu_lep2_phi.append(Zcandidate.lep2_phi)
                 
-        out_data[self.Zmu_prefix + "mass"] = Zcandidate_mu_mass
-        out_data[self.Zmu_prefix + "pt"] = Zcandidate_mu_pt
-        out_data[self.Zmu_prefix + "eta"] = Zcandidate_mu_eta 
-        out_data[self.Zmu_prefix + "phi"] = Zcandidate_mu_phi
-        out_data[self.Zmu_prefix + "dR"] = Zcandidate_mu_dR
-        out_data[self.Zmu_prefix + "deta"] = Zcandidate_mu_deta
-        out_data[self.Zmu_prefix + "dphi"] = Zcandidate_mu_dphi
-        out_data[self.Zmu_prefix + "lep1_pt"] =  Zcandidate_mu_lep1_pt
-        out_data[self.Zmu_prefix + "lep1_eta"] =  Zcandidate_mu_lep1_eta
-        out_data[self.Zmu_prefix + "lep1_phi"] =  Zcandidate_mu_lep1_phi
-        out_data[self.Zmu_prefix + "lep2_pt"] =  Zcandidate_mu_lep2_pt
-        out_data[self.Zmu_prefix + "lep2_eta"] =  Zcandidate_mu_lep2_eta
-        out_data[self.Zmu_prefix + "lep2_phi"] =  Zcandidate_mu_lep2_phi
+        # out_data[self.Zmu_prefix + "mass"] = Zcandidate_mu_mass
+        # out_data[self.Zmu_prefix + "pt"] = Zcandidate_mu_pt
+        # out_data[self.Zmu_prefix + "eta"] = Zcandidate_mu_eta 
+        # out_data[self.Zmu_prefix + "phi"] = Zcandidate_mu_phi
+        # out_data[self.Zmu_prefix + "dR"] = Zcandidate_mu_dR
+        # out_data[self.Zmu_prefix + "deta"] = Zcandidate_mu_deta
+        # out_data[self.Zmu_prefix + "dphi"] = Zcandidate_mu_dphi
+        # out_data[self.Zmu_prefix + "lep1_pt"] =  Zcandidate_mu_lep1_pt
+        # out_data[self.Zmu_prefix + "lep1_eta"] =  Zcandidate_mu_lep1_eta
+        # out_data[self.Zmu_prefix + "lep1_phi"] =  Zcandidate_mu_lep1_phi
+        # out_data[self.Zmu_prefix + "lep2_pt"] =  Zcandidate_mu_lep2_pt
+        # out_data[self.Zmu_prefix + "lep2_eta"] =  Zcandidate_mu_lep2_eta
+        # out_data[self.Zmu_prefix + "lep2_phi"] =  Zcandidate_mu_lep2_phi
 
         ## Z(el,el) candidates
         Zcandidate_el_mass = []
