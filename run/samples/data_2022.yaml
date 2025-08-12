@@ -13,10 +13,10 @@ EGamma:
   - /EGamma/Run2022C-22Sep2023-v1/NANOAOD
   - /EGamma/Run2022D-22Sep2023-v1/NANOAOD
 
-SingleMuon:
-  - /SingleMuon/Run2022C-22Sep2023-v1/NANOAOD
+# SingleMuon:
+#   - /SingleMuon/Run2022C-22Sep2023-v1/NANOAOD
 
-Muon:
-  - /Muon/Run2022C-22Sep2023-v1/NANOAOD
-  - /Muon/Run2022D-22Sep2023-v1/NANOAOD
+# Muon:
+#   - /Muon/Run2022C-22Sep2023-v1/NANOAOD
+#   - /Muon/Run2022D-22Sep2023-v1/NANOAOD
   
