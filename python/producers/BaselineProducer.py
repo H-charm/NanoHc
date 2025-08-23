@@ -204,18 +204,30 @@ class BaselineProducer(Module):
             event.Zcandidates.append(Zcand_el)
 
     def _select_muons(self, event):
-
         event.selectedMuons = []
 
         muons = Collection(event, "Muon")
+
+        event.selectedElectrons = []
+
+        electrons = Collection(event, "Electron")
         
         for mu in muons:
             
-            passMuID = mu.isPFcand or (mu.highPtId>0 and mu.pt>200)
+            pfRelIso = mu.pfRelIso04_all if hasattr(mu, "pfRelIso04_all") else mu.pfRelIso03_all
             
-            if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and mu.pfRelIso03_all < 0.15 and mu.tightId == True:
+            if mu.pt > 10 and abs(mu.eta) < 2.4 and mu.tightId == True and pfRelIso < 0.15 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1:
                 mu._wp_ID = 'TightID'
                 mu._wp_Iso = 'TightPFIso'
+
+                el_isolated = True
+                for el in electrons:
+                    dR_mu_el = math.sqrt((el.eta - mu.eta)**2 + (el.phi - mu.phi)**2)
+                    if dR_mu_el <= 0.4:
+                        el_isolated = False
+                if not el_isolated:
+                    continue
+
                 event.selectedMuons.append(mu)
             
     def _select_electrons(self, event):
