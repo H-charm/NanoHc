@@ -101,8 +101,8 @@ class BaselineProducer(Module):
         event.selectedLeptons = event.selectedMuons + event.selectedElectrons
         self._select_jets(event)
 
-        if len(event.selectedJets) < 1:
-            return False
+        # if len(event.selectedJets) < 1:
+        #     return False
 
         if not (
             (len(event.selectedMuons) == 2 and len(event.selectedElectrons) == 0) or
@@ -216,17 +216,17 @@ class BaselineProducer(Module):
             
             pfRelIso = mu.pfRelIso04_all if hasattr(mu, "pfRelIso04_all") else mu.pfRelIso03_all
             
-            if mu.pt > 10 and abs(mu.eta) < 2.4 and mu.tightId == True and pfRelIso < 0.15 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1:
+            if mu.pt > 10 and abs(mu.eta) < 2.4 and mu.tightId == True and pfRelIso03_all < 0.15 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1:
                 mu._wp_ID = 'TightID'
                 mu._wp_Iso = 'TightPFIso'
 
-                el_isolated = True
-                for el in electrons:
-                    dR_mu_el = math.sqrt((el.eta - mu.eta)**2 + (el.phi - mu.phi)**2)
-                    if dR_mu_el <= 0.4:
-                        el_isolated = False
-                if not el_isolated:
-                    continue
+                # el_isolated = True
+                # for el in electrons:
+                #     dR_mu_el = math.sqrt((el.eta - mu.eta)**2 + (el.phi - mu.phi)**2)
+                #     if dR_mu_el <= 0.4:
+                #         el_isolated = False
+                # if not el_isolated:
+                #     continue
 
                 event.selectedMuons.append(mu)
             
