@@ -1,0 +1,16 @@
+drop *
+keep Muon_*
+keep Electron_*
+keep Jet_*
+keep GenJet_*
+keep nGenJet
+keep FsrPhoton_*
+keep HLT_*
+keep Pileup_*
+keep run
+keep event
+keep luminosityBlock
+keep PV_*
+keep genWeight
+keep Rho_*
+keep MET_*

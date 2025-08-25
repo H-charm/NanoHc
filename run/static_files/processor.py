@@ -1,11 +1,9 @@
 from PhysicsTools.NanoAODTools.postprocessing.framework.postprocessor import PostProcessor
 from PhysicsTools.NanoHc.producers.BaselineProducer import BaselineProducer
-from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
-from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer
-from PhysicsTools.NanoHc.producers.leptonvariables import LeptonVariablesModule
-from PhysicsTools.NanoHc.producers.topleptonmva import TopLeptonMvaModule
-from PhysicsTools.NanoHc.producers.jetSFProducer import JetVMAPProducer, jetJERCProducer
-from PhysicsTools.NanoHc.producers.leptonScaleResProducer import eleScaleRes, muonScaleRes
+# from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
+# from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer
+# from PhysicsTools.NanoHc.producers.jetSFProducer import JetVMAPProducer, jetJERCProducer
+# from PhysicsTools.NanoHc.producers.leptonScaleResProducer import eleScaleRes, muonScaleRes
 
 import sys
 import json 
@@ -31,13 +29,21 @@ if dataset_type == "data":
 else:
     era_data = None
 
-## convert keep_and_drop_input.txt to python list
-with open('keep_and_drop_input.txt', 'r') as file:
+# Choose file names based on dataset type
+if dataset_type == "data":
+    input_file = "keep_and_drop_input_data.txt"
+    output_file = "keep_and_drop_output_data.txt"
+else:
+    input_file = "keep_and_drop_input_mc.txt"
+    output_file = "keep_and_drop_output_mc.txt"
+
+# Convert input file to python list
+with open(input_file, 'r') as file:
     keep_and_drop_input_branches = file.readlines()
 keep_and_drop_input_branches = [line.strip() for line in keep_and_drop_input_branches]
 
-## convert keep_and_drop_output.txt to python list
-with open('keep_and_drop_output.txt', 'r') as file:
+# Convert output_file to python list
+with open(output_file, 'r') as file:
     keep_and_drop_output_branches = file.readlines()
 keep_and_drop_output_branches = [line.strip() for line in keep_and_drop_output_branches]
 
@@ -47,8 +53,6 @@ p = PostProcessor(
     outputDir = output_dir, 
     inputFiles = files, 
     modules=[
-            # LeptonVariablesModule(),
-            # TopLeptonMvaModule(year, 'ULv2'),
             # JetVMAPProducer(year,dataset_type),
             # jetJERCProducer(year, era_data, dataset_type),
             # eleScaleRes(year,dataset_type),
