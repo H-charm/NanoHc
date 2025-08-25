@@ -4,7 +4,8 @@ from PhysicsTools.NanoHc.producers.jetVetoMapProducer import JetVMAPProducer
 from PhysicsTools.NanoHc.producers.jetJERCProducer import JetJERCProducer
 from PhysicsTools.NanoHc.producers.jetIDProducer import JetIdProducer
 from PhysicsTools.NanoHc.producers.electronScaleProducer import EleScaleProducer
-# from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
+from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
+from PhysicsTools.NanoHc.producers.electronTRGProducer import ElectronTRGSFProducer
 # from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer
 # from PhysicsTools.NanoHc.producers.jetSFProducer import JetVMAPProducer, jetJERCProducer
 # from PhysicsTools.NanoHc.producers.leptonScaleResProducer import eleScaleRes, muonScaleRes
@@ -61,10 +62,10 @@ p = PostProcessor(
             JetVMAPProducer(year,dataset_type),
             JetJERCProducer(year, era_data, dataset_type),
             EleScaleProducer(year,dataset_type),
-            # eleScaleRes(year,dataset_type),
-            # muonScaleRes(year,dataset_type),
             BaselineProducer(year, dataset_type, sample),
-            # PileupWeightProducer(year, dataset_type),
+            PileupWeightProducer(year, dataset_type, True),
+            ElectronSFProducer(year, dataset_type, True),
+            ElectronTRGSFProducer(year, dataset_type, True),
             # ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 -- For 2022 manually fixed, for 2023 it passes as 1. 
             # MuonSFProducer(year, dataset_type),
             ],
