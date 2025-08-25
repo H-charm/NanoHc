@@ -6,7 +6,7 @@ from PhysicsTools.NanoHc.producers.jetIDProducer import JetIdProducer
 from PhysicsTools.NanoHc.producers.electronScaleProducer import EleScaleProducer
 from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
 from PhysicsTools.NanoHc.producers.electronTRGProducer import ElectronTRGSFProducer
-# from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer
+from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer
 # from PhysicsTools.NanoHc.producers.jetSFProducer import JetVMAPProducer, jetJERCProducer
 # from PhysicsTools.NanoHc.producers.leptonScaleResProducer import eleScaleRes, muonScaleRes
 
