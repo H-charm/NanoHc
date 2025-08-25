@@ -56,8 +56,8 @@ p = PostProcessor(
     outputDir = output_dir, 
     inputFiles = files, 
     modules=[
+            # JetIdProducer(year,dataset_type),
             JetVMAPProducer(year,dataset_type),
-            JetIdProducer(year,dataset_type),
             JetJERCProducer(year, era_data, dataset_type),
             # eleScaleRes(year,dataset_type),
             # muonScaleRes(year,dataset_type),
