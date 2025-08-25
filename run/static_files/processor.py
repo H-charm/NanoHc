@@ -1,5 +1,6 @@
 from PhysicsTools.NanoAODTools.postprocessing.framework.postprocessor import PostProcessor
 from PhysicsTools.NanoHc.producers.BaselineProducer import BaselineProducer
+from PhysicsTools.NanoHc.producers.jetSFProducer import JetVMAPProducer
 # from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
 # from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer
 # from PhysicsTools.NanoHc.producers.jetSFProducer import JetVMAPProducer, jetJERCProducer
@@ -53,7 +54,7 @@ p = PostProcessor(
     outputDir = output_dir, 
     inputFiles = files, 
     modules=[
-            # JetVMAPProducer(year,dataset_type),
+            JetVMAPProducer(year,dataset_type),
             # jetJERCProducer(year, era_data, dataset_type),
             # eleScaleRes(year,dataset_type),
             # muonScaleRes(year,dataset_type),
