@@ -5,6 +5,7 @@ keep PV_npvs
 keep genWeight
 keep *LHE*Weight
 keep *PSWeight
+keep Flag_JetVetoed
 drop Deep*
 drop HLT_*
 drop L1_*
