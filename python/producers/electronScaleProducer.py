@@ -86,10 +86,10 @@ class EleScaleProducer(Module):
                     unc_rho = self.evaluator_smear.evaluate("esmear", ele.pt, ele.r9, abs(ele.eta))
                 else:
                     unc_rho = self.evaluator_smear.evaluate("err_rho", ele.eta, ele.r9)
-                smearing_up = rng.normal(loc=1., scale=rho + unc_rho)
-                smearing_dn = rng.normal(loc=1., scale=rho - unc_rho)
-                pt_smear_up.append(smearing_up * ele.pt)
-                pt_smear_dn.append(smearing_dn * ele.pt)
+                # smearing_up = rng.normal(loc=1., scale=rho + unc_rho)
+                # smearing_dn = rng.normal(loc=1., scale=rho - unc_rho)
+                # pt_smear_up.append(smearing_up * ele.pt)
+                # pt_smear_dn.append(smearing_dn * ele.pt)
 
                 if self.EtDependent :
                     scale_MC_unc = self.evaluator_scale.evaluate("escale", float(event.run), ele.eta, ele.r9, abs(ele.eta), ele.pt, float(ele.seedGain))
@@ -112,8 +112,8 @@ class EleScaleProducer(Module):
             self.out.fillBranch("Electron_corrected_pt", pt_corr)
 
         if self.is_mc :
-            self.out.fillBranch("Electron_smearUp_pt", pt_smear_up)
-            self.out.fillBranch("Electron_smearDn_pt", pt_smear_dn)
+            # self.out.fillBranch("Electron_smearUp_pt", pt_smear_up)
+            # self.out.fillBranch("Electron_smearDn_pt", pt_smear_dn)
             self.out.fillBranch("Electron_scaleUp_pt", pt_scale_up)
             self.out.fillBranch("Electron_scaleDn_pt", pt_scale_dn)
 
