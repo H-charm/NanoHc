@@ -3,6 +3,7 @@ from PhysicsTools.NanoHc.producers.BaselineProducer import BaselineProducer
 from PhysicsTools.NanoHc.producers.jetVetoMapProducer import JetVMAPProducer
 from PhysicsTools.NanoHc.producers.jetJERCProducer import JetJERCProducer
 from PhysicsTools.NanoHc.producers.jetIDProducer import JetIdProducer
+from PhysicsTools.NanoHc.producers.leptonScaleProducer import EleScaleProducer
 # from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
 # from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer
 # from PhysicsTools.NanoHc.producers.jetSFProducer import JetVMAPProducer, jetJERCProducer
@@ -59,6 +60,7 @@ p = PostProcessor(
             # JetIdProducer(year,dataset_type),
             JetVMAPProducer(year,dataset_type),
             JetJERCProducer(year, era_data, dataset_type),
+            EleScaleProducer(year,dataset_type),
             # eleScaleRes(year,dataset_type),
             # muonScaleRes(year,dataset_type),
             BaselineProducer(year, dataset_type, sample),
