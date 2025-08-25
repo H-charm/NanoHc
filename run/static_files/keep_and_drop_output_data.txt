@@ -8,7 +8,6 @@ drop L1_*
 drop Flag_*
 drop *Jet_*
 drop TrigObj*
-drop HTXS*
 drop Tau*
 drop Photon*
 drop *MET*
