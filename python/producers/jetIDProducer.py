@@ -26,7 +26,7 @@ import numpy as np
 import correctionlib
 from array import array
 
-class jetId(Module):
+class JetIdProducer(Module):
     def __init__(self, year, dataset_type,  jetType="AK4PUPPI"):
         """Module to determine jetID variables (passTight, passTightLepVeto), 
         packed in Jet_jetId as in nanoAODv12
