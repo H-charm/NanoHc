@@ -10,6 +10,34 @@ import sys
 from pathlib import Path
 import helpers
 
+# --- Global bad file counter ---
+BAD_FILE_COUNT = 0
+
+
+def is_valid_nano(path):
+    """
+    Check if ROOT file is valid NanoAOD:
+    - not zombie
+    - contains Events, Runs, and LuminosityBlocks trees
+    """
+    global BAD_FILE_COUNT
+    f = ROOT.TFile.Open(path)
+    if not f or f.IsZombie():
+        print(f"⚠️ Zombie or unreadable file skipped: {path}")
+        BAD_FILE_COUNT += 1
+        return False
+
+    required_trees = ["Events", "Runs", "LuminosityBlocks"]
+    for treename in required_trees:
+        tree = f.Get(treename)
+        if not tree or not isinstance(tree, ROOT.TTree):
+            print(f"⚠️ File {path} is missing required tree '{treename}', skipping")
+            BAD_FILE_COUNT += 1
+            f.Close()
+            return False
+    f.Close()
+    return True
+
 ## parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--year', type=str, help='Year to run', default="2022")
@@ -19,6 +47,7 @@ parser.add_argument('--post',help='Merge output files',action='store_true')
 parser.add_argument('-n',type=int, help='Number of files per job', default=4)
 parser.add_argument('--xsec-file', type=str, help='xsec file', default = "samples/xsec.conf")
 parser.add_argument('--check-status', help='Checks jobs status', action='store_true')
+parser.add_argument('--check-files', help='Checks if files are valid for merging', action='store_true')
 parser.add_argument('--resubmit', help='Resubmit failed jobs', action='store_true')
 args = parser.parse_args()
 
@@ -434,6 +463,43 @@ def merge_output_files():
             os.rename(weighted_files[0], final_merged_file)
             print(f"Only one weighted file for {sample}, renamed to {final_merged_file}")
 
+def precheck_files():
+    """
+    Scan all .root files in the output directory.
+    Invalid ones are moved to a 'bad_files' directory.
+    """
+    global BAD_FILE_COUNT
+    BAD_FILE_COUNT = 0
+    checked_files = 0
+
+    with open(args.jobs_dir + "/metadata.json", 'r') as file:
+        data = json.load(file)
+
+    base_output_dir = data["output_dir"]
+    dataset_type = data["type"]
+    year = data["year"]
+
+    bad_dir = os.path.join(base_output_dir, dataset_type, year, "bad_files")
+    os.makedirs(bad_dir, exist_ok=True)
+
+    for root, _, files in os.walk(os.path.join(base_output_dir, dataset_type, year)):
+        for file in files:
+            if file.endswith(".root"):
+                checked_files += 1
+                filepath = os.path.join(root, file)
+
+                if not is_valid_nano(filepath):
+                    # Move bad file
+                    dest = os.path.join(bad_dir, os.path.basename(filepath))
+                    print(f"🚚 Moving bad file {filepath} → {dest}")
+                    os.rename(filepath, dest)
+
+    print(f"\n🔍 Pre-check complete: {checked_files} ROOT files scanned.")
+    if BAD_FILE_COUNT > 0:
+        print(f"Moved {BAD_FILE_COUNT} invalid ROOT files to {bad_dir}")
+    else:
+        print("All ROOT files look valid.")
+
 def check_job_status():
     
     file_path = args.jobs_dir + '/metadata.json'
@@ -511,6 +577,10 @@ def main():
     
     if args.check_status:
         check_job_status()
+        sys.exit(0)
+    
+    if args.check_files:
+        precheck_files()
         sys.exit(0)
    
     if args.post:
