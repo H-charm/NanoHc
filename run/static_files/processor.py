@@ -8,7 +8,7 @@ from PhysicsTools.NanoHc.producers.muonScaleProducer import getMuonScaleRes
 from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
 from PhysicsTools.NanoHc.producers.electronTRGProducer import ElectronTriggerProducer
 from PhysicsTools.NanoHc.producers.muonTRGProducer import MuonTriggerProducer
-from PhysicsTools.NanoHc.producers.electronSFProducer import ElectronSFProducer, MuonSFProducer
+from PhysicsTools.NanoHc.producers.electronSFProducer import ElectronSFProducer
 from PhysicsTools.NanoHc.producers.muonSFProducer import MuonSFProducer
 
 import sys

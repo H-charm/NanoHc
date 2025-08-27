@@ -10,34 +10,6 @@ import sys
 from pathlib import Path
 import helpers
 
-# --- Global bad file counter ---
-BAD_FILE_COUNT = 0
-
-
-def is_valid_nano(path):
-    """
-    Check if ROOT file is valid NanoAOD:
-    - not zombie
-    - contains Events, Runs, and LuminosityBlocks trees
-    """
-    global BAD_FILE_COUNT
-    f = ROOT.TFile.Open(path)
-    if not f or f.IsZombie():
-        print(f"⚠️ Zombie or unreadable file skipped: {path}")
-        BAD_FILE_COUNT += 1
-        return False
-
-    required_trees = ["Events", "Runs", "LuminosityBlocks"]
-    for treename in required_trees:
-        tree = f.Get(treename)
-        if not tree or not isinstance(tree, ROOT.TTree):
-            print(f"⚠️ File {path} is missing required tree '{treename}', skipping")
-            BAD_FILE_COUNT += 1
-            f.Close()
-            return False
-    f.Close()
-    return True
-
 ## parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--year', type=str, help='Year to run', default="2022")
@@ -57,6 +29,33 @@ golden_json = {
     '2023': 'Cert_Collisions2023_366442_370790_Golden.json',
     '2023BPix': 'Cert_Collisions2023_366442_370790_Golden.json'
 }
+
+# --- Global bad file counter ---
+BAD_FILE_COUNT = 0
+
+def is_valid_nano(path):
+    """
+    Check if ROOT file is valid NanoAOD:
+    - not zombie
+    - contains Events, Runs, and LuminosityBlocks trees
+    """
+    global BAD_FILE_COUNT
+    f = ROOT.TFile.Open(path)
+    if not f or f.IsZombie():
+        print(f"Zombie or unreadable file skipped: {path}")
+        BAD_FILE_COUNT += 1
+        return False
+
+    required_trees = ["Events", "Runs", "LuminosityBlocks"]
+    for treename in required_trees:
+        tree = f.Get(treename)
+        if not tree or not isinstance(tree, ROOT.TTree):
+            print(f"File {path} is missing required tree '{treename}', skipping")
+            BAD_FILE_COUNT += 1
+            f.Close()
+            return False
+    f.Close()
+    return True
 
 ## read samples yaml file and produce json file to be used by condor
 def create_metadata_json():
@@ -491,10 +490,10 @@ def precheck_files():
                 if not is_valid_nano(filepath):
                     # Move bad file
                     dest = os.path.join(bad_dir, os.path.basename(filepath))
-                    print(f"🚚 Moving bad file {filepath} → {dest}")
+                    print(f" Moving bad file {filepath} → {dest}")
                     os.rename(filepath, dest)
 
-    print(f"\n🔍 Pre-check complete: {checked_files} ROOT files scanned.")
+    print(f"\n Pre-check complete: {checked_files} ROOT files scanned.")
     if BAD_FILE_COUNT > 0:
         print(f"Moved {BAD_FILE_COUNT} invalid ROOT files to {bad_dir}")
     else:
