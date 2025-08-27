@@ -4,7 +4,6 @@ keep Electron_*
 keep Jet_*
 keep FsrPhoton_*
 keep HLT_*
-keep Pileup_*
 keep run
 keep event
 keep luminosityBlock
