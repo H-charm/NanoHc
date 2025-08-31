@@ -1,5 +1,6 @@
 from PhysicsTools.NanoAODTools.postprocessing.framework.postprocessor import PostProcessor
 from PhysicsTools.NanoHc.producers.BaselineProducer import BaselineProducer
+from PhysicsTools.NanoHc.producers.EventProducer import EventProducer
 from PhysicsTools.NanoHc.producers.jetVetoMapProducer import JetVMAPProducer
 from PhysicsTools.NanoHc.producers.jetJERCProducer import JetJERCProducer
 from PhysicsTools.NanoHc.producers.jetIDProducer import JetIdProducer
@@ -64,7 +65,8 @@ p = PostProcessor(
             JetJERCProducer(year, era_data, dataset_type),
             getMuonScaleRes(year,dataset_type),
             EleScaleProducer(year,dataset_type),
-            BaselineProducer(year, dataset_type, sample),
+            EventProducer(year, dataset_type, sample),
+            # BaselineProducer(year, dataset_type, sample),
             PileupWeightProducer(year, dataset_type, True),
             ElectronSFProducer(year, dataset_type, True), # pt binning starts at 10, our selections at 7 -- For 2022 manually fixed, for 2023 it passes as 1. 
             ElectronTriggerProducer(year, dataset_type, True),
