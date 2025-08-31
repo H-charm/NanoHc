@@ -44,7 +44,6 @@ class EleScaleProducer(Module):
 
         if smearKey != None :
             self.evaluator_smear = evaluator[smearKey]
-            self.is_mc = True
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.out = wrappedOutputTree
@@ -53,7 +52,7 @@ class EleScaleProducer(Module):
             self.out.branch("Electron_uncorrected_pt", "F", lenVar="nElectron", title="original (uncorrected) pT")
         else:
             self.out.branch("Electron_corrected_pt", "F", lenVar="nElectron", title="pT (with scale/smearing corrections)")
-        if self.is_mc :
+        if self.isMC :
             self.out.branch("Electron_scaleUp_pt", "F", lenVar="nElectron", title="scale uncertainty")
             self.out.branch("Electron_scaleDn_pt", "F", lenVar="nElectron", title="scale uncertainty")
             self.out.branch("Electron_smearUp_pt", "F", lenVar="nElectron", title="smearing uncertainty")
@@ -69,7 +68,7 @@ class EleScaleProducer(Module):
         pt_scale_dn = []
         
         for ele in electrons:
-            if self.is_mc :
+            if self.isMC :
                 # Set up a deterministic random seed.
                 # The seed is unique by event and electron.
                 # A fixed entropy value is also included to decorrelate different modules doing similar things.
@@ -111,7 +110,7 @@ class EleScaleProducer(Module):
         else :
             self.out.fillBranch("Electron_corrected_pt", pt_corr)
 
-        if self.is_mc :
+        if self.isMC :
             # self.out.fillBranch("Electron_smearUp_pt", pt_smear_up)
             # self.out.fillBranch("Electron_smearDn_pt", pt_smear_dn)
             self.out.fillBranch("Electron_scaleUp_pt", pt_scale_up)
