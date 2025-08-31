@@ -91,15 +91,6 @@ class EventProducer(Module):
         event.selectedLeptons = event.selectedMuons + event.selectedElectrons
         self._select_jets(event)
 
-        # for mu in event.selectedMuons:
-        #     el_isolated = False
-        #     for el in event.selectedElectrons:
-        #         dR_mu_el = deltaR(mu.eta, mu.phi, el.eta, el.phi)
-        #         if dR_mu_el > 0.4:
-        #             el_isolated = True
-        #     if not el_isolated:
-        #         return False
-
         event.Zcandidates = []
         event.Zcandidates_mu = []
         event.Zcandidates_el = []
@@ -194,12 +185,23 @@ class EventProducer(Module):
     def _select_muons(self, event):
         event.selectedMuons = []
         muons = Collection(event, "Muon")
+        electrons = Collection(event, "Electron")
 
         for mu in muons:
-            if mu.pt > 10 and abs(mu.eta) < 2.4 and abs(mu.dxy) < 0.5 and abs(mu.dz) < 1 and mu.pfRelIso03_all < 0.15 and mu.tightId == True:
-                mu._wp_ID = 'TightID'
-                mu._wp_Iso = 'TightPFIso'
-                event.selectedMuons.append(mu)
+            if mu.pt < 10 or abs(mu.eta) >= 2.4 or abs(mu.dxy) >= 0.5 or abs(mu.dz) >= 1 or mu.pfRelIso03_all > 0.15 or mu.tightId ==  False:
+                continue
+
+            el_isolated = True
+            for el in electrons:
+                dR_el_mu = math.sqrt( (mu.eta - el.eta)**2 + (mu.phi - el.phi)**2 ) 
+                if dR_el_mu <= 0.4:
+                    el_isolated = False
+            if not el_isolated:
+                continue
+            
+            mu._wp_ID = 'TightID'
+            mu._wp_Iso = 'TightPFIso'
+            event.selectedMuons.append(mu)
 
 
     def _select_electrons(self, event):
