@@ -119,6 +119,7 @@ class ZLcandidate:
         self.dxy=lep.dxy
         self.dz=lep.dz
         self.pfcand=lep.isPFcand
+        self.Zflav=abs(Z1.lep1.pdgId)
 
 
 class CRProducer(Module):
@@ -1843,6 +1844,9 @@ class CRProducer(Module):
 
 
         # Z + L
+
+        ZeeLcandidate_all_mass = []
+        ZmumuLcandidate_all_mass = []
         ZLcandidate_all_mass = []
         ZLcandidate_all_trimass = []
         ZLcandidate_all_pt = []
@@ -1902,6 +1906,10 @@ class CRProducer(Module):
             ZLcandidate_all_pfcand.append(ZLcandidate_all.pfcand)
             ZLcandidate_all_pdgId.append(ZLcandidate_all.pdgId)
             ZLcandidate_all_phi2.append(ZLcandidate_all.phi2)
+            if abs(ZLcandidate_all.Zflav) == 11:
+                ZeeLcandidate_all_mass.append(ZLcandidate_all.mass)
+            elif abs(ZLcandidate_all.Zflav) == 13:
+                ZmumuLcandidate_all_mass.append(ZLcandidate_all.mass)
         
         for ZLcandidate_alle in event.ZLcandidates_alle:
             ZLcandidate_alle_mass.append(ZLcandidate_alle.mass)
@@ -1934,7 +1942,8 @@ class CRProducer(Module):
             ZLcandidate_allmu_pdgId.append(ZLcandidate_allmu.pdgId)
             ZLcandidate_allmu_phi2.append(ZLcandidate_allmu.phi2)
         
-
+        out_data[self.ZLall_prefix + "ee_mass"] = ZeeLcandidate_all_mass
+        out_data[self.ZLall_prefix + "mumu_mass"] = ZmumuLcandidate_all_mass
         out_data[self.ZLall_prefix + "mass"] = ZLcandidate_all_mass
         out_data[self.ZLall_prefix + "trimass"] = ZLcandidate_all_trimass
         out_data[self.ZLall_prefix + "pt"] = ZLcandidate_all_pt
