@@ -310,7 +310,7 @@ class CRProducer(Module):
 
         if event.PV_npvsGood < 1: return False
 
-        # if event.MET_pt > 25: return False
+        if event.MET_pt > 25: return False
 
         # Apply trigger selections 
         if self._select_triggers(event) is False:
