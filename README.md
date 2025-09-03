@@ -1,4 +1,4 @@
-Tree producer for H+c analysis starting from official NANOAOD  
+Tree producer for H(ZZ->4l)+c analysis starting from official NANOAOD  
 
 Setup  
 -----  
