@@ -1,3 +1,10 @@
+DoubleMuon:
+  - /DoubleMuon/Run2022C-22Sep2023-v1/NANOAOD
+
+MuonEG:
+  - /MuonEG/Run2022C-22Sep2023-v1/NANOAOD
+  - /MuonEG/Run2022D-22Sep2023-v1/NANOAOD
+
 EGamma:
   - /EGamma/Run2022C-22Sep2023-v1/NANOAOD
   - /EGamma/Run2022D-22Sep2023-v1/NANOAOD
@@ -8,4 +15,3 @@ SingleMuon:
 Muon:
   - /Muon/Run2022C-22Sep2023-v1/NANOAOD
   - /Muon/Run2022D-22Sep2023-v1/NANOAOD
-  
