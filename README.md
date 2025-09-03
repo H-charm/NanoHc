@@ -19,15 +19,15 @@ cd PhysicsTools/NanoHc/run
 python3 runHcTrees.py --year <year> --output <output_dir> [--type mc|data] [-n files_per_job]
 ```
 ### Arguments
-* --year : Dataset year (2022, 2022EE, 2023, 2023BPix)
-* --output : Output directory
-* --type : "mc" (default) or "data"
-* -n : Files per job (default = 10, previously 4)
-* --xsec-file : Cross-section file (default = samples/xsec.conf)
-* --post : Merge output files after jobs finish
-* --check-status : Check submitted jobs progress
-* --check-files : Check for zombie/incomplete files
-* --resubmit : Resubmit failed jobs
+* `--year` : Dataset year (2022, 2022EE, 2023, 2023BPix)
+* `--output` : Output directory
+* `--type` : "mc" (default) or "data"
+* `-n` : Files per job (default = 10, previously 4)
+* -`-xsec-file` : Cross-section file (default = samples/xsec.conf)
+* `--post` : Merge output files after jobs finish
+* `--check-status` : Check submitted jobs progress
+* `--check-files` : Check for zombie/incomplete files
+* -`-resubmit` : Resubmit failed jobs
 
 ---
 
