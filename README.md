@@ -40,12 +40,14 @@ cd ../../
 
 ```bash
 git clone git@github.com:H-charm/NanoHc.git PhysicsTools/NanoHc
-cd PhysicsTools/NanoHc
-git checkout [branch]
 ```
 ### 4. Branches
 
 Choose the branch corresponding to your use case:
+```bash
+cd PhysicsTools/NanoHc
+git checkout [branch]
+```
 
 * **Run3** – Standard Run 3 analysis
 * **Run2** – Standard Run 2 analysis
