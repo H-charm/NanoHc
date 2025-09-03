@@ -41,7 +41,7 @@ cd ../../
 ```bash
 git clone git@github.com:H-charm/NanoHc.git PhysicsTools/NanoHc
 ```
-### 4. Branches
+### 4. Select branch
 
 Choose the branch corresponding to your use case:
 ```bash
