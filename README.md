@@ -56,3 +56,5 @@ scram b -j8
 * **Run3\_CR** – Control region (Run 3)
 * **Zpeak** – Validation of the Z peak
 * **Zpeak\_CR** – Validation of the Z peak using the Z+l CR
+
+Navigate to the corresponding branch for instructions on how to run and details regarding the producers.
