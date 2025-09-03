@@ -34,19 +34,21 @@ git cherry-pick 3e73ca4c2f8
 git clone https://github.com/cms-cat/nanoAOD-tools-modules.git PhysicsTools/NATModules
 cd PhysicsTools/NATModules
 git checkout -b from-37a092e 37a092e
-cd ../../
 ```
 ### 3. Install this repository
 
 ```bash
+cd CMSSW_13_3_3/src
 git clone git@github.com:H-charm/NanoHc.git PhysicsTools/NanoHc
 ```
 ### 4. Select branch
 
-Choose the branch corresponding to your use case:
+Choose the branch corresponding to your use case and scram:
 ```bash
 cd PhysicsTools/NanoHc
 git checkout [branch]
+cd CMSSW_13_3_3/src
+scram b -j8
 ```
 
 * **Run3** – Standard Run 3 analysis
