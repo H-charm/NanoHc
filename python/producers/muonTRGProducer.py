@@ -50,8 +50,10 @@ class MuonTriggerProducer(Module):
 
         sf_list = []
             
-        if len(event.selectedMuons) == 2:
-            mu1, mu2 = event.selectedMuons[:2]
+        # if len(event.selectedMuons) == 2:
+        #     mu1, mu2 = event.selectedMuons[:2]
+        if len(event.fullIDMuons) == 2:
+            mu1, mu2 = event.fullIDMuons[:2]
 
             if abs(mu1.pdgId) != 13 or abs(mu2.pdgId) !=13:
                 return True

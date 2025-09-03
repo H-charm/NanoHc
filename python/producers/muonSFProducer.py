@@ -71,7 +71,8 @@ class MuonSFProducer(Module, object):
         wgtID = wgtIDUp = wgtIDDown = 1
         wgtIso = wgtIsoUp = wgtIsoDown = 1
 
-        for lep in event.selectedMuons:
+        # for lep in event.selectedMuons:
+        for lep in event.fullIDMuons:
             if abs(lep.pdgId) != 13:
                 continue
             if self.doSysVar:

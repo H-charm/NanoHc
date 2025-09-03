@@ -29,6 +29,9 @@ class ElectronSFProducer(Module, object):
     def get_sf(self, sf_type, lep):
         if abs(lep.pdgId) != 11:
             raise RuntimeError('Input lepton is not a electron')
+        
+        if lep.pt < 10:
+            scale_factor = 1.0
 
         wp = None
         scale_factor_up = scale_factor_down = 1
@@ -74,7 +77,8 @@ class ElectronSFProducer(Module, object):
         wgtReco = wgtRecoUp = wgtRecoDown = 1
         wgtID = wgtIDUp = wgtIDDown = 1
 
-        for lep in event.selectedElectrons:
+        #for lep in event.selectedElectrons:
+        for lep in event.fullIDElectrons:
             if abs(lep.pdgId) != 11:
                 continue
 

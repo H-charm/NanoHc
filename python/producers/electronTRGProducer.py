@@ -74,8 +74,10 @@ class ElectronTriggerProducer(Module, object):
             "data": {"nom": 1.0, "up": 1.0, "down": 1.0},
         }
 
-        if len(event.selectedElectrons) == 2:
-            el1, el2 = event.selectedElectrons[:2]
+        # if len(event.selectedElectrons) == 2:
+        #     el1, el2 = event.selectedElectrons[:2]
+        if len(event.fullIDElectrons) == 2:
+            el1, el2 = event.fullIDElectrons[:2]
             for corr in corr_type:
 
                 if self.doSysVar:
