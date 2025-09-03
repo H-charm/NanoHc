@@ -236,6 +236,9 @@ class CRProducer(Module):
         # Define luminosity branch
         self.out.branch("lumiwgt", "F")
 
+        self.out.branch("ZLall_ee_mass", "F", 20, lenVar="nZeeL")
+        self.out.branch("ZLall_mumu_mass", "F", 20, lenVar="nZmumuL")
+
         # Define branches for the Zcandidates
         for Z_var in self.Z_vars:
             self.out.branch(self.Z_prefix + Z_var, "F", 20, lenVar="nZ")
@@ -1087,16 +1090,16 @@ class CRProducer(Module):
             Zcandidate_pt.append(Zcandidate.pt)
             Zcandidate_eta.append(Zcandidate.eta)
             Zcandidate_phi.append(Zcandidate.phi)
-            if len(event.ZcandidatesSR)>1:
-                if Zcandidate.is_onshell: Zcandidate_onshell_mass.append(Zcandidate.mass)
-                else: Zcandidate_offshell_mass.append(Zcandidate.mass)
+            # if len(event.ZcandidatesSR)>1:
+            #     if Zcandidate.is_onshell: Zcandidate_onshell_mass.append(Zcandidate.mass)
+            #     else: Zcandidate_offshell_mass.append(Zcandidate.mass)
                 
         out_data[self.Z_prefix + "mass"] = Zcandidate_mass
         out_data[self.Z_prefix + "pt"] = Zcandidate_pt
         out_data[self.Z_prefix + "eta"] = Zcandidate_eta 
         out_data[self.Z_prefix + "phi"] = Zcandidate_phi 
-        out_data[self.Z_prefix + "onshell_mass"] = Zcandidate_onshell_mass
-        out_data[self.Z_prefix + "offshell_mass"] = Zcandidate_offshell_mass
+        # out_data[self.Z_prefix + "onshell_mass"] = Zcandidate_onshell_mass
+        # out_data[self.Z_prefix + "offshell_mass"] = Zcandidate_offshell_mass
 
         # ## ZZ candidates
         # # Initialize output lists
