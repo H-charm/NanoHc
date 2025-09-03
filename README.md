@@ -2,65 +2,39 @@ Tree producer for H+c analysis starting from official NANOAOD
 
 Setup  
 -----  
-In your **AFS area**:  
+In your **AFS area**, install the required CMSSW:  
 ```  
-cmsrel CMSSW_13_3_0  
-cd CMSSW_13_3_0/src  
-cmsenv  
-export X509_USER_PROXY=/afs/cern.ch/user/${USER:0:1}/$USER/private/x509up_u$(id -u)  
-voms-proxy-init --rfc --voms cms -valid 192:00  
-git clone https://github.com/H-charm/NanoHc.git PhysicsTools/NanoHc   
-scram b -j8  
-```  
+cmsrel CMSSW_13_3_3
+cd CMSSW_13_3_3/src
+cmsenv
+```
+Then, install the required packages:
+```
+git cms-addpkg PhysicsTools/NanoAODTools
+git fetch https://github.com/namapane/cmssw.git NAT-dev2:namapane_NAT-dev2
+git cherry-pick aa9ecbd04d6 98f8692142f
 
-Run    
----  
-```  
-cd PhysicsTools/NanoHc/run  
-python3 runHcTrees.py --year <year> --output <output dir> (<--type ["mc","data"]>)  
-```  
+git cms-addpkg PhysicsTools/NanoAOD
+git cms-cherry-pick-pr 43536 CMSSW_13_0_X
 
-Test locally  
-------------  
-```  
-cd jobs_<type>_<year>  
-python3 processor.py <job id>  
-```  
+git fetch https://github.com/namapane/cmssw.git NAT-dev:namapane_NAT-dev
+git cherry-pick 3e73ca4c2f8
 
-Submit to condor  
-----------------  
-```  
-cd jobs_<type>_<year>  
-condor_submit submit.sh    
-```  
+git clone https://github.com/cms-cat/nanoAOD-tools-modules.git PhysicsTools/NATModules
+cd PhysicsTools/NATModules; git checkout -b from-37a092e 37a092e
+```
 
-Check jobs status  
-----------------  
-Run again ```runHcTrees.py``` with ```--check-status```  
-
-Merging output files  
---------------------
-Run again ```runHcTrees.py``` with ```--post```  
-
-Resubmit failed jobs    
---------------------  
-Run again ```runHcTrees.py``` with ```--resubmit```  
-Go to jobs dir and submit again to condor  
-
-Important notes 
---------------  
-- Add/remove modules in ```run/static_files/processor.py```  
-- Add/remove samples in ```run/samples```   
-- You can find log files in each jobs dir   
-- You can write new modules in ```python/producers```  
-
-Argument full list  
-------------------  
-- ```--year```    
-- ```--output```    
-- ```--type```: "mc" or "data", default = "mc"  
-- ```--post```: Merge output files  
-- ```-n```: Number of files per job, default = 10 
-- ```--xsec-file```: xsec file, default = "samples/xsec.conf"  
-- ```--check-status```: Check jobs status  
-- ```--resubmit```: Resubmit failed jobs  
+Finally, install this repository:
+```
+git clone git@github.com:H-charm/NanoHc.git PhysicsTools/NanoHc
+```
+and checkout to branch:
+```
+git checkout [branch]
+```
+Where 
+- `Run3`:
+- `Run2`:
+- `Run3_CR`:
+- `Zpeak`: 
+- `Zpeak_CR`:
