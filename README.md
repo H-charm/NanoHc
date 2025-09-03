@@ -1,40 +1,54 @@
-Tree producer for H(ZZ->4l)+c analysis starting from official NANOAOD  
+# Tree Producer for H(ZZ→4ℓ)+c Analysis (NanoAOD)
 
-Setup  
------  
-In your **AFS area**, install the required CMSSW:  
-```  
+This repository provides tools to produce analysis trees for the **H(ZZ→4ℓ)+c** study starting from official **NanoAOD** samples.
+
+## Setup
+
+Follow the steps below to set up the environment in your **AFS area**.
+
+### 1. Set up CMSSW
+
+```bash
 cmsrel CMSSW_13_3_3
 cd CMSSW_13_3_3/src
 cmsenv
 ```
-Then, install the required packages:
-```
+
+### 2. Install required packages
+
+```bash
+# NanoAODTools and patches
 git cms-addpkg PhysicsTools/NanoAODTools
 git fetch https://github.com/namapane/cmssw.git NAT-dev2:namapane_NAT-dev2
 git cherry-pick aa9ecbd04d6 98f8692142f
 
+# NanoAOD and PR backport
 git cms-addpkg PhysicsTools/NanoAOD
 git cms-cherry-pick-pr 43536 CMSSW_13_0_X
 
+# Additional fixes
 git fetch https://github.com/namapane/cmssw.git NAT-dev:namapane_NAT-dev
 git cherry-pick 3e73ca4c2f8
 
+# NATModules
 git clone https://github.com/cms-cat/nanoAOD-tools-modules.git PhysicsTools/NATModules
-cd PhysicsTools/NATModules; git checkout -b from-37a092e 37a092e
+cd PhysicsTools/NATModules
+git checkout -b from-37a092e 37a092e
+cd ../../
 ```
+### 3. Install this repository
 
-Finally, install this repository:
-```
+```bash
 git clone git@github.com:H-charm/NanoHc.git PhysicsTools/NanoHc
-```
-and checkout to branch:
-```
+cd PhysicsTools/NanoHc
 git checkout [branch]
 ```
-Where 
-- `Run3`:
-- `Run2`:
-- `Run3_CR`:
-- `Zpeak`: 
-- `Zpeak_CR`:
+### 4. Branches
+
+Choose the branch corresponding to your use case:
+
+* **Run3** – Standard Run 3 analysis
+* **Run2** – Standard Run 2 analysis
+* **Run3\_CR** – Control region (Run 3)
+* **Zpeak** – Z-peak region analysis
+* **Zpeak\_CR** – Control region at Z-peak
