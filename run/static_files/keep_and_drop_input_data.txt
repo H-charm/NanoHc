@@ -1,0 +1,12 @@
+drop *
+keep Muon_*
+keep Electron_*
+keep Jet_*
+keep FsrPhoton_*
+keep HLT_*
+keep run
+keep event
+keep luminosityBlock
+keep PV_*
+keep Rho_*
+keep MET_*
