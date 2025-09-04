@@ -133,10 +133,10 @@ keyData_dict={
         "Summer23BPixPrompt23_RunD_V3_DATA_L2L3Residual_AK4PFPuppi"
     ],
     "Run2023D-22Sep2023_v2-v1": [
-        "Summer23BPixPrompt23_RunD_V3_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V3_DATA_L2Relative_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V3_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V3_DATA_L2L3Residual_AK4PFPuppi"
+        "Summer23BPixPrompt23_V3_DATA_L2Relative_AK4PFPuppi",
+        "Summer23BPixPrompt23_V3_DATA_L2Relative_AK4PFPuppi",
+        "Summer23BPixPrompt23_V3_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23BPixPrompt23_V3_DATA_L2L3Residual_AK4PFPuppi"
     ]
 }
 class JetJERCProducer(Module):
@@ -250,7 +250,7 @@ class JetJERCProducer(Module):
                 pt_L2 = pt_L1 * self.evaluator_L2.evaluate(jet.eta, pt_L1)
 
             pt_L3 = pt_L2 * self.evaluator_L3.evaluate(jet.eta, pt_L2)
-            if self.year == "2023":
+            if self.year == "2023" or self.year == "2023BPix":
                 pt_JEC = pt_L3 * self.evaluator_L2L3.evaluate(float(event.run), jet.eta, pt_L3)
             else:
                 pt_JEC = pt_L3 * self.evaluator_L2L3.evaluate(jet.eta, pt_L3)
