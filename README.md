@@ -86,10 +86,9 @@ Add/remove modules in ```run/static_files/processor.py```
 - `BaselineProducer.py`
 - `puWeightProducer.py`
 - `electronSFProducer.py`
-- `electronTRGProducer.py`
 - `muonSFProducer.py`
-- `muonTRGProducer.py`
 
 
 
 Add/remove samples in ```run/samples```   
+
