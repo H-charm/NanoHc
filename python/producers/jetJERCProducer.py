@@ -96,47 +96,47 @@ keyData_dict={
     ],
     # 2023
     "Run2023C-22Sep2023_v1-v1": [
-        "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi"
+        "Summer23Prompt23_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L2L3Residual_AK4PFPuppi"
     ],
     "Run2023C-22Sep2023_v2-v1": [
-        "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi"
+        "Summer23Prompt23_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L2L3Residual_AK4PFPuppi"
     ],
     "Run2023C-22Sep2023_v3-v1": [
-        "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi"
+        "Summer23Prompt23_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L2L3Residual_AK4PFPuppi"
     ],
     "Run2023C-22Sep2023_v4-v1": [
-        "Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi"
+        "Summer23Prompt23_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L2L3Residual_AK4PFPuppi"
     ],
     "Run2023C-22Sep2023_v4-v2": [
-        "Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi"
+        "Summer23Prompt23_V2_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L2Relative_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23Prompt23_V2_DATA_L2L3Residual_AK4PFPuppi"
     ],
     #2023BPix
     "Run2023D-22Sep2023_v1-v1": [
-        "Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi"
+        "Summer23BPixPrompt23_RunD_V3_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V3_DATA_L2Relative_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V3_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V3_DATA_L2L3Residual_AK4PFPuppi"
     ],
     "Run2023D-22Sep2023_v2-v1": [
-        "Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L3Absolute_AK4PFPuppi",
-        "Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi"
+        "Summer23BPixPrompt23_RunD_V3_DATA_L1FastJet_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V3_DATA_L2Relative_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V3_DATA_L3Absolute_AK4PFPuppi",
+        "Summer23BPixPrompt23_RunD_V3_DATA_L2L3Residual_AK4PFPuppi"
     ]
 }
 class JetJERCProducer(Module):
