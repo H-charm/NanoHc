@@ -1,4 +1,4 @@
-# Z Peak Validation
+# Z peak Validation
 
 ---
 
@@ -53,8 +53,6 @@ cd PhysicsTools/NanoHc/run
 ```
 Note: Make sure you have already run ```runHcTrees.py``` for each job before using ```submit_all.sh```.
 
----
-
 ### 3. Monitoring Jobs
 
 - Check jobs status  
@@ -69,16 +67,28 @@ python3 runHcTrees.py --resubmit --year <year> --type <type>
 ```bash
 python3 runHcTrees.py --check-files --year <year> --type <type>
 ```
----
+Note: You can find log files in each jobs dir   
+
 ### 4. Merging Output
 After all jobs are finished and validated, merge results:
 ```bash
 python3 runHcTrees.py --post --year <year> --type <type>
 ```
+---
+
+## Modules
+You can write new modules in ```python/producers```
+Add/remove modules in ```run/static_files/processor.py```
+- `jetVetoMapProducer.py`
+- `jetJERCProducer.py`
+- `electronScaleProducer.py`
+- `muonScaleProducer.py`
+- `EventProducer.py`
+- `puWeightProducer.py`
+- `electronSFProducer.py`
+- `electronTRGProducer.py`
+- `muonSFProducer.py`
+- `muonTRGProducer.py`
 
 
-## Producers
-- Add/remove modules in ```run/static_files/processor.py```  
-- Add/remove samples in ```run/samples```   
-- You can find log files in each jobs dir   
-- You can write new modules in ```python/producers```  
+Add/remove samples in ```run/samples```   
