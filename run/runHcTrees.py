@@ -13,12 +13,13 @@ import helpers
 ## parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--year', type=str, help='Year to run', default="2022")
-parser.add_argument('--output', type=str, help='Output dir', default = "/eos/user/i/iparaske/HcTrees/")
+parser.add_argument('--output', type=str, help='Output dir', default = "/eos/user/n/nplastir/H+c/")
 parser.add_argument('--type', type=str, help='mc or data', default = "mc", choices=['mc', 'data'])
 parser.add_argument('--post',help='Merge output files',action='store_true')
-parser.add_argument('-n',type=int, help='Number of files per job', default=10)
+parser.add_argument('-n',type=int, help='Number of files per job', default=4)
 parser.add_argument('--xsec-file', type=str, help='xsec file', default = "samples/xsec.conf")
 parser.add_argument('--check-status', help='Checks jobs status', action='store_true')
+parser.add_argument('--check-files', help='Checks if files are valid for merging', action='store_true')
 parser.add_argument('--resubmit', help='Resubmit failed jobs', action='store_true')
 args = parser.parse_args()
 
@@ -28,6 +29,33 @@ golden_json = {
     '2023': 'Cert_Collisions2023_366442_370790_Golden.json',
     '2023BPix': 'Cert_Collisions2023_366442_370790_Golden.json'
 }
+
+# --- Global bad file counter ---
+BAD_FILE_COUNT = 0
+
+def is_valid_nano(path):
+    """
+    Check if ROOT file is valid NanoAOD:
+    - not zombie
+    - contains Events, Runs, and LuminosityBlocks trees
+    """
+    global BAD_FILE_COUNT
+    f = ROOT.TFile.Open(path)
+    if not f or f.IsZombie():
+        print(f"Zombie or unreadable file skipped: {path}")
+        BAD_FILE_COUNT += 1
+        return False
+
+    required_trees = ["Events", "Runs", "LuminosityBlocks"]
+    for treename in required_trees:
+        tree = f.Get(treename)
+        if not tree or not isinstance(tree, ROOT.TTree):
+            print(f"File {path} is missing required tree '{treename}', skipping")
+            BAD_FILE_COUNT += 1
+            f.Close()
+            return False
+    f.Close()
+    return True
 
 ## read samples yaml file and produce json file to be used by condor
 def create_metadata_json():
@@ -216,13 +244,25 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
         htmp.Delete()
         return sum_value
     
-    def _fill_const_branch(tree, branch_name, buff):
-        if tree.GetBranch(branch_name):  # Prevent overwriting existing branch
-            print(f"Branch {branch_name} already exists in {file}, skipping.")
-            return
-        b = tree.Branch(branch_name, buff, f'{branch_name}/F')
-        for _ in range(tree.GetEntries()):
+    def _fill_const_branch(tree, branch_name, buff, lenVar=None):
+        if lenVar is not None:
+            b = tree.Branch(branch_name, buff, '%s[%s]/F' % (branch_name, lenVar))
+            b_lenVar = tree.GetBranch(lenVar)
+            buff_lenVar = array('I', [0])
+            b_lenVar.SetAddress(buff_lenVar)
+        else:
+            b = tree.Branch(branch_name, buff, f'{branch_name}/F')
+
+        b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
+        for i in range(tree.GetEntries()):
+            if lenVar is not None:
+                b_lenVar.GetEntry(i)
             b.Fill()
+
+        b.ResetAddress()
+        if lenVar is not None:
+            b_lenVar.ResetAddress()
+
 
     f = ROOT.TFile(str(file), 'UPDATE')
     run_tree = f.Get('Runs')
@@ -241,6 +281,38 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
         xsec_buff = array('f', [xsecwgt])
         _fill_const_branch(tree, "xsecWeight", xsec_buff)
         print(f"Added xsecWeight to {file}")
+    
+    # Fill LHE weight re-normalization factors
+    if tree.GetBranch('LHEScaleWeight'):
+        print("Adding LHEScaleWeightNorm branch")
+        run_tree.GetEntry(0)
+        nScaleWeights = run_tree.nLHEScaleSumw
+        scale_weight_norm_buff = array('f',
+                                       [sumwgts / _get_sum(run_tree, 'LHEScaleSumw[%d]*genEventSumw' % i)
+                                        for i in range(nScaleWeights)])
+        print('LHEScaleWeightNorm: ' + str(scale_weight_norm_buff))
+        _fill_const_branch(tree, "LHEScaleWeightNorm", scale_weight_norm_buff, lenVar=nScaleWeights)
+        
+    if tree.GetBranch('LHEPdfWeight'):
+        print("Adding LHEPdfWeightNorm branch")
+        run_tree.GetEntry(0)
+        nPdfWeights = run_tree.nLHEPdfSumw
+        pdf_weight_norm_buff = array('f',
+                                     [sumwgts / _get_sum(run_tree, 'LHEPdfSumw[%d]*genEventSumw' % i)
+                                      for i in range(nPdfWeights)])
+        print('LHEPdfWeightNorm: ' + str(pdf_weight_norm_buff))
+        _fill_const_branch(tree, "LHEPdfWeightNorm", pdf_weight_norm_buff, lenVar=nScaleWeights)
+
+    # fill PS weight re-normalization factors
+    if tree.GetBranch('PSWeight') and run_tree.GetBranch('PSSumw'):
+        print("Adding PSWeight branch")
+        run_tree.GetEntry(0)
+        nPSWeights = run_tree.nPSSumw
+        ps_weight_norm_buff = array('f',
+                                    [sumwgts / _get_sum(run_tree, 'PSSumw[%d]*genEventSumw' % i)
+                                     for i in range(nPSWeights)])
+        print('PSWeightNorm: ' + str(ps_weight_norm_buff))
+        _fill_const_branch(tree, 'PSWeightNorm', ps_weight_norm_buff, lenVar='nPSWeight')
 
     tree.Write(treename, ROOT.TObject.kOverwrite)
     f.Close()
@@ -286,6 +358,16 @@ def run_add_weights():
                 merge_cmd = f"haddnano.py {merged_file} {' '.join(map(str, root_files))}"
                 print(f"Merging {len(root_files)} files into {merged_file}")
                 subprocess.run(merge_cmd, shell=True, check=True)
+            ## If there is a large number of files, use the following block instead:
+            # if len(root_files) > 1:
+            #     filelist_path = os.path.join(process_dir, "merge_input.txt")
+            #     with open(filelist_path, "w") as f:
+            #         for rf in root_files:
+            #             f.write(str(rf) + "\n")
+
+            #     merge_cmd = f"hadd {merged_file} @{filelist_path}"
+            #     print(f"Merging {len(root_files)} files into {merged_file} using file list")
+            #     subprocess.run(merge_cmd, shell=True, check=True)
             else:
                 merged_file = str(root_files[0])
 
@@ -299,7 +381,7 @@ def run_add_weights():
     for sample, process_files in sample_dirs.items():
         if len(process_files) > 1:
             final_merged_file = os.path.join(base_output_dir, dataset_type, year, sample, f"{sample}_final_merged.root")
-            merge_cmd = f"hadd {final_merged_file} {' '.join(process_files)}"
+            merge_cmd = f"haddnano.py {final_merged_file} {' '.join(process_files)}"
             print(f"Merging {len(process_files)} weighted files into {final_merged_file}")
             subprocess.run(merge_cmd, shell=True, check=True)
         elif process_files:
@@ -380,6 +462,43 @@ def merge_output_files():
             os.rename(weighted_files[0], final_merged_file)
             print(f"Only one weighted file for {sample}, renamed to {final_merged_file}")
 
+def precheck_files():
+    """
+    Scan all .root files in the output directory.
+    Invalid ones are moved to a 'bad_files' directory.
+    """
+    global BAD_FILE_COUNT
+    BAD_FILE_COUNT = 0
+    checked_files = 0
+
+    with open(args.jobs_dir + "/metadata.json", 'r') as file:
+        data = json.load(file)
+
+    base_output_dir = data["output_dir"]
+    dataset_type = data["type"]
+    year = data["year"]
+
+    bad_dir = os.path.join(base_output_dir, dataset_type, year, "bad_files")
+    os.makedirs(bad_dir, exist_ok=True)
+
+    for root, _, files in os.walk(os.path.join(base_output_dir, dataset_type, year)):
+        for file in files:
+            if file.endswith(".root"):
+                checked_files += 1
+                filepath = os.path.join(root, file)
+
+                if not is_valid_nano(filepath):
+                    # Move bad file
+                    dest = os.path.join(bad_dir, os.path.basename(filepath))
+                    print(f" Moving bad file {filepath} → {dest}")
+                    os.rename(filepath, dest)
+
+    print(f"\n Pre-check complete: {checked_files} ROOT files scanned.")
+    if BAD_FILE_COUNT > 0:
+        print(f"Moved {BAD_FILE_COUNT} invalid ROOT files to {bad_dir}")
+    else:
+        print("All ROOT files look valid.")
+
 def check_job_status():
     
     file_path = args.jobs_dir + '/metadata.json'
@@ -390,6 +509,7 @@ def check_job_status():
     jobids = {'running': [], 'failed': [], 'completed': []}
     for jobid in range(njobs):
         logpath = os.path.join(args.jobs_dir, "log", '%d.log' % jobid)
+        errorpath = os.path.join(args.jobs_dir, "log", '%d.err' % jobid)
         # print(logpath)
         if not os.path.exists(logpath):
             print('Cannot find log file %s' % logpath)
@@ -411,7 +531,7 @@ def check_job_status():
                         errormsg = line
                     break
             if errormsg:
-                print(logpath + '\n   ' + errormsg)
+                print(logpath + '\n' + errorpath + '\n   ' + errormsg)
                 jobids['failed'].append(str(jobid))
             else:
                 if finished:
@@ -456,6 +576,10 @@ def main():
     
     if args.check_status:
         check_job_status()
+        sys.exit(0)
+    
+    if args.check_files:
+        precheck_files()
         sys.exit(0)
    
     if args.post:
