@@ -1,3 +1,4 @@
+from PhysicsTools.NanoAODTools.postprocessing.framework.postprocessor import PostProcessor
 from PhysicsTools.NanoHc.producers.BaselineProducer import BaselineProducer
 from PhysicsTools.NanoHc.producers.jetVetoMapProducer import JetVMAPProducer
 from PhysicsTools.NanoHc.producers.jetJERCProducer import JetJERCProducer
