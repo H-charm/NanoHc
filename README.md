@@ -1,64 +1,95 @@
-Tree producer for H+c analysis starting from official NANOAOD  
+# Run 3
 
-Setup  
------  
-In your **AFS area**:  
-```  
-cmsrel CMSSW_13_3_3
+---
+
+## Setup  
+Before the first run in each session, load the CMSSW environment and initialize a valid grid proxy:  
+
+```bash
 cd CMSSW_13_3_3/src
 cmsenv
-export X509_USER_PROXY=/afs/cern.ch/user/${USER:0:1}/$USER/private/x509up_u$(id -u)  
 voms-proxy-init --rfc --voms cms -valid 192:00
-git clone https://github.com/H-charm/NanoHc.git PhysicsTools/NanoHc
-git clone https://github.com/cms-cat/nanoAOD-tools-modules.git PhysicsTools/NATModules
-scram b -j8  
-```  
+```
+---
 
-Run    
----  
-```  
+## Running 
+To start a run:
+```bash
 cd PhysicsTools/NanoHc/run  
-python3 runHcTrees.py --year <year> --output <output dir> (<--type ["mc","data"]>)  
+python3 runHcTrees.py --year <year> --output <output_dir> [--type mc|data] [-n files_per_job]
 ```
-Note: It is advised to use the argument ```-n 5``` in order to split the number of files to 5 per job instead of the default 10
+### Arguments
+* `--year` : Dataset year (2022, 2022EE, 2023, 2023BPix)
+* `--output` : Output directory
+* `--type` : "mc" (default) or "data"
+* `-n` : Files per job (default = 10, previously 4)
+* -`-xsec-file` : Cross-section file (default = samples/xsec.conf)
+* `--post` : Merge output files after jobs finish
+* `--check-status` : Check submitted jobs progress
+* `--check-files` : Check for zombie/incomplete files
+* -`-resubmit` : Resubmit failed jobs
 
-Test locally  
-------------  
-```  
+---
+
+## Workflow
+### 1. Local Testing 
+Before submitting to Condor, test changes locally:
+```bash
 cd jobs_<type>_<year>  
-python3 processor.py <job id>  
+python3 processor.py <job_id>  
 ```
-Note: Check the `metadata.json` file for the job ids
+Note: Check the `metadata.json` file for the job ids 
 
-Submit to condor  
-----------------  
-```  
+### 2. Submitting to Condor
+Submit jobs with:
+```bash
 cd jobs_<type>_<year>  
 condor_submit submit.sh    
-```  
+```
+For multiple types/years, you can use:
+```bash
+cd PhysicsTools/NanoHc/run
+./submit_all.sh
+```
+Note: Make sure you have already run ```runHcTrees.py``` for each job before using ```submit_all.sh```.
 
-Check jobs status  
-----------------  
-Run again ```runHcTrees.py``` with ```--check-status```  
+### 3. Monitoring Jobs
 
-Merging output files  
---------------------
-Run again ```runHcTrees.py``` with ```--post```  
+- Check jobs status  
+```bash
+python3 runHcTrees.py --check-status --year <year> --type <type>
+```
+- Resubmit failed jobs
+```bash
+python3 runHcTrees.py --resubmit --year <year> --type <type>
+```
+- Check for bad output files (zombie or incomplete):
+```bash
+python3 runHcTrees.py --check-files --year <year> --type <type>
+```
+Note: You can find log files in each jobs dir   
+
+### 4. Merging Output
+After all jobs are finished and validated, merge results:
+```bash
+python3 runHcTrees.py --post --year <year> --type <type>
+```
+---
+
+## Modules
+You can write new modules in ```python/producers```
+Add/remove modules in ```run/static_files/processor.py```
+- `jetVetoMapProducer.py`
+- `jetJERCProducer.py`
+- `electronScaleProducer.py`
+- `muonScaleProducer.py`
+- `BaselineProducer.py`
+- `puWeightProducer.py`
+- `electronSFProducer.py`
+- `electronTRGProducer.py`
+- `muonSFProducer.py`
+- `muonTRGProducer.py`
 
 
-Important notes 
---------------  
-- Add/remove modules in ```run/static_files/processor.py```  
-- Add/remove samples in ```run/samples```   
-- You can find log files in each jobs dir   
-- You can write new modules in ```python/producers```  
 
-Argument full list  
-------------------  
-- ```--year```    
-- ```--output```    
-- ```--type```: "mc" or "data", default = "mc"  
-- ```--post```: Merge output files  
-- ```-n```: Number of files per job, default = 10 
-- ```--xsec-file```: xsec file, default = "samples/xsec.conf"  
-- ```--check-status```: Check jobs status  
+Add/remove samples in ```run/samples```   
