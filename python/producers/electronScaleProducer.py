@@ -29,21 +29,18 @@ class EleScaleProducer(Module):
         self.dataset_type = dataset_type
         self.isMC = True if self.dataset_type == "mc" else False
 
-        if self.year == "2022" or self.year == "2022EE":
+        if self.year == "2022" or self.year == "2022EE" or self.year == "2023" or self.year == "2023BPix":
             correction_file = f'/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/{era_dict[self.year]}/electronSS_EtDependent.json.gz'
             evaluator = correctionlib.CorrectionSet.from_file(correction_file)
             scaleKey = f"EGMScale_Compound_Ele_{key_dict[self.year]}"
             smearKey = f"EGMSmearAndSyst_ElePTsplit_{key_dict[self.year]}"
 
         if self.EtDependent :
-            if scaleKey != None :
-                self.evaluator_scale = evaluator.compound[scaleKey]
+            self.evaluator_scale = evaluator.compound[scaleKey]
         else:
-            if scaleKey != None :
-                self.evaluator_scale = evaluator[scaleKey]
+            self.evaluator_scale = evaluator[scaleKey]
 
-        if smearKey != None :
-            self.evaluator_smear = evaluator[smearKey]
+        self.evaluator_smear = evaluator[smearKey]
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.out = wrappedOutputTree
