@@ -250,7 +250,10 @@ class JetJERCProducer(Module):
                 pt_L2 = pt_L1 * self.evaluator_L2.evaluate(jet.eta, pt_L1)
 
             pt_L3 = pt_L2 * self.evaluator_L3.evaluate(jet.eta, pt_L2)
-            pt_JEC = pt_L3 * self.evaluator_L2L3.evaluate(jet.eta, pt_L3)
+            if self.year == "2023":
+                pt_JEC = pt_L3 * self.evaluator_L2L3.evaluate(float(event.run), jet.eta, pt_L3)
+            else:
+                pt_JEC = pt_L3 * self.evaluator_L2L3.evaluate(jet.eta, pt_L3)
             JEC = pt_JEC / pt_raw
             mass_JEC = mass_raw * JEC
 
