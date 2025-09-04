@@ -28,18 +28,18 @@ keyMC_dict = {
         "Summer22EE_22Sep2023_JRV1_MC_ScaleFactor_AK4PFPuppi"
     ],
     "2023": [
-        "Summer23Prompt23_V1_MC_L1FastJet_AK4PFPuppi",
-        "Summer23Prompt23_V1_MC_L2Relative_AK4PFPuppi",
-        "Summer23Prompt23_V1_MC_L3Absolute_AK4PFPuppi",
-        "Summer23Prompt23_V1_MC_L2L3Residual_AK4PFPuppi",
+        "Summer23Prompt23_V2_MC_L1FastJet_AK4PFPuppi",
+        "Summer23Prompt23_V2_MC_L2Relative_AK4PFPuppi",
+        "Summer23Prompt23_V2_MC_L3Absolute_AK4PFPuppi",
+        "Summer23Prompt23_V2_MC_L2L3Residual_AK4PFPuppi",
         "Summer23Prompt23_RunCv1234_JRV1_MC_PtResolution_AK4PFPuppi",
         "Summer23Prompt23_RunCv1234_JRV1_MC_ScaleFactor_AK4PFPuppi"
     ],
     "2023BPix": [
-        "Summer23BPixPrompt23_V1_MC_L1FastJet_AK4PFPuppi",
-        "Summer23BPixPrompt23_V1_MC_L2Relative_AK4PFPuppi",
-        "Summer23BPixPrompt23_V1_MC_L3Absolute_AK4PFPuppi",
-        "Summer23BPixPrompt23_V1_MC_L2L3Residual_AK4PFPuppi",
+        "Summer23BPixPrompt23_V3_MC_L1FastJet_AK4PFPuppi",
+        "Summer23BPixPrompt23_V3_MC_L2Relative_AK4PFPuppi",
+        "Summer23BPixPrompt23_V3_MC_L3Absolute_AK4PFPuppi",
+        "Summer23BPixPrompt23_V3_MC_L2L3Residual_AK4PFPuppi",
         "Summer23BPixPrompt23_RunD_JRV1_MC_PtResolution_AK4PFPuppi",
         "Summer23BPixPrompt23_RunD_JRV1_MC_ScaleFactor_AK4PFPuppi"
     ]
