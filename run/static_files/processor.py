@@ -1,11 +1,12 @@
-from PhysicsTools.NanoAODTools.postprocessing.framework.postprocessor import PostProcessor
 from PhysicsTools.NanoHc.producers.BaselineProducer import BaselineProducer
+from PhysicsTools.NanoHc.producers.jetVetoMapProducer import JetVMAPProducer
+from PhysicsTools.NanoHc.producers.jetJERCProducer import JetJERCProducer
+from PhysicsTools.NanoHc.producers.jetIDProducer import JetIdProducer
+from PhysicsTools.NanoHc.producers.electronScaleProducer import EleScaleProducer
+from PhysicsTools.NanoHc.producers.muonScaleProducer import getMuonScaleRes
 from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
-from PhysicsTools.NanoHc.producers.leptonSFProducer import ElectronSFProducer, MuonSFProducer
-from PhysicsTools.NanoHc.producers.leptonvariables import LeptonVariablesModule
-from PhysicsTools.NanoHc.producers.topleptonmva import TopLeptonMvaModule
-from PhysicsTools.NanoHc.producers.jetSFProducer import JetVMAPProducer, jetJERCProducer
-from PhysicsTools.NanoHc.producers.leptonScaleResProducer import eleScaleRes, muonScaleRes
+from PhysicsTools.NanoHc.producers.electronSFProducer import ElectronSFProducer
+from PhysicsTools.NanoHc.producers.muonSFProducer import MuonSFProducer
 
 import sys
 import json 
@@ -31,13 +32,21 @@ if dataset_type == "data":
 else:
     era_data = None
 
-## convert keep_and_drop_input.txt to python list
-with open('keep_and_drop_input.txt', 'r') as file:
+# Choose file names based on dataset type
+if dataset_type == "data":
+    input_file = "keep_and_drop_input_data.txt"
+    output_file = "keep_and_drop_output_data.txt"
+else:
+    input_file = "keep_and_drop_input_mc.txt"
+    output_file = "keep_and_drop_output_mc.txt"
+
+# Convert input file to python list
+with open(input_file, 'r') as file:
     keep_and_drop_input_branches = file.readlines()
 keep_and_drop_input_branches = [line.strip() for line in keep_and_drop_input_branches]
 
-## convert keep_and_drop_output.txt to python list
-with open('keep_and_drop_output.txt', 'r') as file:
+# Convert output_file to python list
+with open(output_file, 'r') as file:
     keep_and_drop_output_branches = file.readlines()
 keep_and_drop_output_branches = [line.strip() for line in keep_and_drop_output_branches]
 
@@ -49,14 +58,15 @@ p = PostProcessor(
     modules=[
             # LeptonVariablesModule(),
             # TopLeptonMvaModule(year, 'ULv2'),
-            # JetVMAPProducer(year,dataset_type),
-            # jetJERCProducer(year, era_data, dataset_type),
-            eleScaleRes(year,dataset_type),
-            muonScaleRes(year,dataset_type),
+            # JetIdProducer(year,dataset_type), # Only for 2024
+            JetVMAPProducer(year,dataset_type),
+            JetJERCProducer(year, era_data, dataset_type),
+            getMuonScaleRes(year,dataset_type),
+            EleScaleProducer(year,dataset_type),
             BaselineProducer(year, dataset_type, sample),
-            PileupWeightProducer(year, dataset_type),
-            ElectronSFProducer(year, dataset_type), # pt binning starts at 10, our selections at 7 -- For 2022 manually fixed, for 2023 it passes as 1. 
-            MuonSFProducer(year, dataset_type),
+            PileupWeightProducer(year, dataset_type, True),
+            ElectronSFProducer(year, dataset_type, True), # pt binning starts at 10, our selections at 7 -- For 2022 manually fixed, for 2023 it passes as 1. 
+            MuonSFProducer(year, dataset_type, True),
             ],
     branchsel=keep_and_drop_input_branches,
     outputbranchsel=keep_and_drop_output_branches,
