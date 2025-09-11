@@ -1,5 +1,9 @@
 # Z peak Validation
 
+
+## WIP
+
+Two new Producers introduced, separate for ee and mumu. Change what you want to run in the ```run/static_files/processor.py```. Needs to be tested
 ---
 
 ## Setup  
@@ -84,6 +88,8 @@ Add/remove modules in ```run/static_files/processor.py```
 - `electronScaleProducer.py`
 - `muonScaleProducer.py`
 - `EventProducer.py`
+- `EventProducerEE.py`
+- `EventProducerMM.py`
 - `puWeightProducer.py`
 - `electronSFProducer.py`
 - `electronTRGProducer.py`
