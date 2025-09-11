@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 drop *
 keep Muon_*
 keep Electron_*
@@ -14,23 +13,4 @@ keep luminosityBlock
 keep PV_*
 keep genWeight
 keep Rho_*
-=======
-drop *
-keep Muon_*
-keep Electron_*
-keep Jet_*
-keep GenJet_*
-keep nGenJet
-keep FsrPhoton_*
-keep HLT_*
-keep Pileup_*
-keep run
-keep event
-keep luminosityBlock
-keep PV_*
-keep genWeight
-keep *LHE*Weight
-keep *PSWeight
-keep Rho_*
->>>>>>> 0aaac25 (Added PSWeight and LHEWeight samples to be kept in the input)
 keep MET_*
