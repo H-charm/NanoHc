@@ -12,5 +12,7 @@ keep event
 keep luminosityBlock
 keep PV_*
 keep genWeight
+keep *LHE*Weight
+keep *PSWeight
 keep Rho_*
 keep MET_*
