@@ -82,7 +82,7 @@ class EventProducerEE(Module):
 
         # Event-level pT thresholds: lead>33, sublead>20
         selE = sorted(event.selectedElectrons, key=lambda x: x.pt, reverse=True)
-        if not (selE[0].pt > 33 and selE[1].pt > 15):
+        if not (selE[0].pt > 33 and selE[1].pt > 20):
             return False
 
         # Trigger matching to electrons (require ≥1 matched electron)
