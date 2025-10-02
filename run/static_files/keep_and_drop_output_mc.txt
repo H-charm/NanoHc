@@ -1,7 +1,6 @@
 keep run
 keep luminosityBlock
 keep event
-keep PV_npvs
 keep genWeight
 keep *LHE*Weight
 keep *PSWeight
@@ -10,7 +9,6 @@ drop Deep*
 drop HLT_*
 drop L1_*
 drop Flag_*
-drop LHE*
 drop Gen*
 drop *Jet_*
 drop TrigObj*
@@ -22,3 +20,19 @@ drop SubJet*
 drop LowPtElectron*
 drop BeamSpot*
 drop boosted*
+drop Electron_*
+drop FsrPhoton_*
+drop SubGenJetAK8_*
+drop IsoTrack_*
+drop Muon_*
+drop Rho_*
+drop PV_*
+drop SV_*
+drop HLTriggerFirstPath
+drop HLTriggerFinalPath
+drop L1Reco_step
+drop L1simulation_step
+drop SoftActivityJet*
+drop Pileup_*
+drop LHE_*
+drop LHEPart_*
