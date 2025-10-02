@@ -52,12 +52,12 @@ class EventProducerEE(Module):
 
         # branches
         for lep_var in self.lep_vars:
-            self.out.branch(self.mu_prefix + lep_var, "F", 20, lenVar="nMu")
+            # self.out.branch(self.mu_prefix + lep_var, "F", 20, lenVar="nMu")
             self.out.branch(self.el_prefix + lep_var, "F", 20, lenVar="nEl")
-        for jet_var in self.jet_vars:
-            self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
+        # for jet_var in self.jet_vars:
+        #     self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
         for Z_var in self.Z_vars:
-            self.out.branch(self.Zmu_prefix + Z_var, "F", 20, lenVar="nZmu")
+            # self.out.branch(self.Zmu_prefix + Z_var, "F", 20, lenVar="nZmu")
             self.out.branch(self.Zel_prefix + Z_var, "F", 20, lenVar="nZel")
 
         self.out.branch("HLT_pass", "O")
@@ -85,9 +85,9 @@ class EventProducerEE(Module):
         if not (selE[0].pt > 33 and selE[1].pt > 20):
             return False
 
-        # Trigger matching to electrons (require ≥1 matched electron)
-        if not self._trigger_match_electrons(event):
-            return False
+        # # Trigger matching to electrons (require ≥1 matched electron)
+        # if not self._trigger_match_electrons(event):
+        #     return False
 
         # Muons next (pt>10, |η|<2.4, tight iso+ID), cleaned against selectedElectrons (ΔR>0.4)
         self._select_muons(event)
@@ -236,29 +236,29 @@ class EventProducerEE(Module):
                                    key=lambda p: p.pt, reverse=True)
 
         el_pt, el_eta, el_phi, el_pdgId = [], [], [], []
-        mu_pt, mu_eta, mu_phi, mu_pdgId = [], [], [], []
+        # mu_pt, mu_eta, mu_phi, mu_pdgId = [], [], [], []
 
         for lep in leptons_pt_sorted:
             if abs(lep.pdgId) == 11:
                 el_pt.append(lep.pt); el_eta.append(lep.eta); el_phi.append(lep.phi); el_pdgId.append(lep.pdgId)
-            elif abs(lep.pdgId) == 13:
-                mu_pt.append(lep.pt); mu_eta.append(lep.eta); mu_phi.append(lep.phi); mu_pdgId.append(lep.pdgId)
+            # elif abs(lep.pdgId) == 13:
+            #     mu_pt.append(lep.pt); mu_eta.append(lep.eta); mu_phi.append(lep.phi); mu_pdgId.append(lep.pdgId)
 
         out_data[self.el_prefix + "pt"] = el_pt
         out_data[self.el_prefix + "eta"] = el_eta
         out_data[self.el_prefix + "phi"] = el_phi
         out_data[self.el_prefix + "pdgId"] = el_pdgId
-        out_data[self.mu_prefix + "pt"] = mu_pt
-        out_data[self.mu_prefix + "eta"] = mu_eta
-        out_data[self.mu_prefix + "phi"] = mu_phi
-        out_data[self.mu_prefix + "pdgId"] = mu_pdgId
+        # out_data[self.mu_prefix + "pt"] = mu_pt
+        # out_data[self.mu_prefix + "eta"] = mu_eta
+        # out_data[self.mu_prefix + "phi"] = mu_phi
+        # out_data[self.mu_prefix + "pdgId"] = mu_pdgId
 
-        jet_pt, jet_eta, jet_phi = [], [], []
-        for jet in event.selectedJets:
-            jet_pt.append(jet.pt); jet_eta.append(jet.eta); jet_phi.append(jet.phi)
-        out_data[self.jet_prefix + "pt"] = jet_pt
-        out_data[self.jet_prefix + "eta"] = jet_eta
-        out_data[self.jet_prefix + "phi"] = jet_phi
+        # jet_pt, jet_eta, jet_phi = [], [], []
+        # for jet in event.selectedJets:
+        #     jet_pt.append(jet.pt); jet_eta.append(jet.eta); jet_phi.append(jet.phi)
+        # out_data[self.jet_prefix + "pt"] = jet_pt
+        # out_data[self.jet_prefix + "eta"] = jet_eta
+        # out_data[self.jet_prefix + "phi"] = jet_phi
 
         Zm = []; Zpt = []; Zeta = []; Zphi = []
         ZdR = []; Zdeta = []; Zdphi = []
@@ -284,20 +284,20 @@ class EventProducerEE(Module):
         out_data[self.Zel_prefix + "lep2_eta"] = Zl2eta
         out_data[self.Zel_prefix + "lep2_phi"] = Zl2phi
 
-        # muon Z list kept for structure compatibility (likely empty in Zee)
-        out_data[self.Zmu_prefix + "mass"] = []
-        out_data[self.Zmu_prefix + "pt"] = []
-        out_data[self.Zmu_prefix + "eta"] = []
-        out_data[self.Zmu_prefix + "phi"] = []
-        out_data[self.Zmu_prefix + "dR"] = []
-        out_data[self.Zmu_prefix + "deta"] = []
-        out_data[self.Zmu_prefix + "dphi"] = []
-        out_data[self.Zmu_prefix + "lep1_pt"] = []
-        out_data[self.Zmu_prefix + "lep1_eta"] = []
-        out_data[self.Zmu_prefix + "lep1_phi"] = []
-        out_data[self.Zmu_prefix + "lep2_pt"] = []
-        out_data[self.Zmu_prefix + "lep2_eta"] = []
-        out_data[self.Zmu_prefix + "lep2_phi"] = []
+        # # muon Z list kept for structure compatibility (likely empty in Zee)
+        # out_data[self.Zmu_prefix + "mass"] = []
+        # out_data[self.Zmu_prefix + "pt"] = []
+        # out_data[self.Zmu_prefix + "eta"] = []
+        # out_data[self.Zmu_prefix + "phi"] = []
+        # out_data[self.Zmu_prefix + "dR"] = []
+        # out_data[self.Zmu_prefix + "deta"] = []
+        # out_data[self.Zmu_prefix + "dphi"] = []
+        # out_data[self.Zmu_prefix + "lep1_pt"] = []
+        # out_data[self.Zmu_prefix + "lep1_eta"] = []
+        # out_data[self.Zmu_prefix + "lep1_phi"] = []
+        # out_data[self.Zmu_prefix + "lep2_pt"] = []
+        # out_data[self.Zmu_prefix + "lep2_eta"] = []
+        # out_data[self.Zmu_prefix + "lep2_phi"] = []
 
         for key, val in out_data.items():
             self.out.fillBranch(key, val)
