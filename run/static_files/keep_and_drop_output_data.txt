@@ -1,7 +1,6 @@
 keep run
 keep luminosityBlock
 keep event
-keep PV_npvs
 keep Flag_JetVetoed
 drop Deep*
 drop HLT_*
@@ -16,3 +15,15 @@ drop SubJet*
 drop LowPtElectron*
 drop BeamSpot*
 drop boosted*
+drop Electron_*
+drop FsrPhoton_*
+drop IsoTrack_*
+drop Muon_*
+drop Rho_*
+drop PV_*
+keep PV_npvs
+drop SV_*
+drop HLTriggerFirstPath
+drop HLTriggerFinalPath
+drop L1Reco_step
+drop SoftActivityJet*
