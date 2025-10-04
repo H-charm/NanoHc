@@ -244,24 +244,38 @@ def add_weights(file, xsec, lumi=1000., treename='Events'):
         htmp.Delete()
         return sum_value
     
+    # def _fill_const_branch(tree, branch_name, buff, lenVar=None):
+        # if lenVar is not None:
+        #     b = tree.Branch(branch_name, buff, '%s[%s]/F' % (branch_name, lenVar))
+        #     b_lenVar = tree.GetBranch(lenVar)
+        #     buff_lenVar = array('I', [0])
+        #     b_lenVar.SetAddress(buff_lenVar)
+        # else:
+        #     b = tree.Branch(branch_name, buff, f'{branch_name}/F')
+
+        # b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
+        # for i in range(tree.GetEntries()):
+        #     if lenVar is not None:
+        #         b_lenVar.GetEntry(i)
+        #     b.Fill()
+
+        # b.ResetAddress()
+        # if lenVar is not None:
+        #     b_lenVar.ResetAddress()
     def _fill_const_branch(tree, branch_name, buff, lenVar=None):
         if lenVar is not None:
-            b = tree.Branch(branch_name, buff, '%s[%s]/F' % (branch_name, lenVar))
-            b_lenVar = tree.GetBranch(lenVar)
-            buff_lenVar = array('I', [0])
-            b_lenVar.SetAddress(buff_lenVar)
+            # Fixed-size array branch
+            b = tree.Branch(branch_name, buff, f'{branch_name}[{lenVar}]/F')
         else:
+            # Single float branch
             b = tree.Branch(branch_name, buff, f'{branch_name}/F')
 
-        b.SetBasketSize(tree.GetEntries() * 2)  # be sure we do not trigger flushing
-        for i in range(tree.GetEntries()):
-            if lenVar is not None:
-                b_lenVar.GetEntry(i)
+        b.SetBasketSize(tree.GetEntries() * 2)  # avoid flushing
+        for _ in range(tree.GetEntries()):
             b.Fill()
 
         b.ResetAddress()
-        if lenVar is not None:
-            b_lenVar.ResetAddress()
+
 
 
     f = ROOT.TFile(str(file), 'UPDATE')

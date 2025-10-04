@@ -27,3 +27,5 @@ drop HLTriggerFirstPath
 drop HLTriggerFinalPath
 drop L1Reco_step
 drop SoftActivityJet*
+drop Proton_*
+drop PPSLocalTrack_*
