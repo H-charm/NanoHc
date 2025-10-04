@@ -57,12 +57,12 @@ class EventProducerMM(Module):
 
         for lep_var in self.lep_vars:
             self.out.branch(self.mu_prefix + lep_var, "F", 20, lenVar="nMu")
-            self.out.branch(self.el_prefix + lep_var, "F", 20, lenVar="nEl")
-        for jet_var in self.jet_vars:
-            self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
+            # self.out.branch(self.el_prefix + lep_var, "F", 20, lenVar="nEl")
+        # for jet_var in self.jet_vars:
+        #     self.out.branch(self.jet_prefix + jet_var, "F", 20, lenVar="nJet")
         for Z_var in self.Z_vars:
             self.out.branch(self.Zmu_prefix + Z_var, "F", 20, lenVar="nZmu")
-            self.out.branch(self.Zel_prefix + Z_var, "F", 20, lenVar="nZel")
+            # self.out.branch(self.Zel_prefix + Z_var, "F", 20, lenVar="nZel")
 
         self.out.branch("HLT_pass", "O")
         self.out.branch("lumiwgt", "F")
@@ -90,9 +90,9 @@ class EventProducerMM(Module):
         if not (selM[0].pt > 27 and selM[1].pt > 15):
             return False
 
-        # Trigger match (≥1 muon matched to IsoMu24 TrigObj)
-        if not self._trigger_match_muons(event):
-            return False
+        # # Trigger match (≥1 muon matched to IsoMu24 TrigObj)
+        # if not self._trigger_match_muons(event):
+        #     return False
 
         # Electrons (for veto), cleaned vs selected muons
         self._select_electrons(event)
@@ -175,6 +175,7 @@ class EventProducerMM(Module):
         for el in electrons:
             if el.pt <= 10: continue
             if abs(el.eta) >= 2.4: continue
+            if abs(el.dxy) >= 0.5 or abs(el.dz) >= 1.0: continue
             if not getattr(el, "mvaIso_WP80", False): continue
 
             # clean vs selected muons 
@@ -232,29 +233,29 @@ class EventProducerMM(Module):
         leptons_pt_sorted = sorted(event.selectedMuons + event.selectedElectrons,
                                    key=lambda p: p.pt, reverse=True)
 
-        el_pt, el_eta, el_phi, el_pdgId = [], [], [], []
+        # el_pt, el_eta, el_phi, el_pdgId = [], [], [], []
         mu_pt, mu_eta, mu_phi, mu_pdgId = [], [], [], []
         for lep in leptons_pt_sorted:
-            if abs(lep.pdgId) == 11:
-                el_pt.append(lep.pt); el_eta.append(lep.eta); el_phi.append(lep.phi); el_pdgId.append(lep.pdgId)
-            elif abs(lep.pdgId) == 13:
+            # if abs(lep.pdgId) == 11:
+            #     el_pt.append(lep.pt); el_eta.append(lep.eta); el_phi.append(lep.phi); el_pdgId.append(lep.pdgId)
+            if abs(lep.pdgId) == 13:
                 mu_pt.append(lep.pt); mu_eta.append(lep.eta); mu_phi.append(lep.phi); mu_pdgId.append(lep.pdgId)
 
-        out_data[self.el_prefix + "pt"] = el_pt
-        out_data[self.el_prefix + "eta"] = el_eta
-        out_data[self.el_prefix + "phi"] = el_phi
-        out_data[self.el_prefix + "pdgId"] = el_pdgId
+        # out_data[self.el_prefix + "pt"] = el_pt
+        # out_data[self.el_prefix + "eta"] = el_eta
+        # out_data[self.el_prefix + "phi"] = el_phi
+        # out_data[self.el_prefix + "pdgId"] = el_pdgId
         out_data[self.mu_prefix + "pt"] = mu_pt
         out_data[self.mu_prefix + "eta"] = mu_eta
         out_data[self.mu_prefix + "phi"] = mu_phi
         out_data[self.mu_prefix + "pdgId"] = mu_pdgId
 
-        jet_pt, jet_eta, jet_phi = [], [], []
-        for jet in event.selectedJets:
-            jet_pt.append(jet.pt); jet_eta.append(jet.eta); jet_phi.append(jet.phi)
-        out_data[self.jet_prefix + "pt"] = jet_pt
-        out_data[self.jet_prefix + "eta"] = jet_eta
-        out_data[self.jet_prefix + "phi"] = jet_phi
+        # jet_pt, jet_eta, jet_phi = [], [], []
+        # for jet in event.selectedJets:
+        #     jet_pt.append(jet.pt); jet_eta.append(jet.eta); jet_phi.append(jet.phi)
+        # out_data[self.jet_prefix + "pt"] = jet_pt
+        # out_data[self.jet_prefix + "eta"] = jet_eta
+        # out_data[self.jet_prefix + "phi"] = jet_phi
 
         # Zμμ
         Zm, Zpt, Zeta, Zphi = [], [], [], []
@@ -281,20 +282,20 @@ class EventProducerMM(Module):
         out_data[self.Zmu_prefix + "lep2_eta"] = Zl2eta
         out_data[self.Zmu_prefix + "lep2_phi"] = Zl2phi
 
-        # Keep Zel_* empty to match branch schema
-        out_data[self.Zel_prefix + "mass"] = []
-        out_data[self.Zel_prefix + "pt"]   = []
-        out_data[self.Zel_prefix + "eta"]  = []
-        out_data[self.Zel_prefix + "phi"]  = []
-        out_data[self.Zel_prefix + "dR"]   = []
-        out_data[self.Zel_prefix + "deta"] = []
-        out_data[self.Zel_prefix + "dphi"] = []
-        out_data[self.Zel_prefix + "lep1_pt"] = []
-        out_data[self.Zel_prefix + "lep1_eta"] = []
-        out_data[self.Zel_prefix + "lep1_phi"] = []
-        out_data[self.Zel_prefix + "lep2_pt"] = []
-        out_data[self.Zel_prefix + "lep2_eta"] = []
-        out_data[self.Zel_prefix + "lep2_phi"] = []
+        # # Keep Zel_* empty to match branch schema
+        # out_data[self.Zel_prefix + "mass"] = []
+        # out_data[self.Zel_prefix + "pt"]   = []
+        # out_data[self.Zel_prefix + "eta"]  = []
+        # out_data[self.Zel_prefix + "phi"]  = []
+        # out_data[self.Zel_prefix + "dR"]   = []
+        # out_data[self.Zel_prefix + "deta"] = []
+        # out_data[self.Zel_prefix + "dphi"] = []
+        # out_data[self.Zel_prefix + "lep1_pt"] = []
+        # out_data[self.Zel_prefix + "lep1_eta"] = []
+        # out_data[self.Zel_prefix + "lep1_phi"] = []
+        # out_data[self.Zel_prefix + "lep2_pt"] = []
+        # out_data[self.Zel_prefix + "lep2_eta"] = []
+        # out_data[self.Zel_prefix + "lep2_phi"] = []
 
         for key, val in out_data.items():
             self.out.fillBranch(key, val)
