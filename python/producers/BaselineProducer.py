@@ -18,6 +18,8 @@ class Zcandidate:
         self.lep1_uncorrpt=lep1.pt
         self.lep2_uncorrpt=lep2.pt
 
+        self.pdgId=self.lep1.pdgId
+
         # Get fsr indices based on pdgId
         if abs(lep1.pdgId) == 13:
             self.fsrIdx1 = fsrIndices["muFsrPhotonIdx"][lep1.index]
@@ -69,6 +71,7 @@ class ZZcandidate:
         self.phi = sumP4(self.Z1, self.Z2).Phi()
         self.mass = sumP4(self.Z1, self.Z2).M()
         self.mass2 = sumP4(self.Z1, self.Z2).M()
+        self.flavour = 1 if abs(self.Z1.lep1.pdgId) == abs(self.Z2.lep1.pdgId) else 2
 
 class BaselineProducer(Module):
     
@@ -82,8 +85,8 @@ class BaselineProducer(Module):
         self.jet_vars = ["pt","eta","phi","mass","bdisc","cvbdisc","cvldisc","gvudsdisc"]
         self.jet_vars_mc = ["hadronFlavour"]
         self.Z_vars = ["pt","eta","phi","mass","onshell_mass","offshell_mass"]
-        self.ZZ_vars = ["pt","eta","phi","mass"] 
-        self.H_vars = ["pt","eta","phi","mass"]  
+        self.ZZ_vars = ["pt","eta","phi","mass","flavour"] 
+        self.H_vars = ["pt","eta","phi","mass","flavour"]  
         self.H4e_vars=["pt","eta","phi","mass"]
         self.H4mu_vars=["pt","eta","phi","mass"]
         self.H2e2mu_vars=["pt","eta","phi","mass"]  
@@ -168,6 +171,10 @@ class BaselineProducer(Module):
 
         for H2e2mu_var in self.H2e2mu_vars:
             self.out.branch(self.H2e2mu_prefix + H2e2mu_var, "F", 20, lenVar="nH2e2mu")
+
+        # self.out.branch("ZZ_m4l", "F")
+        # self.out.branch("ZZ_flavour", "I")  # 1: same-flavour (4e/4mu), 2: mixed (2e2mu)
+
         
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
@@ -267,7 +274,7 @@ class BaselineProducer(Module):
         
         for lepton_pair in lepton_pairs:
             
-            # we need same flavor and opposite charge
+            # we need same flavour and opposite charge
             if (lepton_pair[0].pdgId + lepton_pair[1].pdgId) != 0:
                 continue
             
@@ -703,12 +710,14 @@ class BaselineProducer(Module):
         ZZcandidate_pt = []
         ZZcandidate_eta = []
         ZZcandidate_phi = []
+        ZZcandidate_flavour = []
 
         for ZZcandidate in event.ZZcandidates:
             ZZcandidate_mass.append(ZZcandidate.mass)
             ZZcandidate_pt.append(ZZcandidate.pt)
             ZZcandidate_eta.append(ZZcandidate.eta)
             ZZcandidate_phi.append(ZZcandidate.phi)
+            ZZcandidate_flavour.append(ZZcandidate.flavour)
 
             # Extract PDG IDs
             lep_ids = {
@@ -734,6 +743,7 @@ class BaselineProducer(Module):
         out_data[self.ZZ_prefix + "pt"] = ZZcandidate_pt
         out_data[self.ZZ_prefix + "eta"] = ZZcandidate_eta
         out_data[self.ZZ_prefix + "phi"] = ZZcandidate_phi
+        out_data[self.ZZ_prefix + "flavour"] = ZZcandidate_flavour
 
         # Similar structure for Higgs candidates
         Hcandidate_mass = []
@@ -743,12 +753,14 @@ class BaselineProducer(Module):
         Hcandidate_pt = []
         Hcandidate_eta = []
         Hcandidate_phi = []
+        Hcandidate_flavour = []
 
         for Hcandidate in event.Hcandidates:
             Hcandidate_mass.append(Hcandidate.mass)
             Hcandidate_pt.append(Hcandidate.pt)
             Hcandidate_eta.append(Hcandidate.eta)
             Hcandidate_phi.append(Hcandidate.phi)
+            Hcandidate_flavour.append(Hcandidate.flavour)
 
             # Extract PDG IDs
             lep_ids = {
@@ -772,7 +784,9 @@ class BaselineProducer(Module):
         out_data[self.H2e2mu_prefix + "mass"] =  Hcandidate_mass_2e2mu
         out_data[self.H_prefix + "pt"] = Hcandidate_pt
         out_data[self.H_prefix + "eta"] = Hcandidate_eta 
-        out_data[self.H_prefix + "phi"] = Hcandidate_phi 
+        out_data[self.H_prefix + "phi"] = Hcandidate_phi
+        out_data[self.H_prefix + "flavour"] = Hcandidate_flavour
+
                 
         # if self.isMC:
         #     out_data["l1PreFiringWeight"] = event.L1PreFiringWeight_Nom                

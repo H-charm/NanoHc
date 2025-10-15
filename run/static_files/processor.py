@@ -8,10 +8,14 @@ from PhysicsTools.NanoHc.producers.muonScaleProducer import getMuonScaleRes
 from PhysicsTools.NanoHc.producers.puWeightProducer import PileupWeightProducer
 from PhysicsTools.NanoHc.producers.electronSFProducer import ElectronSFProducer
 from PhysicsTools.NanoHc.producers.muonSFProducer import MuonSFProducer
+from PhysicsTools.NanoHc.producers.ZZKFactors import GGZZKFactorProducer,QQZZKFactorProducer
+import os
+
+base = os.environ['CMSSW_BASE'] + '/src/PhysicsTools/NanoHc/data/kfactors/'
 
 import sys
 import json 
-import os
+
 
 jobid = name = sys.argv[1]
 
@@ -53,22 +57,45 @@ keep_and_drop_output_branches = [line.strip() for line in keep_and_drop_output_b
 
 output_dir = os.path.join(base_output_dir, dataset_type, year, sample, physics_process) 
 
+APPLY_GGZZ_SAMPLES = {
+    "ggZZ",
+}
+APPLY_QQZZ_SAMPLES = {
+    "qqZZ",
+}
+
 p = PostProcessor(
     outputDir = output_dir, 
     inputFiles = files, 
     modules=[
-            # LeptonVariablesModule(),
-            # TopLeptonMvaModule(year, 'ULv2'),
-            # JetIdProducer(year,dataset_type), # Only for 2024
-            JetVMAPProducer(year,dataset_type),
-            JetJERCProducer(year, era_data, dataset_type),
-            getMuonScaleRes(year,dataset_type),
-            EleScaleProducer(year,dataset_type),
-            BaselineProducer(year, dataset_type, sample),
-            PileupWeightProducer(year, dataset_type, True),
-            ElectronSFProducer(year, dataset_type, False),
-            MuonSFProducer(year, dataset_type, True),
-            ],
+        JetVMAPProducer(year,dataset_type),
+        JetJERCProducer(year, era_data, dataset_type),
+        getMuonScaleRes(year,dataset_type),
+        EleScaleProducer(year,dataset_type),
+        BaselineProducer(year, dataset_type, sample),
+        PileupWeightProducer(year, dataset_type, True),
+        ElectronSFProducer(year, dataset_type, False),
+        MuonSFProducer(year, dataset_type, True),
+        GGZZKFactorProducer(
+            year=year,
+            dataset_type=dataset_type,
+            gg_nnlo_file = base + 'Kfactor_Collected_ggHZZ_2l2l_NNLO_NNPDF_NarrowWidth_13TeV.root',
+            gg_nlo_file  = base + 'Kfactor_Collected_ggHZZ_2l2l_NLO_NNPDF_NarrowWidth_13TeV.root',
+            gg_mode='NNLO_LO',
+            sample_name=sample,                      
+            apply_for_samples=list(APPLY_GGZZ_SAMPLES)
+        ),
+
+        QQZZKFactorProducer(
+            year=year,                                 
+            dataset_type=dataset_type,
+            json_table_path= base + 'qqzz_qcd_kfactors.json',
+            write_pt_branch=False,
+            write_dphi_branch=False,
+            sample_name=sample,                      
+            apply_for_samples=list(APPLY_QQZZ_SAMPLES)
+        ),
+    ],
     branchsel=keep_and_drop_input_branches,
     outputbranchsel=keep_and_drop_output_branches,
     postfix="_" + physics_process,
