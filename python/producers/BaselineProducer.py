@@ -310,7 +310,7 @@ class BaselineProducer(Module):
 
         if event.PV_npvsGood < 1: return False
 
-        # if event.MET_pt > 25: return False
+        if event.MET_pt > 25: return False
 
         # Apply trigger selections 
         if self._select_triggers(event) is False:
@@ -320,7 +320,7 @@ class BaselineProducer(Module):
         # if len(event.fullIDLeptons) < 4: return False 
         event.selectedLeptons = event.relaxedMuons + event.relaxedElectrons
 
-        if len(event.selectedLeptons) < 4: return False # For Z+L CR we need to change this to 3 
+        if len(event.selectedLeptons) < 3: return False # For Z+L CR we need to change this to 3 
 
         self._select_jets(event)
         
@@ -406,17 +406,17 @@ class BaselineProducer(Module):
 
             Zcand = Zcandidate(lep1, lep2, fsrPhotons, fsrIndices)
 
-            # num_passed_pt20 = 0
-            # num_passed_pt10 = 0
+            num_passed_pt20 = 0
+            num_passed_pt10 = 0
 
-            # for lep in [lep1,lep2]:
-            #     if lep.pt > 20:
-            #             num_passed_pt20 += 1
-            #     elif lep.pt > 10:
-            #             num_passed_pt10 += 1
+            for lep in [lep1,lep2]:
+                if lep.pt > 20:
+                        num_passed_pt20 += 1
+                elif lep.pt > 10:
+                        num_passed_pt10 += 1
 
-            # if num_passed_pt20 == 0 or (num_passed_pt10 + num_passed_pt20) < 2:
-            #     continue
+            if num_passed_pt20 == 0 or (num_passed_pt10 + num_passed_pt20) < 2:
+                continue
 
             if Zcand.mass < 12 or Zcand.mass > 120:
                 continue
